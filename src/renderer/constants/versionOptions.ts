@@ -2,6 +2,7 @@
 // Do not edit manually — updates will be applied by the scheduled workflow.
 export const VERSION_OPTIONS: string[] = [
   // initial values; workflow will overwrite this on first run
+  '1.21.11',
   '1.21.10',
   '1.21.9',
   '1.21.8',
