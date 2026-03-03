@@ -18,17 +18,16 @@ while IFS= read -r ext; do
 	if [[ -n "$ext" ]]; then
 		if command -v code >/dev/null 2>&1; then
 			if code --list-extensions | grep -Fxq "$ext"; then
-				echo "→ This extension is already installed. Skipping.: $ext"
+				echo "→ $ext is already installed. Skipped."
 			else
-				echo "→ Installing extension: $ext"
 				if code --install-extension "$ext"; then
-					echo "  ✅ Installed successfully: $ext"
+					echo "  ✅ Successfully installed: $ext"
 				else
 					echo "  ❌ Installation failed: $ext"
 				fi
 			fi
 		else
-			echo "⚠️  'code' command not available for installing extension: $ext"
+			echo "⚠️  'code' command not available. Please ensure Visual Studio Code is installed and the 'code' command is in your PATH."
 		fi
 		echo "----------------------------------------"
 	fi

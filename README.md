@@ -119,6 +119,34 @@ To create a production build:
 $ pnpm tauri build
 ```
 
+### Other commands
+
+
+1. **Format code**
+   ```bash
+   $ pnpm format
+   ```
+
+2. **Lint code**
+   ```bash
+   $ pnpm lint
+   ```
+
+3. **Check formatting and linting**
+   ```bash
+   $ pnpm biome:check
+   ```
+  
+4. **Format Rust**
+   ```bash
+   $ pnpm rustfmt
+   ```
+
+5. **Install recommended Extensions**
+   ```bash
+   $ pnpm install:extensions
+   ```
+
 This will generate platform-specific installers in `src-tauri/target/release/bundle/`.
 
 ### Project Structure

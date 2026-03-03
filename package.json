@@ -19,7 +19,8 @@
     "biome:check": "pnpx @biomejs/biome check",
     "prepare": "husky",
     "rustfmt": "cargo fmt --all",
-    "lint-staged": "lint-staged"
+    "lint-staged": "lint-staged",
+    "install:extensions": "./scripts/install-extensions.sh"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
