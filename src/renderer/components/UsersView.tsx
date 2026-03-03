@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { readJsonFile, writeJsonFile } from '../../lib/file-commands';
+import { sendCommand } from '../../lib/server-commands';
 import { type MinecraftServer } from '../components/../shared/server declaration';
 import { useToast } from './ToastProvider';
-import { sendCommand } from '../../lib/server-commands';
-import { readJsonFile, writeJsonFile } from '../../lib/file-commands';
 
 interface Props {
   server: MinecraftServer;
@@ -17,6 +17,7 @@ interface PlayerEntry {
   expires?: string;
   reason?: string;
   ip?: string;
+  bypassesPlayerLimit?: boolean;
 }
 
 type ListType = 'whitelist' | 'ops' | 'banned-players' | 'banned-ips';
@@ -97,7 +98,7 @@ export default function UsersView({ server }: Props) {
         break;
       case 'ops':
         currentList = [...ops];
-        newItem = { ...newItem, level: 4, bypassesPlayerLimit: false } as any;
+        newItem = { ...newItem, level: 4, bypassesPlayerLimit: false };
         break;
       case 'banned-players':
         currentList = [...bannedPlayers];

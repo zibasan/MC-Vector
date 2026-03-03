@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
 import type { FC } from 'react';
+import { useEffect, useState } from 'react';
 import { getServerRoot } from '../../lib/config-commands';
 import { VERSION_OPTIONS } from '../constants/versionOptions';
 
 interface AddServerModalProps {
   onClose: () => void;
-  onAdd: (serverData: any) => void;
+  onAdd: (serverData: unknown) => void;
 }
 
 const AddServerModal: FC<AddServerModalProps> = ({ onClose, onAdd }) => {

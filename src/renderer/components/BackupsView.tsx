@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
-import { type MinecraftServer } from '../shared/server declaration';
-import { useToast } from './ToastProvider';
+import { useEffect, useState } from 'react';
 import {
   createBackup,
+  deleteBackup,
   listBackupsWithMetadata,
   restoreBackup,
-  deleteBackup,
 } from '../../lib/backup-commands';
 import { listFiles } from '../../lib/file-commands';
+import { type MinecraftServer } from '../shared/server declaration';
+import { useToast } from './ToastProvider';
 
 interface Props {
   server: MinecraftServer;
@@ -103,9 +103,12 @@ export default function BackupsView({ server }: Props) {
   const togglePath = (node: FileNode, checked: boolean) => {
     const newSet = new Set(selectedPaths);
     const apply = (n: FileNode) => {
-      if (checked) newSet.add(n.path);
-      else newSet.delete(n.path);
-      if (n.children) n.children.forEach(apply);
+      if (checked) {
+        newSet.add(n.path);
+      } else newSet.delete(n.path);
+      if (n.children) {
+        n.children.forEach(apply);
+      }
     };
     apply(node);
     setSelectedPaths(newSet);
@@ -116,7 +119,9 @@ export default function BackupsView({ server }: Props) {
     const collect = (nodes: FileNode[]) =>
       nodes.forEach((n) => {
         all.add(n.path);
-        if (n.children) collect(n.children);
+        if (n.children) {
+          collect(n.children);
+        }
       });
     collect(tree);
     setSelectedPaths(all);
@@ -125,7 +130,9 @@ export default function BackupsView({ server }: Props) {
   const clearAll = () => setSelectedPaths(new Set());
 
   const handleCreateBackup = async () => {
-    if (processing) return;
+    if (processing) {
+      return;
+    }
     setProcessing(true);
     try {
       const backupName = customName.trim() || defaultName();
@@ -159,7 +166,9 @@ export default function BackupsView({ server }: Props) {
   };
 
   const formatSize = (bytes: number) => {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) {
+      return '0 B';
+    }
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));

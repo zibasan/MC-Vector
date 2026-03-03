@@ -21,9 +21,12 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run lint
-      - run: pnpm run format:check
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Biome — Version
+        run: pnpx @biomejs/biome --version
+      - name: Biome — Check (lint & format)
+        run: pnpx @biomejs/biome check --max-diagnostics 200
 
   build-check:
     runs-on: ${{ matrix.platform }}

@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn, type Event } from '@tauri-apps/api/event';
+import { type Event, listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 export async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   try {

@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
-import { useToast } from './ToastProvider';
+import { useEffect, useState } from 'react';
 import {
-  getJavaVersions,
-  downloadJava,
   deleteJava,
-  selectJavaBinary,
-  onJavaDownloadProgress,
+  downloadJava,
+  getJavaVersions,
   type JavaVersion,
+  onJavaDownloadProgress,
+  selectJavaBinary,
 } from '../../lib/java-commands';
+import { useToast } from './ToastProvider';
 
 interface Props {
   onClose: () => void;

@@ -1,48 +1,46 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './index.css';
-import { type MinecraftServer, type AppView } from './renderer/shared/server declaration';
-import DashboardView from './renderer/components/DashboardView';
-import ConsoleView from './renderer/components/ConsoleView';
-import ServerSettings from './renderer/components/properties/ServerSettings';
-import PropertiesView from './renderer/components/properties/PropertiesView';
-import FilesView from './renderer/components/FilesView';
-import PluginBrowser from './renderer/components/PluginBrowser';
-import BackupsView from './renderer/components/BackupsView';
-import UsersView from './renderer/components/UsersView';
-import ProxySetupView, { type ProxyNetworkConfig } from './renderer/components/ProxySetupView';
-import ProxyHelpView from './renderer/components/ProxyHelpView';
-import AddServerModal from './renderer/components/AddServerModal';
-import NgrokGuideView from './renderer/components/NgrokGuideView';
-import { useToast } from './renderer/components/ToastProvider';
-import SettingsWindow from './renderer/components/SettingsWindow';
-
+import iconBackups from './assets/icons/backups.svg';
+import iconConsole from './assets/icons/console.svg';
+import iconDashboard from './assets/icons/dashboard.svg';
+import iconFiles from './assets/icons/files.svg';
+import iconMenu from './assets/icons/menu.svg';
+import iconPlugins from './assets/icons/plugins.svg';
+import iconProperties from './assets/icons/properties.svg';
+import iconProxy from './assets/icons/proxy.svg';
+import iconSettings from './assets/icons/settings.svg';
+import iconUsers from './assets/icons/users.svg';
+import { getAppSettings } from './lib/config-commands';
+import { onNgrokStatusChange } from './lib/ngrok-commands';
 // Tauri API ラッパー
 import {
-  getServers,
   addServer as addServerApi,
-  updateServer as updateServerApi,
   deleteServer as deleteServerApi,
-  startServer as startServerApi,
-  stopServer as stopServerApi,
   downloadServerJar,
+  getServers,
+  onDownloadProgress,
   onServerLog,
   onServerStatusChange,
-  onDownloadProgress,
+  startServer as startServerApi,
+  stopServer as stopServerApi,
+  updateServer as updateServerApi,
 } from './lib/server-commands';
-import { getAppSettings } from './lib/config-commands';
 import { checkForUpdates, downloadAndInstallUpdate } from './lib/update-commands';
-import { onNgrokStatusChange } from './lib/ngrok-commands';
-
-import iconMenu from './assets/icons/menu.svg';
-import iconDashboard from './assets/icons/dashboard.svg';
-import iconConsole from './assets/icons/console.svg';
-import iconUsers from './assets/icons/users.svg';
-import iconFiles from './assets/icons/files.svg';
-import iconPlugins from './assets/icons/plugins.svg';
-import iconBackups from './assets/icons/backups.svg';
-import iconProperties from './assets/icons/properties.svg';
-import iconSettings from './assets/icons/settings.svg';
-import iconProxy from './assets/icons/proxy.svg';
+import AddServerModal from './renderer/components/AddServerModal';
+import BackupsView from './renderer/components/BackupsView';
+import ConsoleView from './renderer/components/ConsoleView';
+import DashboardView from './renderer/components/DashboardView';
+import FilesView from './renderer/components/FilesView';
+import NgrokGuideView from './renderer/components/NgrokGuideView';
+import PluginBrowser from './renderer/components/PluginBrowser';
+import ProxyHelpView from './renderer/components/ProxyHelpView';
+import ProxySetupView, { type ProxyNetworkConfig } from './renderer/components/ProxySetupView';
+import PropertiesView from './renderer/components/properties/PropertiesView';
+import ServerSettings from './renderer/components/properties/ServerSettings';
+import SettingsWindow from './renderer/components/SettingsWindow';
+import { useToast } from './renderer/components/ToastProvider';
+import UsersView from './renderer/components/UsersView';
+import { type AppView, type MinecraftServer } from './renderer/shared/server declaration';
 
 const TAB_CYCLE: AppView[] = [
   'dashboard',
@@ -55,6 +53,22 @@ const TAB_CYCLE: AppView[] = [
   'general-settings',
   'proxy',
 ];
+
+// 外部APIの簡易レスポンスタイプ
+type PaperBuildsResponse = {
+  builds?: Array<{ build: number; downloads?: { application?: { name?: string } } }>;
+};
+type MojangManifest = { versions?: Array<{ id: string; url: string }> };
+type VerDetail = { downloads?: { server?: { url?: string } } };
+type FabricLoader = Array<{ version: string }>;
+
+type NavItemProps = {
+  label: string;
+  view: AppView;
+  current: AppView;
+  set: React.Dispatch<React.SetStateAction<AppView>>;
+  iconSrc: string;
+};
 type AppTheme =
   | 'dark'
   | 'darkBlue'
@@ -202,20 +216,28 @@ function App() {
 
     const setupListeners = async () => {
       const u1 = await onServerLog((data) => {
-        if (cancelled) return;
-        if (!data || !data.serverId) return;
+        if (cancelled) {
+          return;
+        }
+        if (!data || !data.serverId) {
+          return;
+        }
         const formattedLog = data.line.replace(/\n/g, '\r\n');
         setServerLogs((prev) => {
           const currentLogs = prev[data.serverId] || [];
           const newLogs = [...currentLogs, formattedLog];
-          if (newLogs.length > 2000) newLogs.shift();
+          if (newLogs.length > 2000) {
+            newLogs.shift();
+          }
           return { ...prev, [data.serverId]: newLogs };
         });
       });
       unlisteners.push(u1);
 
       const u2 = await onDownloadProgress((data) => {
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         if (data.progress === 100) {
           setDownloadStatus(null);
           showToast(`ダウンロード完了: ${data.status}`, 'success');
@@ -226,15 +248,23 @@ function App() {
       unlisteners.push(u2);
 
       const u3 = await onServerStatusChange((data) => {
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         setServers((prev) =>
-          prev.map((s) => (s.id === data.serverId ? { ...s, status: data.status as any } : s))
+          prev.map((s) =>
+            s.id === data.serverId
+              ? { ...s, status: data.status as unknown as MinecraftServer['status'] }
+              : s
+          )
         );
       });
       unlisteners.push(u3);
 
       const u4 = await onNgrokStatusChange((data) => {
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         if (data.status === 'stopped' || data.status === 'error') {
           setNgrokData((prev) => ({ ...prev, [data.serverId ?? '']: null }));
         } else if (data.url && data.serverId) {
@@ -264,7 +294,10 @@ function App() {
   const activeServer = servers.find((s) => s.id === selectedServerId);
 
   const handleStart = async () => {
-    if (!activeServer) return;
+    if (!activeServer) {
+      showToast('サーバーが選択されていません', 'error');
+      return;
+    }
     setServers((prev) =>
       prev.map((s) => (s.id === selectedServerId ? { ...s, status: 'starting' } : s))
     );
@@ -293,7 +326,10 @@ function App() {
   };
 
   const handleRestart = async () => {
-    if (!activeServer) return;
+    if (!activeServer) {
+      showToast('サーバーが選択されていません', 'error');
+      return;
+    }
     setServers((prev) =>
       prev.map((s) => (s.id === selectedServerId ? { ...s, status: 'restarting' } : s))
     );
@@ -304,7 +340,9 @@ function App() {
     for (let i = 0; i < maxWait; i++) {
       await new Promise((r) => setTimeout(r, 1000));
       const running = await isServerRunning(selectedServerId);
-      if (!running) break;
+      if (!running) {
+        break;
+      }
     }
     const javaPath = activeServer.javaPath || 'java';
     const jarFile = activeServer.software === 'Forge' ? 'forge-server.jar' : 'server.jar';
@@ -323,10 +361,11 @@ function App() {
     showToast('設定を保存しました', 'success');
   };
 
-  const handleAddServer = async (serverData: any) => {
+  const handleAddServer = async (serverData: unknown) => {
     try {
+      const sd = serverData as Record<string, unknown>;
       const id = crypto.randomUUID();
-      const serverPath = serverData.path || '';
+      const serverPath = typeof sd.path === 'string' ? sd.path : '';
       if (!serverPath) {
         showToast('サーバーパスが空です', 'error');
         return;
@@ -338,14 +377,14 @@ function App() {
 
       const newServer: MinecraftServer = {
         id,
-        name: serverData.name,
-        version: serverData.version || '',
-        software: serverData.software || 'Vanilla',
-        port: serverData.port || 25565,
-        memory: (serverData.memory || 4) * 1024,
+        name: (sd.name as string) || 'New Server',
+        version: (sd.version as string) || '',
+        software: (sd.software as string) || 'Vanilla',
+        port: (sd.port as number) || 25565,
+        memory: ((sd.memory as number) || 4) * 1024,
         path: serverPath,
         status: 'offline',
-        javaPath: serverData.javaPath,
+        javaPath: (sd.javaPath as string) || undefined,
         createdDate: new Date().toISOString(),
       };
       await addServerApi(newServer);
@@ -355,8 +394,8 @@ function App() {
       showToast('サーバーを作成しました', 'success');
 
       // ダウンロードURL構築 & jarダウンロード
-      const sw = serverData.software || 'Vanilla';
-      const ver = serverData.version || '';
+      const sw = (sd.software as string) || 'Vanilla';
+      const ver = (sd.version as string) || '';
       let downloadUrl = '';
 
       try {
@@ -366,7 +405,7 @@ function App() {
           const buildsResp = await tauriFetch(
             `https://api.papermc.io/v2/projects/${project}/versions/${ver}/builds`
           );
-          const buildsData = (await buildsResp.json()) as any;
+          const buildsData = (await buildsResp.json()) as PaperBuildsResponse;
           if (buildsData.builds && buildsData.builds.length > 0) {
             const latestBuild = buildsData.builds[buildsData.builds.length - 1];
             const buildNum = latestBuild.build;
@@ -379,17 +418,17 @@ function App() {
           const manifestResp = await tauriFetch(
             'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
           );
-          const manifest = (await manifestResp.json()) as any;
-          const verInfo = manifest.versions?.find((v: any) => v.id === ver);
+          const manifest = (await manifestResp.json()) as MojangManifest;
+          const verInfo = manifest.versions?.find((v) => v.id === ver);
           if (verInfo) {
             const verDetailResp = await tauriFetch(verInfo.url);
-            const verDetail = (await verDetailResp.json()) as any;
+            const verDetail = (await verDetailResp.json()) as VerDetail;
             downloadUrl = verDetail.downloads?.server?.url || '';
           }
         } else if (sw === 'Fabric') {
           const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http');
           const loaderResp = await tauriFetch('https://meta.fabricmc.net/v2/versions/loader');
-          const loaders = (await loaderResp.json()) as any[];
+          const loaders = (await loaderResp.json()) as FabricLoader;
           const latestLoader = loaders?.[0]?.version || '';
           if (latestLoader) {
             downloadUrl = `https://meta.fabricmc.net/v2/versions/loader/${ver}/${latestLoader}/1.0.1/server/jar`;
@@ -424,7 +463,9 @@ function App() {
       '構成を開始しますか？各サーバーの server.properties を書き換えます。',
       { title: 'プロキシ構成', kind: 'info' }
     );
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
     try {
       const { readFileContent, saveFileContent } = await import('./lib/file-commands');
       const backendServers = servers.filter((s) => _config.backendServerIds.includes(s.id));
@@ -517,7 +558,9 @@ function App() {
       title: 'サーバー削除',
       kind: 'warning',
     });
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     try {
       const success = await deleteServerApi(serverId);
@@ -536,13 +579,16 @@ function App() {
       } else {
         showToast('削除に失敗しました', 'error');
       }
-    } catch {
+    } catch (e) {
+      console.error('Delete server error:', e);
       showToast('削除エラー', 'error');
     }
   };
 
   const handleClickOutside = () => {
-    if (contextMenu) setContextMenu(null);
+    if (contextMenu) {
+      setContextMenu(null);
+    }
   };
 
   const resolvedTheme: AppTheme =
@@ -647,7 +693,7 @@ function App() {
     }
     if (Array.isArray(notes)) {
       return notes
-        .map((entry: any) => {
+        .map((entry: unknown) => {
           if (typeof entry === 'string') {
             return entry;
           }
@@ -655,9 +701,9 @@ function App() {
             entry &&
             typeof entry === 'object' &&
             'body' in entry &&
-            typeof (entry as any).body === 'string'
+            typeof (entry as Record<string, unknown>).body === 'string'
           ) {
-            return (entry as any).body as string;
+            return (entry as Record<string, unknown>).body as string;
           }
           return '';
         })
@@ -1018,7 +1064,7 @@ function App() {
   );
 }
 
-function NavItem({ label, view, current, set, iconSrc }: any) {
+function NavItem({ label, view, current, set, iconSrc }: NavItemProps) {
   const isOpen = !!label;
   const isActive = current === view;
 

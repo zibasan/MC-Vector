@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { readFileContent, saveFileContent } from '../../../lib/file-commands';
 import { type MinecraftServer } from '../../shared/server declaration';
 import { useToast } from '../ToastProvider';
-import { readFileContent, saveFileContent } from '../../../lib/file-commands';
 import AdvancedSettingsWindow from './AdvancedSettingsWindow';
 
 interface Props {
@@ -46,11 +46,15 @@ export default function PropertiesView({ server }: Props) {
             if (key) {
               const value = vals.join('=');
               const cleaned = value.trim();
-              if (cleaned === 'true') newProps[key.trim()] = true;
-              else if (cleaned === 'false') newProps[key.trim()] = false;
-              else if (!isNaN(Number(cleaned)) && cleaned !== '')
+              if (cleaned === 'true') {
+                newProps[key.trim()] = true;
+              } else if (cleaned === 'false') {
+                newProps[key.trim()] = false;
+              } else if (!isNaN(Number(cleaned)) && cleaned !== '') {
                 newProps[key.trim()] = Number(cleaned);
-              else newProps[key.trim()] = cleaned;
+              } else {
+                newProps[key.trim()] = cleaned;
+              }
             }
           }
         });

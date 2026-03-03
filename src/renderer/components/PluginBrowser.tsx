@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
+import { deleteItem, listFiles } from '../../lib/file-commands';
+import {
+  installHangarProject,
+  installModrinthProject,
+  searchHangar,
+  searchModrinth,
+} from '../../lib/plugin-commands';
 import { type MinecraftServer } from '../components/../shared/server declaration';
 import { useToast } from './ToastProvider';
-import { listFiles, deleteItem } from '../../lib/file-commands';
-import {
-  searchModrinth,
-  searchHangar,
-  installModrinthProject,
-  installHangarProject,
-} from '../../lib/plugin-commands';
 
 interface Props {
   server: MinecraftServer;
@@ -23,7 +23,7 @@ interface ProjectItem {
   stars?: number;
   platform: 'Modrinth' | 'Hangar' | 'Spigot';
   slug?: string;
-  source_obj: any;
+  source_obj: Record<string, unknown>;
 }
 
 export default function PluginBrowser({ server }: Props) {
@@ -64,8 +64,8 @@ export default function PluginBrowser({ server }: Props) {
     refreshInstalled();
   }, [server.id, server.path, isModServer]);
 
-  const normalize = (text?: string) =>
-    (text || '')
+  const normalize = (text?: unknown) =>
+    String(text ?? '')
       .toLowerCase()
       .replace(/\.[^.]+$/, '')
       .replace(/[^a-z0-9]/g, '');
@@ -85,7 +85,7 @@ export default function PluginBrowser({ server }: Props) {
     // Strategy 2: case-insensitive plain name matching (less aggressive)
     const plainCandidates = [item.slug, item.title, item.source_obj?.slug]
       .filter(Boolean)
-      .map((s: string) => s.toLowerCase());
+      .map((s) => String(s).toLowerCase());
 
     return (
       installedFiles.find((file) => {
@@ -117,33 +117,41 @@ export default function PluginBrowser({ server }: Props) {
         const result = await searchModrinth(query, facets, offset);
         const hits = result.hits;
 
-        items = hits.map((h: any) => ({
-          id: h.project_id,
-          title: h.title,
-          description: h.description,
-          author: h.author,
-          icon_url: h.icon_url,
-          downloads: h.downloads,
-          slug: h.slug || h.project_id,
-          platform: 'Modrinth',
-          source_obj: h,
-        }));
+        items = hits.map((h: unknown) => {
+          const hh = h as Record<string, unknown>;
+          return {
+            id: (hh.project_id as string) || '',
+            title: (hh.title as string) || '',
+            description: (hh.description as string) || '',
+            author: (hh.author as string) || '',
+            icon_url: (hh.icon_url as string) || undefined,
+            downloads: (hh.downloads as number) || undefined,
+            slug: (hh.slug as string) || (hh.project_id as string) || '',
+            platform: 'Modrinth',
+            source_obj: hh,
+          } as ProjectItem;
+        });
       } else if (platform === 'Hangar') {
         const data = await searchHangar(query, server.version, offset);
         const hits = data.result;
 
-        items = hits.map((h: any) => ({
-          id: h.name,
-          title: h.name,
-          description: h.description,
-          author: h.namespace.owner,
-          icon_url: h.avatarUrl,
-          stars: h.stats.stars,
-          downloads: h.stats.downloads,
-          slug: h.namespace?.slug || h.name,
-          platform: 'Hangar',
-          source_obj: h,
-        }));
+        items = hits.map((h: unknown) => {
+          const hh = h as Record<string, unknown>;
+          const namespace = hh.namespace as Record<string, unknown> | undefined;
+          const stats = hh.stats as Record<string, unknown> | undefined;
+          return {
+            id: (hh.name as string) || '',
+            title: (hh.name as string) || '',
+            description: (hh.description as string) || '',
+            author: (namespace?.owner as string) || '',
+            icon_url: (hh.avatarUrl as string) || undefined,
+            stars: (stats?.stars as number) || undefined,
+            downloads: (stats?.downloads as number) || undefined,
+            slug: (namespace?.slug as string) || (hh.name as string) || '',
+            platform: 'Hangar',
+            source_obj: hh,
+          } as ProjectItem;
+        });
       }
 
       setResults(items);
@@ -196,8 +204,8 @@ export default function PluginBrowser({ server }: Props) {
           'success'
         );
       } else if (item.platform === 'Hangar') {
-        const author = item.source_obj.namespace.owner;
-        const slug = item.source_obj.namespace.slug;
+        const author = item.author || '';
+        const slug = item.slug || '';
         const res = await fetch(
           `https://hangar.papermc.io/api/v1/projects/${author}/${slug}/versions?limit=1&platform=PAPER&platformVersion=${server.version}`
         );
@@ -252,7 +260,7 @@ export default function PluginBrowser({ server }: Props) {
             className="input-field w-[150px]"
             value={platform}
             onChange={(e) => {
-              setPlatform(e.target.value as any);
+              setPlatform(e.target.value as unknown as typeof platform);
               setPage(0);
             }}
           >

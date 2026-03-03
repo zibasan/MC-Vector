@@ -1,9 +1,9 @@
-import { tauriInvoke, tauriListen, type UnlistenFn } from './tauri-api';
-import { load } from '@tauri-apps/plugin-store';
+import { appDataDir } from '@tauri-apps/api/path';
 import { open } from '@tauri-apps/plugin-dialog';
 import { remove } from '@tauri-apps/plugin-fs';
-import { appDataDir } from '@tauri-apps/api/path';
-import { platform, arch } from '@tauri-apps/plugin-os';
+import { arch, platform } from '@tauri-apps/plugin-os';
+import { load } from '@tauri-apps/plugin-store';
+import { tauriInvoke, tauriListen, type UnlistenFn } from './tauri-api';
 
 const STORE_NAME = 'config.json';
 

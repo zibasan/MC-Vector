@@ -1,31 +1,30 @@
-import { useState, useEffect } from 'react';
-import type * as React from 'react';
 import Editor from '@monaco-editor/react';
-import { type MinecraftServer } from '../components/../shared/server declaration';
-import { useToast } from './ToastProvider';
+import type * as React from 'react';
+import { useEffect, useState } from 'react';
+import iconFile from '../../assets/icons/file.svg';
+import iconFiles from '../../assets/icons/files.svg';
+import iconFolder from '../../assets/icons/folder.svg';
+import iconImport from '../../assets/icons/import.svg';
+import iconMove from '../../assets/icons/move.svg';
+import iconOpenLocation from '../../assets/icons/open-folder.svg';
+import iconTrash from '../../assets/icons/trash.svg';
+import iconUnzip from '../../assets/icons/unzip.svg';
+import iconZip from '../../assets/icons/zip.svg';
+import { getServerRoot } from '../../lib/config-commands';
 import {
+  compressItem,
+  createFolder,
+  deleteItem,
+  extractItem,
+  importFilesDialog,
   listFilesWithMetadata,
+  moveItem,
+  openInFinder,
   readFileContent,
   saveFileContent,
-  deleteItem,
-  createFolder,
-  importFilesDialog,
-  moveItem,
-  compressItem,
-  extractItem,
-  openInFinder,
 } from '../../lib/file-commands';
-import { getServerRoot } from '../../lib/config-commands';
-
-import iconFolder from '../../assets/icons/folder.svg';
-import iconFile from '../../assets/icons/file.svg';
-import iconOpenLocation from '../../assets/icons/open-folder.svg';
-import iconMove from '../../assets/icons/move.svg';
-import iconZip from '../../assets/icons/zip.svg';
-import iconUnzip from '../../assets/icons/unzip.svg';
-import iconTrash from '../../assets/icons/trash.svg';
-import iconFiles from '../../assets/icons/files.svg';
-import iconImport from '../../assets/icons/import.svg';
+import { type MinecraftServer } from '../components/../shared/server declaration';
+import { useToast } from './ToastProvider';
 
 interface Props {
   server: MinecraftServer;
@@ -84,7 +83,9 @@ export default function FilesView({ server }: Props) {
   };
 
   const renderBreadcrumbs = () => {
-    if (!serversRootAbsPath) return <span className="font-mono">Loading...</span>;
+    if (!serversRootAbsPath) {
+      return <span className="font-mono">Loading...</span>;
+    }
 
     const normalizedCurrent = currentPath.replace(/\\/g, '/');
     const normalizedRoot = serversRootAbsPath.replace(/\\/g, '/');
@@ -165,8 +166,9 @@ export default function FilesView({ server }: Props) {
 
   const handleFileDoubleClick = async (fileName: string) => {
     const target = files.find((f) => f.name === fileName);
-    if (!target) return;
-
+    if (!target) {
+      return;
+    }
     if (target.isDirectory) {
       const newPath = `${currentPath}/${fileName}`.replace(/\/+/g, '/');
       const normalizedNewPath = newPath.replace(/\\/g, '/');
@@ -188,7 +190,9 @@ export default function FilesView({ server }: Props) {
   };
 
   const handleGoUp = () => {
-    if (currentPath === server.path) return;
+    if (currentPath === server.path) {
+      return;
+    }
     const parent = currentPath.split('/').slice(0, -1).join('/') || server.path;
     const normalizedParent = parent.replace(/\\/g, '/');
     const normalizedServerPath = server.path.replace(/\\/g, '/');
@@ -201,7 +205,9 @@ export default function FilesView({ server }: Props) {
   };
 
   const handleSaveFile = async () => {
-    if (!editingFile) return;
+    if (!editingFile) {
+      return;
+    }
     setIsSaving(true);
     try {
       await saveFileContent(`${currentPath}/${editingFile}`, fileContent);
@@ -218,8 +224,12 @@ export default function FilesView({ server }: Props) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const isSave = (e.metaKey || e.ctrlKey) && e.key === 's';
-      if (!isSave) return;
-      if (!isEditorOpen) return;
+      if (!isSave) {
+        return;
+      }
+      if (!isEditorOpen) {
+        return;
+      }
       e.preventDefault();
       handleSaveFile();
     };
@@ -236,13 +246,17 @@ export default function FilesView({ server }: Props) {
   };
 
   const handleDelete = async () => {
-    if (selectedFiles.length === 0) return;
+    if (selectedFiles.length === 0) {
+      return;
+    }
     const { ask } = await import('@tauri-apps/plugin-dialog');
     const confirmed = await ask(`${selectedFiles.length}個の項目を削除しますか？`, {
       title: 'ファイル削除',
       kind: 'warning',
     });
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     try {
       for (const name of selectedFiles) {
@@ -259,7 +273,9 @@ export default function FilesView({ server }: Props) {
   };
 
   const handleCreate = async () => {
-    if (!newFileName) return;
+    if (!newFileName) {
+      return;
+    }
     const target = `${currentPath}/${newFileName}`;
 
     try {
@@ -289,7 +305,9 @@ export default function FilesView({ server }: Props) {
   };
 
   const handleMove = async () => {
-    if (!moveDestPath) return;
+    if (!moveDestPath) {
+      return;
+    }
 
     let realDest = moveDestPath.replace(/\\/g, '/');
     const normalizedRoot = serversRootAbsPath.replace(/\\/g, '/');
@@ -327,7 +345,9 @@ export default function FilesView({ server }: Props) {
   };
 
   const handleRename = async () => {
-    if (!renameFileName || !contextMenu?.file) return;
+    if (!renameFileName || !contextMenu?.file) {
+      return;
+    }
     const src = `${currentPath}/${contextMenu.file.name}`;
     const dest = `${currentPath}/${renameFileName}`;
     try {
@@ -343,7 +363,9 @@ export default function FilesView({ server }: Props) {
   };
 
   const handleZip = async () => {
-    if (selectedFiles.length === 0) return;
+    if (selectedFiles.length === 0) {
+      return;
+    }
     const targets = selectedFiles.map((f) => `${currentPath}/${f}`);
     const dest = `${currentPath}/archive-${Date.now()}.zip`;
     try {
@@ -358,7 +380,9 @@ export default function FilesView({ server }: Props) {
   };
 
   const handleUnzip = async () => {
-    if (selectedFiles.length === 0) return;
+    if (selectedFiles.length === 0) {
+      return;
+    }
     try {
       for (const f of selectedFiles) {
         if (f.endsWith('.zip')) {
@@ -393,8 +417,8 @@ export default function FilesView({ server }: Props) {
         await moveItem(src, dest);
         loadFiles(currentPath);
       }
-    } catch {
-      // Ignore drag-drop errors
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -496,7 +520,6 @@ export default function FilesView({ server }: Props) {
               <input
                 type="checkbox"
                 checked={selectedFiles.includes(file.name)}
-                onChange={() => {}}
                 onClick={(e) => handleCheckboxClick(file.name, e)}
                 className="cursor-pointer mr-2.5 ml-2.5"
               />

@@ -1,5 +1,5 @@
-import { load } from '@tauri-apps/plugin-store';
 import { appDataDir } from '@tauri-apps/api/path';
+import { load } from '@tauri-apps/plugin-store';
 
 const STORE_NAME = 'config.json';
 

@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  serverPropertiesList,
   type PropertyCategory,
   type PropertyDefinition,
+  serverPropertiesList,
 } from '../../shared/propertiesData';
 
 const CATEGORY_ORDER: PropertyCategory[] = [
@@ -50,7 +50,9 @@ export default function AdvancedSettingsWindow({
     const known = new Set(serverPropertiesList.map((p) => p.key));
     const inferred: PropertyDefinition[] = [];
     Object.entries(formData).forEach(([key, value]) => {
-      if (known.has(key)) return;
+      if (known.has(key)) {
+        return;
+      }
       const valueType =
         typeof value === 'boolean' ? 'boolean' : typeof value === 'number' ? 'number' : 'string';
       inferred.push({
@@ -59,7 +61,7 @@ export default function AdvancedSettingsWindow({
         description: 'server.properties に存在する項目です。',
         type: valueType as PropertyDefinition['type'],
         category: 'Advanced',
-        default: (value as any) ?? '',
+        default: String(value ?? ''),
       });
     });
     return inferred;
@@ -127,7 +129,9 @@ export default function AdvancedSettingsWindow({
     );
   };
 
-  if (!isLoaded) return <div className="p-5 text-white">Loading settings...</div>;
+  if (!isLoaded) {
+    return <div className="p-5 text-white">Loading settings...</div>;
+  }
 
   return (
     <div className="fixed inset-0 bg-bg-primary z-2000 flex flex-col animate-fadeIn">

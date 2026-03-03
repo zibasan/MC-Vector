@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
-import { type MinecraftServer } from '../components/../shared/server declaration';
-import { tauriListen } from '../../lib/tauri-api';
+import { useEffect, useState } from 'react';
 import {
-  AreaChart,
   Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
 } from 'recharts';
+import { tauriListen } from '../../lib/tauri-api';
+import { type MinecraftServer } from '../components/../shared/server declaration';
 
 interface Props {
   server: MinecraftServer;
@@ -23,7 +23,9 @@ export default function DashboardView({ server }: Props) {
   useEffect(() => {
     let unlisten: (() => void) | undefined;
     tauriListen<{ serverId: string; cpu: number; memory: number }>('server-stats', (data) => {
-      if (data.serverId !== server.id) return;
+      if (data.serverId !== server.id) {
+        return;
+      }
 
       const now = new Date().toLocaleTimeString();
       const cpuVal = Math.round(data.cpu * 10) / 10;
@@ -34,7 +36,9 @@ export default function DashboardView({ server }: Props) {
 
       setStats((prev) => {
         const newData = [...prev, { time: now, cpu: cpuVal, memory: memVal }];
-        if (newData.length > 20) newData.shift();
+        if (newData.length > 20) {
+          newData.shift();
+        }
         return newData;
       });
     }).then((u) => {

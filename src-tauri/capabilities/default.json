@@ -48,11 +48,7 @@
     "shell:allow-stdin-write",
     {
       "identifier": "fs:scope",
-      "allow": [
-        { "path": "$APPDATA/**" },
-        { "path": "$APPLOCALDATA/**" },
-        { "path": "$HOME/**" }
-      ]
+      "allow": [{ "path": "$APPDATA/**" }, { "path": "$APPLOCALDATA/**" }, { "path": "$HOME/**" }]
     },
     "fs:read-all",
     "fs:write-all"

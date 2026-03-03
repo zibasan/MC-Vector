@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
 import type { FC } from 'react';
-import { type MinecraftServer } from '../components/../shared/server declaration';
-import { tauriListen } from '../../lib/tauri-api';
+import { useEffect, useRef, useState } from 'react';
 import { sendCommand } from '../../lib/server-commands';
+import { tauriListen } from '../../lib/tauri-api';
+import { type MinecraftServer } from '../components/../shared/server declaration';
 
 type AnsiStyle = {
   color?: string;
@@ -54,14 +54,15 @@ const ANSI_BG_MAP: Record<string, string> = {
 };
 
 const ansiToSegments = (text: string): AnsiSegment[] => {
-  // eslint-disable-next-line no-control-regex
-  const regex = /\x1b\[[0-9;]*m/g;
+  const regex = new RegExp(String.fromCharCode(27) + '\\[[0-9;]*m', 'g');
   let currentStyle: AnsiStyle = {};
   let lastIndex = 0;
   const segments: AnsiSegment[] = [];
 
   const pushText = (end: number) => {
-    if (end <= lastIndex) return;
+    if (end <= lastIndex) {
+      return;
+    }
     segments.push({ text: text.slice(lastIndex, end), style: { ...currentStyle } });
     lastIndex = end;
   };
@@ -108,8 +109,12 @@ const ansiToSegments = (text: string): AnsiSegment[] => {
 
 const getSeverityStyle = (text: string): AnsiStyle | undefined => {
   const upper = text.toUpperCase();
-  if (upper.includes('ERROR')) return { color: '#ef4444', fontWeight: 700 };
-  if (upper.includes('WARN')) return { color: '#f59e0b', fontWeight: 700 };
+  if (upper.includes('ERROR')) {
+    return { color: '#ef4444', fontWeight: 700 };
+  }
+  if (upper.includes('WARN')) {
+    return { color: '#f59e0b', fontWeight: 700 };
+  }
   return undefined;
 };
 
@@ -156,13 +161,17 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, logs, ngrokUrl }) => {
   }, [server.id]);
 
   const handleSend = () => {
-    if (!command.trim()) return;
+    if (!command.trim()) {
+      return;
+    }
     sendCommand(server.id, command);
     setCommand('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSend();
+    if (e.key === 'Enter') {
+      handleSend();
+    }
   };
 
   const localAddress = `localhost:${server.port}`;
@@ -240,7 +249,9 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, logs, ngrokUrl }) => {
               return ansiToSegments(log).map((seg, i) => {
                 const style = { ...seg.style } as AnsiStyle;
                 if (severityStyle) {
-                  if (!style.color) style.color = severityStyle.color;
+                  if (!style.color) {
+                    style.color = severityStyle.color;
+                  }
                   if (!style.fontWeight) style.fontWeight = severityStyle.fontWeight;
                 }
                 return (

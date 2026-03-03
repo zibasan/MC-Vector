@@ -88,7 +88,7 @@
   }
 
   .slider:before {
-    content: '';
+    content: "";
     @apply absolute h-4 w-4 left-1 top-1 bg-text-secondary transition-all rounded-full;
   }
 

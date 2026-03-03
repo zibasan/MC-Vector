@@ -1,11 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { getJavaVersions, type JavaVersion } from '../../../lib/java-commands';
+import {
+  clearNgrokToken,
+  hasNgrokToken,
+  onNgrokStatusChange,
+  startNgrok,
+  stopNgrok,
+} from '../../../lib/ngrok-commands';
 import { type MinecraftServer } from '../../components/../shared/server declaration';
 import { VERSION_OPTIONS } from '../../constants/versionOptions';
 import JavaManagerModal from '../JavaManagerModal';
 import { useToast } from '../ToastProvider';
-import { getJavaVersions, type JavaVersion } from '../../../lib/java-commands';
-import { startNgrok, stopNgrok, hasNgrokToken, clearNgrokToken } from '../../../lib/ngrok-commands';
-import { onNgrokStatusChange } from '../../../lib/ngrok-commands';
 
 interface ServerSettingsProps {
   server: MinecraftServer;
@@ -14,12 +19,12 @@ interface ServerSettingsProps {
 
 const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
   const [name, setName] = useState(server.name);
-  const [software, setSoftware] = useState((server as any).software || 'Paper');
+  const [software, setSoftware] = useState(server.software || 'Paper');
   const [version, setVersion] = useState(server.version);
   const [memory, setMemory] = useState(server.memory);
   const [port, setPort] = useState(server.port);
   const [path, setPath] = useState(server.path);
-  const [javaPath, setJavaPath] = useState((server as any).javaPath || '');
+  const [javaPath, setJavaPath] = useState(server.javaPath || '');
 
   const [showJavaManager, setShowJavaManager] = useState(false);
   const [installedJava, setInstalledJava] = useState<JavaVersion[]>([]);
@@ -41,8 +46,12 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
     setMemory(server.memory);
     setPort(server.port);
     setPath(server.path);
-    if ((server as any).software) setSoftware((server as any).software);
-    if ((server as any).javaPath) setJavaPath((server as any).javaPath);
+    if (server.software) {
+      setSoftware(server.software);
+    }
+    if (server.javaPath) {
+      setJavaPath(server.javaPath);
+    }
 
     loadJavaList();
 
@@ -57,12 +66,16 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
     let unlisten: (() => void) | undefined;
     onNgrokStatusChange((data) => {
       if (data.serverId === server.id) {
-        if (data.status === 'connecting' || data.status === 'connected') setIsTunneling(true);
+        if (data.status === 'connecting' || data.status === 'connected') {
+          setIsTunneling(true);
+        }
         if (data.status === 'stopped' || data.status === 'error') {
           setIsTunneling(false);
           setTunnelUrl(null);
         }
-        if (data.url) setTunnelUrl(data.url);
+        if (data.url) {
+          setTunnelUrl(data.url);
+        }
       }
     }).then((u) => {
       unlisten = u;
@@ -90,7 +103,8 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
       memory,
       port,
       path,
-      ...({ software, javaPath } as any),
+      software,
+      javaPath: javaPath || undefined,
     });
   };
 
@@ -126,7 +140,9 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
   };
 
   const handleTokenSubmit = async () => {
-    if (!inputToken) return;
+    if (!inputToken) {
+      return;
+    }
     const { setNgrokToken } = await import('../../../lib/ngrok-commands');
     await setNgrokToken(inputToken);
     setShowTokenModal(false);

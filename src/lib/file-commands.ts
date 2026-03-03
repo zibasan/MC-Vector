@@ -1,14 +1,14 @@
+import { open } from '@tauri-apps/plugin-dialog';
 import {
-  readDir,
-  readTextFile,
-  writeTextFile,
-  mkdir,
-  remove,
-  rename,
   copyFile,
   type DirEntry,
+  mkdir,
+  readDir,
+  readTextFile,
+  remove,
+  rename,
+  writeTextFile,
 } from '@tauri-apps/plugin-fs';
-import { open } from '@tauri-apps/plugin-dialog';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { tauriInvoke } from './tauri-api';
 

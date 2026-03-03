@@ -8,8 +8,8 @@
  * - Emits the top 3 detected versions on stdout as JSON for the workflow to capture
  */
 
-import https from 'https';
 import fs from 'fs';
+import https from 'https';
 import path from 'path';
 import { fileURLToPath } from 'url';
 

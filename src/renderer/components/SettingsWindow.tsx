@@ -43,9 +43,9 @@ function normalizeReleaseNotes(notes: unknown): string {
           entry &&
           typeof entry === 'object' &&
           'body' in entry &&
-          typeof (entry as any).body === 'string'
+          typeof (entry as Record<string, unknown>).body === 'string'
         ) {
-          return (entry as any).body as string;
+          return (entry as Record<string, unknown>).body as string;
         }
         return '';
       })
