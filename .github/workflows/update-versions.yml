@@ -19,7 +19,7 @@ jobs:
       - name: Record start time
         id: start_time
         run: |
-          START_TIME=$(date -u +"${GITHUB_SERVER_URL}%Y-%m-%dT%H:%M:%SZ")
+          START_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           echo "timestamp=$START_TIME" >> $GITHUB_OUTPUT
           echo "start_epoch=$(date +%s)" >> $GITHUB_OUTPUT
 
@@ -90,11 +90,13 @@ jobs:
             STATUS_DESC="新しい Minecraft バージョンが検知されました"
             PR_LINK="${{ github.server_url }}/${{ github.repository }}/pull/${{ steps.pr.outputs.pull_request_number }}"
             PR_FIELD="[PR #${{ steps.pr.outputs.pull_request_number }}]($PR_LINK)"
+            DETECTED_FIELD="${{ steps.parse.outputs.detected_display }}"
           else
             STATUS_COLOR=9807270
             STATUS_TITLE="ℹ️ 更新なし"
             STATUS_DESC="新しいバージョンは検知されませんでした"
             PR_FIELD="なし"
+            DETECTED_FIELD="なし"
           fi
 
           PAYLOAD=$(cat <<EOF
@@ -106,7 +108,7 @@ jobs:
               "fields": [
                 {
                   "name": "🔍 検知バージョン",
-                  "value": "${{ steps.parse.outputs.detected_display || 'なし' }}",
+                  "value": "$DETECTED_FIELD",
                   "inline": false
                 },
                 {
