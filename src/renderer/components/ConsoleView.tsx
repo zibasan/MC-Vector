@@ -167,6 +167,9 @@ interface ConsoleViewProps {
 
 const ConsoleView: FC<ConsoleViewProps> = ({ server, logs, ngrokUrl }) => {
   const [command, setCommand] = useState('');
+  const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const [historyCursor, setHistoryCursor] = useState(-1);
+  const [historyDraft, setHistoryDraft] = useState('');
   const logEndRef = useRef<HTMLDivElement>(null);
   const [currentAddressIndex, setCurrentAddressIndex] = useState(0);
   const [memoryUsage, setMemoryUsage] = useState(0);
@@ -298,16 +301,72 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, logs, ngrokUrl }) => {
   }, [server.id]);
 
   const handleSend = () => {
-    if (!command.trim()) {
+    const normalizedCommand = command.trim();
+    if (!normalizedCommand) {
       return;
     }
-    sendCommand(server.id, command);
+
+    sendCommand(server.id, normalizedCommand);
+    setCommandHistory((prev) => {
+      const next = [...prev];
+      if (next[next.length - 1] !== normalizedCommand) {
+        next.push(normalizedCommand);
+      }
+      if (next.length > 100) {
+        next.shift();
+      }
+      return next;
+    });
+    setHistoryCursor(-1);
+    setHistoryDraft('');
     setCommand('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSend();
+      return;
+    }
+
+    if (e.key === 'ArrowUp') {
+      if (commandHistory.length === 0) {
+        return;
+      }
+
+      e.preventDefault();
+
+      if (historyCursor === -1) {
+        setHistoryDraft(command);
+        const nextIndex = commandHistory.length - 1;
+        setHistoryCursor(nextIndex);
+        setCommand(commandHistory[nextIndex] ?? '');
+        return;
+      }
+
+      if (historyCursor > 0) {
+        const nextIndex = historyCursor - 1;
+        setHistoryCursor(nextIndex);
+        setCommand(commandHistory[nextIndex] ?? '');
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      if (commandHistory.length === 0 || historyCursor === -1) {
+        return;
+      }
+
+      e.preventDefault();
+
+      if (historyCursor < commandHistory.length - 1) {
+        const nextIndex = historyCursor + 1;
+        setHistoryCursor(nextIndex);
+        setCommand(commandHistory[nextIndex] ?? '');
+        return;
+      }
+
+      setHistoryCursor(-1);
+      setCommand(historyDraft);
     }
   };
 
@@ -508,7 +567,12 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, logs, ngrokUrl }) => {
         <input
           type="text"
           value={command}
-          onChange={(e) => setCommand(e.target.value)}
+          onChange={(e) => {
+            setCommand(e.target.value);
+            if (historyCursor !== -1) {
+              setHistoryCursor(-1);
+            }
+          }}
           onKeyDown={handleKeyDown}
           placeholder="Type a command..."
           className="console-view__command-input"
@@ -516,6 +580,8 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, logs, ngrokUrl }) => {
         <button onClick={handleSend} className="console-view__send-button">
           Send
         </button>
+
+        <div className="console-view__history-hint">↑ / ↓ History</div>
 
         <div className="console-view__filter-wrap">
           <span className="console-view__filter-label">Level</span>

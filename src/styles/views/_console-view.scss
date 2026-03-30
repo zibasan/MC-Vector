@@ -164,4 +164,9 @@
     @apply bg-accent text-white border-none py-2.5 px-5 rounded-md ml-3 font-bold text-sm transition-colors;
     @apply hover:bg-accent-hover;
   }
+
+  .console-view__history-hint {
+    @apply text-[11px] font-semibold ml-3;
+    color: #8b9bb4;
+  }
 }
