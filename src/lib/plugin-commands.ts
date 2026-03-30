@@ -14,6 +14,26 @@ export interface ModrinthProject {
   project_type: string;
 }
 
+export interface ModrinthDependency {
+  dependencyType: string;
+  projectId: string | null;
+  versionId: string | null;
+  fileName: string | null;
+}
+
+export interface ModrinthVersion {
+  id: string;
+  fileName: string;
+  gameVersions: string[];
+  dependencies: ModrinthDependency[];
+}
+
+export interface ModrinthProjectIdentity {
+  id: string;
+  slug: string;
+  title: string;
+}
+
 export interface HangarProject {
   name: string;
   namespace: { owner: string; slug: string };
@@ -39,6 +59,8 @@ export interface HangarResolvedDownload {
   fileName: string;
   downloadUrl: string | null;
   externalUrl: string | null;
+  compatible: boolean;
+  supportedVersions: string[];
 }
 
 export interface SpigetResource {
@@ -124,6 +146,97 @@ function parseHangarProject(project: unknown): HangarProject | null {
     },
     description: asString(project.description),
     avatarUrl: asString(project.avatarUrl),
+  };
+}
+
+function parseModrinthDependency(value: unknown): ModrinthDependency | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const dependencyType = asString(value.dependency_type);
+  if (!dependencyType) {
+    return null;
+  }
+
+  const projectId = asString(value.project_id);
+  const versionId = asString(value.version_id);
+  const fileName = asString(value.file_name);
+
+  return {
+    dependencyType,
+    projectId: projectId || null,
+    versionId: versionId || null,
+    fileName: fileName || null,
+  };
+}
+
+function parseModrinthVersion(version: unknown): ModrinthVersion | null {
+  if (!isRecord(version)) {
+    return null;
+  }
+
+  const id = asString(version.id);
+  if (!id) {
+    return null;
+  }
+
+  const filesRaw = Array.isArray(version.files) ? version.files : [];
+  let fileName = '';
+  for (const fileEntry of filesRaw) {
+    if (!isRecord(fileEntry)) {
+      continue;
+    }
+
+    const filename = asString(fileEntry.filename);
+    if (filename) {
+      fileName = filename;
+      break;
+    }
+  }
+
+  if (!fileName) {
+    return null;
+  }
+
+  const gameVersions = Array.isArray(version.game_versions)
+    ? version.game_versions
+        .filter((entry): entry is string => typeof entry === 'string')
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0)
+    : [];
+
+  const dependencies = Array.isArray(version.dependencies)
+    ? version.dependencies
+        .map(parseModrinthDependency)
+        .filter((entry): entry is ModrinthDependency => entry !== null)
+    : [];
+
+  return {
+    id,
+    fileName,
+    gameVersions,
+    dependencies,
+  };
+}
+
+function parseModrinthProjectIdentity(project: unknown): ModrinthProjectIdentity | null {
+  if (!isRecord(project)) {
+    return null;
+  }
+
+  const id = asString(project.id);
+  const slug = asString(project.slug);
+  const title = asString(project.title);
+
+  if (!id || !slug || !title) {
+    return null;
+  }
+
+  return {
+    id,
+    slug,
+    title,
   };
 }
 
@@ -255,6 +368,23 @@ function isMatchingMinecraftVersion(
   });
 }
 
+function pickHangarDependencies(version: HangarVersion, platform: string): string[] {
+  const preferred = version.platformDependencies[platform];
+  if (preferred && preferred.length > 0) {
+    return preferred;
+  }
+  const fallback = Object.values(version.platformDependencies).find((values) => values.length > 0);
+  return fallback ?? [];
+}
+
+function pickHangarDownload(version: HangarVersion, platform: string): HangarDownloadInfo | null {
+  const preferred = version.downloads[platform];
+  if (preferred) {
+    return preferred;
+  }
+  return Object.values(version.downloads)[0] ?? null;
+}
+
 function resolveHangarPlatform(software: string): string {
   const normalized = software.toLowerCase();
   if (normalized.includes('velocity')) return 'VELOCITY';
@@ -279,6 +409,38 @@ export async function searchModrinth(
 
 export async function getModrinthVersions(projectId: string): Promise<unknown[]> {
   return fetchJson<unknown[]>(`https://api.modrinth.com/v2/project/${projectId}/version`);
+}
+
+export async function getCompatibleModrinthVersion(params: {
+  projectId: string;
+  loader: string;
+  minecraftVersion: string;
+}): Promise<ModrinthVersion | null> {
+  const url = new URL(`https://api.modrinth.com/v2/project/${params.projectId}/version`);
+  if (params.loader.trim()) {
+    url.searchParams.set('loaders', JSON.stringify([params.loader.trim()]));
+  }
+  if (params.minecraftVersion.trim()) {
+    url.searchParams.set('game_versions', JSON.stringify([params.minecraftVersion.trim()]));
+  }
+
+  const payload = await fetchJson<unknown[]>(url.toString());
+  if (!Array.isArray(payload)) {
+    return null;
+  }
+
+  const versions = payload
+    .map(parseModrinthVersion)
+    .filter((version): version is ModrinthVersion => version !== null);
+
+  return versions[0] ?? null;
+}
+
+export async function getModrinthProjectIdentity(
+  projectId: string
+): Promise<ModrinthProjectIdentity | null> {
+  const payload = await fetchJson<unknown>(`https://api.modrinth.com/v2/project/${projectId}`);
+  return parseModrinthProjectIdentity(payload);
 }
 
 export async function searchHangar(
@@ -349,32 +511,17 @@ export async function resolveHangarDownload(params: {
     return null;
   }
 
-  const pickDependencies = (version: HangarVersion): string[] => {
-    const preferred = version.platformDependencies[platform];
-    if (preferred && preferred.length > 0) {
-      return preferred;
-    }
-    const fallback = Object.values(version.platformDependencies).find(
-      (values) => values.length > 0
-    );
-    return fallback ?? [];
-  };
-
-  const pickDownload = (version: HangarVersion): HangarDownloadInfo | null => {
-    const preferred = version.downloads[platform];
-    if (preferred) {
-      return preferred;
-    }
-    return Object.values(version.downloads)[0] ?? null;
-  };
+  const supportedVersions = Array.from(
+    new Set(versions.flatMap((version) => pickHangarDependencies(version, platform)))
+  );
 
   const compatibleVersion = versions.find((version) => {
-    const dependencies = pickDependencies(version);
+    const dependencies = pickHangarDependencies(version, platform);
     return isMatchingMinecraftVersion(dependencies, params.minecraftVersion);
   });
 
   const selected = compatibleVersion ?? versions[0];
-  const selectedDownload = pickDownload(selected);
+  const selectedDownload = pickHangarDownload(selected, platform);
   if (!selectedDownload) {
     return null;
   }
@@ -391,6 +538,35 @@ export async function resolveHangarDownload(params: {
     fileName,
     downloadUrl: selectedDownload.downloadUrl,
     externalUrl: selectedDownload.externalUrl,
+    compatible: Boolean(compatibleVersion),
+    supportedVersions,
+  };
+}
+
+export async function checkHangarCompatibility(params: {
+  owner: string;
+  slug: string;
+  software: string;
+  minecraftVersion: string;
+}): Promise<{ compatible: boolean; supportedVersions: string[] }> {
+  const platform = resolveHangarPlatform(params.software);
+  const versions = await getHangarVersions(params.owner, params.slug, platform);
+  if (versions.length === 0) {
+    return { compatible: false, supportedVersions: [] };
+  }
+
+  const supportedVersions = Array.from(
+    new Set(versions.flatMap((version) => pickHangarDependencies(version, platform)))
+  );
+
+  const compatible = versions.some((version) => {
+    const dependencies = pickHangarDependencies(version, platform);
+    return isMatchingMinecraftVersion(dependencies, params.minecraftVersion);
+  });
+
+  return {
+    compatible,
+    supportedVersions,
   };
 }
 

@@ -19,9 +19,9 @@ User-requested set:
 | #17 | コマンド履歴 | done | up/down + draft restore |
 | #18 | TPSリアルタイムグラフ | done | dashboard chart + log parser + Paper polling |
 | #19 | CPU使用率グラフ | done | aligned to rolling 60s metric window |
-| #29 | 依存関係チェック | pending | plugin adapter phase |
-| #30 | 有効/無効トグル | pending | jar <-> jar.disabled |
-| #32 | バージョン互換チェック | pending | compare plugin support vs server version |
+| #29 | 依存関係チェック | done | Modrinth required dependency scan + bulk install prompt |
+| #30 | 有効/無効トグル | done | in-card rename toggle: .jar <-> .jar.disabled |
+| #32 | バージョン互換チェック | done | compatibility badges + pre-install warnings |
 | #36 | ドラッグ&ドロップアップロード | done | external file drop upload in Files view |
 | #39 | 自動バックアップスケジュール | done-partial | interval scheduler implemented; time-based policy pending |
 | #40 | 差分バックアップ | pending | Rust backup index/diff design required |
@@ -51,13 +51,13 @@ User-requested set:
 1. #18 TPSリアルタイムグラフ
 2. #19 CPUグラフの仕様合わせ（60秒ウィンドウ + 表示整合）
 
-### Phase C (Plugin Depth) - Next
+### Phase C (Plugin Depth) - Completed
 
 1. #29 依存関係チェック
 2. #30 有効/無効トグル
 3. #32 バージョン互換チェック
 
-### Phase D (Backup/World)
+### Phase D (Backup/World) - Next
 
 1. #40 差分バックアップ
 2. #44 バックアップタグ

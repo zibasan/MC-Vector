@@ -1,3 +1,4 @@
+import { ask } from '@tauri-apps/plugin-dialog';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -14,12 +15,16 @@ import {
   Sparkles,
   Star,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { deleteItem, listFiles } from '../../lib/file-commands';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { deleteItem, listFiles, moveItem } from '../../lib/file-commands';
 import {
+  checkHangarCompatibility,
+  getCompatibleModrinthVersion,
+  getModrinthProjectIdentity,
   installHangarProject,
   installModrinthProject,
   installSpigotProject,
+  type ModrinthProjectIdentity,
   resolveHangarDownload,
   type SpigetResource,
   searchHangar,
@@ -58,9 +63,15 @@ interface PlatformOption {
 
 const LIMIT = 30;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+type CompatibilityStatus = 'checking' | 'compatible' | 'incompatible' | 'unknown';
+
+interface DependencyIdentity {
+  projectId: string;
+  slug: string;
+  title: string;
 }
+
+const MINECRAFT_VERSION_REGEX = /\b1\.\d+(?:\.\d+)?\b/g;
 
 function toSlug(value: string): string {
   const normalized = value
@@ -83,6 +94,42 @@ function toErrorMessage(error: unknown): string {
     return error.message;
   }
   return String(error);
+}
+
+function normalizeServerVersion(version: string): string {
+  const trimmed = version.trim();
+  const parts = trimmed.split('.');
+  return parts.length >= 2 ? `${parts[0]}.${parts[1]}` : trimmed;
+}
+
+function isCompatibleVersion(availableVersions: string[], serverVersion: string): boolean {
+  if (!serverVersion.trim()) {
+    return true;
+  }
+  if (availableVersions.length === 0) {
+    return false;
+  }
+
+  const normalizedServer = serverVersion.trim();
+  const normalizedMajorMinor = normalizeServerVersion(normalizedServer);
+
+  return availableVersions.some((candidate) => {
+    const value = candidate.trim();
+    return value === normalizedServer || normalizeServerVersion(value) === normalizedMajorMinor;
+  });
+}
+
+function extractVersionHints(text: string): string[] {
+  const matches = text.match(MINECRAFT_VERSION_REGEX);
+  if (!matches) {
+    return [];
+  }
+
+  return Array.from(new Set(matches));
+}
+
+function isDisabledPluginFile(fileName: string): boolean {
+  return fileName.toLowerCase().endsWith('.disabled');
 }
 
 function mapSpigotResource(resource: SpigetResource): ProjectItem {
@@ -111,6 +158,10 @@ export default function PluginBrowser({ server }: Props) {
     null
   );
   const [page, setPage] = useState(0);
+  const [compatibilityByItemId, setCompatibilityByItemId] = useState<
+    Record<string, CompatibilityStatus>
+  >({});
+  const dependencyIdentityCacheRef = useRef<Record<string, DependencyIdentity>>({});
 
   const isModServer = ['Fabric', 'Forge', 'NeoForge'].includes(server.software || '');
   const [platform, setPlatform] = useState<BrowserPlatform>('Modrinth');
@@ -198,11 +249,92 @@ export default function PluginBrowser({ server }: Props) {
     void refreshInstalled();
   }, [server.id, server.path, isModServer]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isInAppSearch || results.length === 0) {
+      setCompatibilityByItemId({});
+      return;
+    }
+
+    const initial: Record<string, CompatibilityStatus> = {};
+    for (const item of results) {
+      if (item.platform === 'Modrinth') {
+        initial[item.id] = 'compatible';
+      } else if (item.platform === 'Spigot') {
+        initial[item.id] = inferSpigotCompatibility(item);
+      } else {
+        initial[item.id] = 'checking';
+      }
+    }
+    setCompatibilityByItemId(initial);
+
+    const run = async () => {
+      const updates = await Promise.all(
+        results.map(async (item): Promise<[string, CompatibilityStatus]> => {
+          if (item.platform !== 'Hangar') {
+            return [item.id, initial[item.id] ?? 'unknown'];
+          }
+
+          try {
+            const compatibility = await checkHangarCompatibility({
+              owner: item.author,
+              slug: item.slug || item.title,
+              software: server.software || 'Paper',
+              minecraftVersion: server.version || '',
+            });
+
+            if (compatibility.supportedVersions.length === 0) {
+              return [item.id, 'unknown'];
+            }
+
+            return [item.id, compatibility.compatible ? 'compatible' : 'incompatible'];
+          } catch (error) {
+            console.error(error);
+            return [item.id, 'unknown'];
+          }
+        })
+      );
+
+      if (cancelled) {
+        return;
+      }
+
+      const next: Record<string, CompatibilityStatus> = { ...initial };
+      for (const [id, status] of updates) {
+        next[id] = status;
+      }
+      setCompatibilityByItemId(next);
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isInAppSearch, results, server.software, server.version]);
+
   const normalize = (text?: unknown) =>
     String(text ?? '')
       .toLowerCase()
+      .replace(/\.disabled$/g, '')
+      .replace(/\.jar$/g, '')
       .replace(/\.[^.]+$/, '')
       .replace(/[^a-z0-9]/g, '');
+
+  const isCandidateInstalled = (candidate: string): boolean => {
+    const normalizedCandidate = normalize(candidate);
+    if (!normalizedCandidate) {
+      return false;
+    }
+
+    return installedFiles.some((file) => {
+      const normalizedFile = normalize(file);
+      return (
+        normalizedFile.includes(normalizedCandidate) || normalizedCandidate.includes(normalizedFile)
+      );
+    });
+  };
 
   const findInstalledMatch = (item: ProjectItem) => {
     const candidates = [
@@ -243,6 +375,39 @@ export default function PluginBrowser({ server }: Props) {
       }) || null
     );
   };
+
+  const resolveDependencyIdentity = async (projectId: string): Promise<DependencyIdentity> => {
+    const cached = dependencyIdentityCacheRef.current[projectId];
+    if (cached) {
+      return cached;
+    }
+
+    let identity: ModrinthProjectIdentity | null = null;
+    try {
+      identity = await getModrinthProjectIdentity(projectId);
+    } catch (error) {
+      console.error(error);
+    }
+
+    const resolved: DependencyIdentity = {
+      projectId,
+      slug: identity?.slug || projectId,
+      title: identity?.title || identity?.slug || projectId,
+    };
+
+    dependencyIdentityCacheRef.current[projectId] = resolved;
+    return resolved;
+  };
+
+  function inferSpigotCompatibility(item: ProjectItem): CompatibilityStatus {
+    const tag = typeof item.source_obj.tag === 'string' ? item.source_obj.tag : '';
+    const hints = extractVersionHints(`${item.description} ${tag}`);
+    if (hints.length === 0) {
+      return 'unknown';
+    }
+
+    return isCompatibleVersion(hints, server.version) ? 'compatible' : 'incompatible';
+  }
 
   async function search() {
     if (!isInAppSearch) {
@@ -334,41 +499,107 @@ export default function PluginBrowser({ server }: Props) {
     try {
       if (item.platform === 'Modrinth') {
         const loader = server.software.toLowerCase();
-        const params = new URLSearchParams();
-        params.append('loaders', `["${loader}"]`);
-        params.append('game_versions', `["${server.version}"]`);
+        const resolvedVersion = await getCompatibleModrinthVersion({
+          projectId: item.id,
+          loader,
+          minecraftVersion: server.version,
+        });
 
-        const response = await fetch(
-          `https://api.modrinth.com/v2/project/${item.id}/version?${params.toString()}`
-        );
-
-        if (!response.ok) {
-          throw new Error(`Modrinth version fetch failed: ${response.status}`);
-        }
-
-        const versionsPayload = (await response.json()) as unknown;
-        if (!Array.isArray(versionsPayload) || versionsPayload.length === 0) {
+        if (!resolvedVersion) {
           showToast('対応バージョンが見つかりませんでした', 'error');
           return;
         }
 
-        const firstVersion = versionsPayload[0];
-        if (!isRecord(firstVersion) || typeof firstVersion.id !== 'string') {
-          showToast('バージョン情報の取得に失敗しました', 'error');
-          return;
-        }
+        const requiredProjectIds = Array.from(
+          new Set(
+            resolvedVersion.dependencies
+              .filter(
+                (dependency) =>
+                  dependency.dependencyType.toLowerCase() === 'required' &&
+                  typeof dependency.projectId === 'string'
+              )
+              .map((dependency) => dependency.projectId as string)
+          )
+        );
 
-        let fileName = `${item.slug || item.id}.jar`;
-        if (Array.isArray(firstVersion.files)) {
-          const firstFile = firstVersion.files.find(
-            (entry) => isRecord(entry) && typeof entry.filename === 'string'
+        if (requiredProjectIds.length > 0) {
+          const requiredProjects = await Promise.all(
+            requiredProjectIds.map((projectId) => resolveDependencyIdentity(projectId))
           );
-          if (isRecord(firstFile) && typeof firstFile.filename === 'string') {
-            fileName = firstFile.filename;
+
+          const missingDependencies = requiredProjects.filter(
+            (dependency) =>
+              !isCandidateInstalled(dependency.slug) &&
+              !isCandidateInstalled(dependency.title) &&
+              !isCandidateInstalled(dependency.projectId)
+          );
+
+          if (missingDependencies.length > 0) {
+            const preview = missingDependencies
+              .slice(0, 3)
+              .map((dependency) => dependency.title)
+              .join(', ');
+            const suffix = missingDependencies.length > 3 ? ', ...' : '';
+
+            const shouldInstallDependencies = await ask(
+              `不足依存プラグインが ${missingDependencies.length} 件あります。\n${preview}${suffix}\n先に一括インストールしますか？`,
+              {
+                title: '依存関係チェック',
+                kind: 'warning',
+              }
+            );
+
+            if (shouldInstallDependencies) {
+              let installedDependencyCount = 0;
+              for (const dependency of missingDependencies) {
+                try {
+                  const dependencyVersion = await getCompatibleModrinthVersion({
+                    projectId: dependency.projectId,
+                    loader,
+                    minecraftVersion: server.version,
+                  });
+
+                  if (!dependencyVersion) {
+                    showToast(
+                      `依存プラグイン ${dependency.title} の対応バージョンが見つかりません`,
+                      'info'
+                    );
+                    continue;
+                  }
+
+                  await installModrinthProject(
+                    dependencyVersion.id,
+                    dependencyVersion.fileName,
+                    `${server.path}/${folderName}`
+                  );
+                  installedDependencyCount += 1;
+                } catch (error) {
+                  console.error(error);
+                  showToast(`依存プラグイン ${dependency.title} の導入に失敗しました`, 'error');
+                }
+              }
+
+              if (installedDependencyCount > 0) {
+                showToast(
+                  `依存プラグインを ${installedDependencyCount} 件インストールしました`,
+                  'success'
+                );
+                await refreshInstalled();
+              }
+            } else {
+              showToast(
+                '依存関係チェックのみ実行しました。必要に応じて先に依存プラグインを導入してください。',
+                'info'
+              );
+            }
           }
         }
 
-        await installModrinthProject(firstVersion.id, fileName, `${server.path}/${folderName}`);
+        await installModrinthProject(
+          resolvedVersion.id,
+          resolvedVersion.fileName,
+          `${server.path}/${folderName}`
+        );
       } else if (item.platform === 'Hangar') {
         const owner = item.author;
         const slug = item.slug || item.title;
@@ -382,6 +613,17 @@ export default function PluginBrowser({ server }: Props) {
         if (!resolved) {
           showToast('対応バージョンが見つかりませんでした', 'error');
           return;
+        }
+
+        if (!resolved.compatible) {
+          const listedVersions = resolved.supportedVersions.slice(0, 3).join(', ');
+          const suffix = resolved.supportedVersions.length > 3 ? ', ...' : '';
+          showToast(
+            listedVersions
+              ? `サーバー ${server.version} との互換性が未確認です (対応候補: ${listedVersions}${suffix})`
+              : `サーバー ${server.version} との互換性が未確認です`,
+            'info'
+          );
         }
 
         if (!resolved.downloadUrl) {
@@ -440,6 +682,11 @@ export default function PluginBrowser({ server }: Props) {
   };
 
   const handleInstall = (item: ProjectItem) => {
+    const compatibility = compatibilityByItemId[item.id] ?? 'unknown';
+    if (compatibility === 'incompatible') {
+      showToast('このプラグインは現在のサーバーバージョンと非互換の可能性があります', 'info');
+    }
+
     const installedMatch = findInstalledMatch(item);
     if (installedMatch) {
       setDupDialog({ item, installedFile: installedMatch });
@@ -455,6 +702,44 @@ export default function PluginBrowser({ server }: Props) {
     } catch (error) {
       console.error(error);
       showToast('ブラウザを開けませんでした', 'error');
+    }
+  };
+
+  const handleToggleInstalled = async (item: ProjectItem, installedFile: string) => {
+    const sourcePath = `${server.path}/${folderName}/${installedFile}`;
+    const nextFile = isDisabledPluginFile(installedFile)
+      ? installedFile.replace(/\.disabled$/i, '')
+      : `${installedFile}.disabled`;
+    const targetPath = `${server.path}/${folderName}/${nextFile}`;
+
+    setInstallingId(item.id);
+    try {
+      await moveItem(sourcePath, targetPath);
+      showToast(
+        isDisabledPluginFile(installedFile)
+          ? `${item.title} を有効化しました`
+          : `${item.title} を無効化しました`,
+        'success'
+      );
+    } catch (error) {
+      console.error(error);
+      showToast('プラグイン状態の切り替えに失敗しました', 'error');
+    } finally {
+      setInstallingId(null);
+      await refreshInstalled();
+    }
+  };
+
+  const compatibilityLabel = (status: CompatibilityStatus): string => {
+    switch (status) {
+      case 'compatible':
+        return 'Compatible';
+      case 'incompatible':
+        return 'Incompatible';
+      case 'checking':
+        return 'Checking...';
+      default:
+        return 'Unknown';
     }
   };
 
@@ -574,6 +859,12 @@ export default function PluginBrowser({ server }: Props) {
             <AnimatePresence initial={false}>
               {results.map((item, index) => {
                 const installedMatch = findInstalledMatch(item);
+                const installedState = installedMatch
+                  ? isDisabledPluginFile(installedMatch)
+                    ? 'disabled'
+                    : 'enabled'
+                  : 'none';
+                const compatibility = compatibilityByItemId[item.id] ?? 'unknown';
                 const requiresBrowser =
                   item.platform === 'Spigot' &&
                   (item.source_obj.external === true || item.source_obj.premium === true);
@@ -602,11 +893,35 @@ export default function PluginBrowser({ server }: Props) {
                         <div className="plugin-browser__result-title-wrap">
                           <div className="plugin-browser__result-title">{item.title}</div>
                           <div className="plugin-browser__result-source">{item.platform}</div>
+                          <div className="plugin-browser__result-flags">
+                            <span className={`plugin-browser__compat-badge is-${compatibility}`}>
+                              {compatibilityLabel(compatibility)}
+                            </span>
+                          </div>
                         </div>
 
                         <div className="plugin-browser__result-actions">
                           {installedMatch && (
-                            <span className="plugin-browser__installed-badge">Installed</span>
+                            <span
+                              className={`plugin-browser__installed-badge ${
+                                installedState === 'disabled' ? 'is-disabled' : ''
+                              }`}
+                            >
+                              {installedState === 'disabled' ? 'Disabled' : 'Installed'}
+                            </span>
+                          )}
+
+                          {installedMatch && (
+                            <button
+                              type="button"
+                              onClick={() => void handleToggleInstalled(item, installedMatch)}
+                              disabled={installingId === item.id}
+                              className={`plugin-browser__toggle-btn ${
+                                installedState === 'disabled' ? 'is-enable' : 'is-disable'
+                              }`}
+                            >
+                              {installedState === 'disabled' ? 'Enable' : 'Disable'}
+                            </button>
                           )}
 
                           <button

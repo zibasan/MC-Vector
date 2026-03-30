@@ -139,12 +139,52 @@
     @apply mt-1 text-[0.68rem] uppercase tracking-[0.14em] text-cyan-300;
   }
 
+  .plugin-browser__result-flags {
+    @apply mt-1.5 flex flex-wrap gap-1.5;
+  }
+
+  .plugin-browser__compat-badge {
+    @apply text-[0.66rem] font-semibold rounded-full px-2 py-0.5 border;
+  }
+
+  .plugin-browser__compat-badge.is-compatible {
+    @apply text-emerald-200 border-emerald-400/40 bg-emerald-500/15;
+  }
+
+  .plugin-browser__compat-badge.is-incompatible {
+    @apply text-rose-200 border-rose-400/40 bg-rose-500/15;
+  }
+
+  .plugin-browser__compat-badge.is-checking {
+    @apply text-amber-200 border-amber-400/40 bg-amber-500/15;
+  }
+
+  .plugin-browser__compat-badge.is-unknown {
+    @apply text-zinc-300 border-zinc-500/50 bg-zinc-500/10;
+  }
+
   .plugin-browser__result-actions {
     @apply flex items-center gap-2 shrink-0;
   }
 
   .plugin-browser__installed-badge {
     @apply text-[0.68rem] font-semibold rounded-full px-2 py-1 bg-emerald-400/15 text-emerald-300 border border-emerald-400/30;
+  }
+
+  .plugin-browser__installed-badge.is-disabled {
+    @apply bg-amber-400/15 text-amber-200 border-amber-400/35;
+  }
+
+  .plugin-browser__toggle-btn {
+    @apply px-2.5 py-1 text-[0.68rem] rounded-full border font-semibold transition-all;
+  }
+
+  .plugin-browser__toggle-btn.is-disable {
+    @apply text-amber-200 border-amber-400/50 bg-amber-500/10;
+  }
+
+  .plugin-browser__toggle-btn.is-enable {
+    @apply text-emerald-200 border-emerald-400/50 bg-emerald-500/10;
   }
 
   .plugin-browser__result-icon {
