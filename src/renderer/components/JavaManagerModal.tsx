@@ -1,3 +1,4 @@
+import { ask } from '@tauri-apps/plugin-dialog';
 import { useEffect, useState } from 'react';
 import {
   deleteJava,
@@ -63,7 +64,6 @@ export default function JavaManagerModal({ onClose }: Props) {
   };
 
   const handleDelete = async (ver: number) => {
-    const { ask } = await import('@tauri-apps/plugin-dialog');
     const confirmed = await ask(`Uninstall Java ${ver}?`, { title: 'Java削除', kind: 'warning' });
     if (!confirmed) return;
     await deleteJava(ver);

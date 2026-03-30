@@ -1,4 +1,5 @@
 import Editor from '@monaco-editor/react';
+import { ask } from '@tauri-apps/plugin-dialog';
 import type * as React from 'react';
 import { useEffect, useState } from 'react';
 import iconFile from '../../assets/icons/file.svg';
@@ -249,7 +250,6 @@ export default function FilesView({ server }: Props) {
     if (selectedFiles.length === 0) {
       return;
     }
-    const { ask } = await import('@tauri-apps/plugin-dialog');
     const confirmed = await ask(`${selectedFiles.length}個の項目を削除しますか？`, {
       title: 'ファイル削除',
       kind: 'warning',

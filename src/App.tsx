@@ -1,3 +1,6 @@
+import { ask } from '@tauri-apps/plugin-dialog';
+import { mkdir } from '@tauri-apps/plugin-fs';
+import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 import { useEffect, useRef, useState } from 'react';
 import iconBackups from './assets/icons/backups.svg';
 import iconConsole from './assets/icons/console.svg';
@@ -9,7 +12,8 @@ import iconProperties from './assets/icons/properties.svg';
 import iconProxy from './assets/icons/proxy.svg';
 import iconSettings from './assets/icons/settings.svg';
 import iconUsers from './assets/icons/users.svg';
-import { getAppSettings } from './lib/config-commands';
+import { getAppSettings, onConfigChange } from './lib/config-commands';
+import { readFileContent, saveFileContent } from './lib/file-commands';
 import { onNgrokStatusChange } from './lib/ngrok-commands';
 // Tauri API ラッパー
 import {
@@ -17,6 +21,7 @@ import {
   deleteServer as deleteServerApi,
   downloadServerJar,
   getServers,
+  isServerRunning,
   onDownloadProgress,
   onServerLog,
   onServerStatusChange,
@@ -36,7 +41,7 @@ import ProxyHelpView from './renderer/components/ProxyHelpView';
 import ProxySetupView, { type ProxyNetworkConfig } from './renderer/components/ProxySetupView';
 import PropertiesView from './renderer/components/properties/PropertiesView';
 import ServerSettings from './renderer/components/properties/ServerSettings';
-import SettingsWindow from './renderer/components/SettingsWindow';
+import SettingsWindow from './renderer/components/SettingsWindow.tsx';
 import { useToast } from './renderer/components/ToastProvider';
 import UsersView from './renderer/components/UsersView';
 import { type AppView, type MinecraftServer } from './renderer/shared/server declaration';
@@ -172,8 +177,7 @@ function App() {
     loadAppSettings();
 
     let disposeThemeWatch: (() => void) | undefined;
-    (async () => {
-      const { onConfigChange } = await import('./lib/config-commands');
+    void (async () => {
       disposeThemeWatch = await onConfigChange('theme', (value) => {
         setAppTheme(normalizeTheme(value));
       });
@@ -334,7 +338,6 @@ function App() {
     );
     await stopServerApi(selectedServerId);
     // サーバーが完全に停止するまでポーリング
-    const { isServerRunning } = await import('./lib/server-commands');
     const maxWait = 30; // 最大30秒待つ
     for (let i = 0; i < maxWait; i++) {
       await new Promise((r) => setTimeout(r, 1000));
@@ -371,7 +374,6 @@ function App() {
       }
 
       // サーバーディレクトリを作成
-      const { mkdir } = await import('@tauri-apps/plugin-fs');
       await mkdir(serverPath, { recursive: true });
 
       const newServer: MinecraftServer = {
@@ -400,7 +402,6 @@ function App() {
       try {
         if (sw === 'Paper' || sw === 'LeafMC') {
           const project = sw === 'Paper' ? 'paper' : 'leafmc';
-          const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http');
           const buildsResp = await tauriFetch(
             `https://api.papermc.io/v2/projects/${project}/versions/${ver}/builds`
           );
@@ -413,7 +414,6 @@ function App() {
             downloadUrl = `https://api.papermc.io/v2/projects/${project}/versions/${ver}/builds/${buildNum}/downloads/${fileName}`;
           }
         } else if (sw === 'Vanilla') {
-          const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http');
           const manifestResp = await tauriFetch(
             'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
           );
@@ -425,7 +425,6 @@ function App() {
             downloadUrl = verDetail.downloads?.server?.url || '';
           }
         } else if (sw === 'Fabric') {
-          const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http');
           const loaderResp = await tauriFetch('https://meta.fabricmc.net/v2/versions/loader');
           const loaders = (await loaderResp.json()) as FabricLoader;
           const latestLoader = loaders?.[0]?.version || '';
@@ -457,7 +456,6 @@ function App() {
   };
 
   const handleBuildProxyNetwork = async (_config: ProxyNetworkConfig) => {
-    const { ask } = await import('@tauri-apps/plugin-dialog');
     const confirmed = await ask(
       '構成を開始しますか？各サーバーの server.properties を書き換えます。',
       { title: 'プロキシ構成', kind: 'info' }
@@ -466,7 +464,6 @@ function App() {
       return;
     }
     try {
-      const { readFileContent, saveFileContent } = await import('./lib/file-commands');
       const backendServers = servers.filter((s) => _config.backendServerIds.includes(s.id));
 
       // 各バックエンドサーバーの server.properties を更新
@@ -552,7 +549,6 @@ function App() {
     setContextMenu(null);
 
     // Tauri の ask() ダイアログで確認
-    const { ask } = await import('@tauri-apps/plugin-dialog');
     const confirmed = await ask(`本当に「${target?.name}」を削除しますか？`, {
       title: 'サーバー削除',
       kind: 'warning',

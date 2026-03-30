@@ -1,3 +1,5 @@
+import { ask } from '@tauri-apps/plugin-dialog';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { useState } from 'react';
 import { type MinecraftServer } from '../components/../shared/server declaration';
 
@@ -31,7 +33,6 @@ export default function ProxySetupView({ servers, onBuildNetwork }: ProxySetupVi
 
   const handleBuild = async () => {
     if (selectedBackendIds.length < 2) {
-      const { ask } = await import('@tauri-apps/plugin-dialog');
       const confirmed = await ask('接続するサーバーが1つ以下です。ネットワークを構築しますか？', {
         title: 'プロキシ構成',
         kind: 'warning',
@@ -46,7 +47,6 @@ export default function ProxySetupView({ servers, onBuildNetwork }: ProxySetupVi
   };
 
   const openHelp = async () => {
-    const { openUrl } = await import('@tauri-apps/plugin-opener');
     await openUrl('https://papermc.io/docs/velocity');
   };
 

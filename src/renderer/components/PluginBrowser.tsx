@@ -1,3 +1,4 @@
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { useEffect, useState } from 'react';
 import { deleteItem, listFiles } from '../../lib/file-commands';
 import {
@@ -246,7 +247,6 @@ export default function PluginBrowser({ server }: Props) {
   };
 
   const openExternal = async (url: string) => {
-    const { openUrl } = await import('@tauri-apps/plugin-opener');
     await openUrl(url);
   };
 

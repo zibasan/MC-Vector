@@ -1,9 +1,13 @@
+import { appDataDir } from '@tauri-apps/api/path';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import React, { useEffect, useRef, useState } from 'react';
 import { getJavaVersions, type JavaVersion } from '../../../lib/java-commands';
 import {
   clearNgrokToken,
+  getNgrokToken,
   hasNgrokToken,
   onNgrokStatusChange,
+  setNgrokToken,
   startNgrok,
   stopNgrok,
 } from '../../../lib/ngrok-commands';
@@ -117,14 +121,12 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
         setShowTokenModal(true);
         return;
       }
-      const { getNgrokToken } = await import('../../../lib/ngrok-commands');
       const tokenToUse = inputToken || (await getNgrokToken()) || '';
       if (!tokenToUse) {
         setShowTokenModal(true);
         return;
       }
       setTunnelLog((prev) => [...prev, '--- Initializing ngrok ---']);
-      const { appDataDir } = await import('@tauri-apps/api/path');
       const ngrokPath = `${await appDataDir()}/ngrok`;
       await startNgrok(ngrokPath, 'tcp', server.port, tokenToUse, server.id);
       setInputToken('');
@@ -143,11 +145,9 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
     if (!inputToken) {
       return;
     }
-    const { setNgrokToken } = await import('../../../lib/ngrok-commands');
     await setNgrokToken(inputToken);
     setShowTokenModal(false);
     setTunnelLog(['--- Initializing ngrok with new token ---']);
-    const { appDataDir } = await import('@tauri-apps/api/path');
     const ngrokPath = `${await appDataDir()}/ngrok`;
     await startNgrok(ngrokPath, 'tcp', server.port, inputToken, server.id);
     setInputToken('');
@@ -161,7 +161,6 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
   };
 
   const handleOpenGuide = async () => {
-    const { openUrl } = await import('@tauri-apps/plugin-opener');
     await openUrl('https://dashboard.ngrok.com/get-started/setup');
   };
 

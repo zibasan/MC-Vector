@@ -1,5 +1,5 @@
 import { type DirEntry, readDir, remove } from '@tauri-apps/plugin-fs';
-import { type FileEntryWithMeta } from './file-commands';
+import { type FileEntryWithMeta, listFilesWithMetadata } from './file-commands';
 import { tauriInvoke, tauriListen, type UnlistenFn } from './tauri-api';
 
 interface BackupInfo {
@@ -37,7 +37,6 @@ export async function listBackups(serverPath: string): Promise<string[]> {
 export async function listBackupsWithMetadata(serverPath: string): Promise<BackupInfo[]> {
   const backupDir = `${serverPath}/backups`;
   try {
-    const { listFilesWithMetadata } = await import('./file-commands');
     const entries: FileEntryWithMeta[] = await listFilesWithMetadata(backupDir);
     return entries
       .filter((e) => e.name.endsWith('.zip'))
