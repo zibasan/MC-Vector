@@ -71,14 +71,14 @@ Before finishing a refactor:
 2. Do not revert user changes outside the requested scope.
 3. If unexpected modifications are detected, pause and ask for confirmation before proceeding.
 
-### General
-Commit messages must be in English and use the prefixes feat:, fix:, refactor:, or docs:.
-After completing an implementation, edit, or a single prompt task, check for any remaining items within the current phase. If all items in the current phase have been completed, check if there are items to be implemented in the next phase. If so, ask the user in question mode to select where to proceed with implementation. Do this after every implementation until all implementations in every phase are complete—that is, until the project is ready for release. Additionally, after that question, generate a command that includes a commit message appropriate for the changes made in that implementation, and ask the user in question mode whether to actually execute that command. Do not ask about generating a commit command for every change or implementation within the same phase. However, an exception is made for changes or implementations within the same phase if the scope of each individual implementation is large. Furthermore, even if the user chooses not to execute the commit command, if there are still tasks to be implemented within the same phase or if the next phase remains, continue implementation and repeat the cycle of “question → implementation → question” indefinitely until implementation is complete. The “question” referred to here is not a question asked in the form of text output by you, but rather the multiple-choice questions used when defining requirements in Plan mode. The format for the commit command should be git commit -m “message” -m ‘message’ -m “message”, summarizing the implemented content broadly and using the -m option to separate each line with a newline.
-Perform Git operations by entering commands directly in the terminal within VSCode. Do not use MCP or similar tools; enter the commands directly.
-Adding files: git add .
-Commit: As described in the bullet point above, use the format that includes a commit message appropriate for the changes made in each implementation. git commit -m “message” -m ‘message’ -m “message”
-Push: git push origin main
-If you run a reset command such as git reset --soft HEAD^ due to some issue, I will notify you. In that case, you must perform a force push (git push -f -u origin main) to avoid conflicts and rejection.
-After completing the implementation or editing for the given prompt, before building, read all files (.java, .ts, .json, .yml, etc.) from the background. If there are any errors or warnings, investigate the details and cause of the errors and fix them. Since a single fix may not resolve the issue, retrieve the errors from the background again after making the fix and continue the process until there are zero errors and warnings.
-If there are multiple updates or additions, number them sequentially (1, 2, 3) and assign them to separate tasks. Additionally, all tasks with these numbers must be implemented in a single prompt. Proceed with implementation step by step, reporting the progress of each step to the user as you go.
-For example, if there are three tasks—1. Converting to binary IPC (removing Base64), 2. Adaptive FPS control, and 3. Extending rectangular difference rendering on the Java side—and you are instructed to “complete tasks 1 through 3,” you must finish implementing all of them in a single round of prompts.
+### 共通
+- コミットメッセージは英語で feat:, fix:, refactor:, docs: のプレフィックスを使う
+- 実装や編集、1プロンプトの作業が終わったあと、同Phase内での未実装ポイント、あるいは今のPhaseでのすべての実装が終わった場合は次のPhaseで実装すべき点があるか確認し、ある場合はどこから実装を進めていくかユーザーに質問モードで選択肢で質問をすること。これは全てのPhaseの全ての実装を終えるまで、つまりリリースできる段階になるまで実装後に毎回質問をすること。また、その質問の後、その実装ごとの変更内容にふさわしいコミットメッセージを含めたコマンドを生成し、実際にそのコマンドを実行するかしないかユーザーに質問モードで質問をすること。同Phase内での変更や実装ごとにはコミットコマンドの生成は質問はしないこと。ただし、同フェーズ内での変更や実装の場合でも、1つ1つの実装の規模が大きい場合は例外とする。更に、コミットコマンドを実行しないを選んだ場合にも、まだ実装すべき同フェーズ内の作業や、次のフェーズが残っている場合は、実装を続け、実装を完了するまで半永久的に質問→実装→質問を繰り返すこと。ここで言う質問とは、あなたが出力する文章で聞くのではなく、Planモードで要件定義をするときに使用する選択式の質問のこと。コミットコマンドのフォーマットは、git commit -m "message" -m "message" -m "message"のように、実装した内容を大まかにまとめて、-mオプションでそれぞれ改行すること。
+- git操作には、VSCode内のターミナルからコマンドで行うこと。MCPなどを通さず、直接コマンドを叩くこと。
+  - ファイルの追加：git add .
+  - コミット：↑1つ上の箇条書きで述べている通り、その実装ごとの変更内容にふさわしいコミットメッセージを含めた形式にすること。git commit -m "message" -m "message" -m "message"
+  - プッシュ：git push origin main
+    - 何らかの事象によりgit reset --soft HEAD^などのリセットコマンドを打った場合には私がそう伝えるので、その場合はforce pushをしないとコンフリクトが出て拒否されるので、git push -f -u origin mainを実行してください
+- 当該プロンプトで実装や編集を終えたあと、ビルドをする前にバックグラウンドから全ファイル(.java / .ts / .json / .ymlなど)を読み取り、エラーや警告がある場合、エラーの内容と原因を調査し、それも修正すること。1度の修正で直らない場合もあるため、修正後にもう一度バックグラウンドからエラーを取得し、エラー及び警告が0件になるまで処理を続行すること。
+- 複数の更新・追加作業内容がある場合、段階ごとに1,2,3と番号をつけて振り分けること。また、この番号付きの作業内容は1度のプロンプトで全て実装すること。段階ごとに実装を進め、段階ごとに実装内容をユーザに逐一報告しながら進めること。
+- 例えば、1.バイナリIPC化（Base64撤廃, 2.適応FPS制御, 3.Java側の矩形差分描画拡張の3つのタスクがある場合、1〜3のタスクをこなしてくださいと命令されたら、その1回のプロンプトで全て実装を終えてください。

@@ -164,6 +164,8 @@ jobs:
             src-tauri/target/${{ matrix.bundle-target }}/release/bundle/**/*.exe
             src-tauri/target/${{ matrix.bundle-target }}/release/bundle/**/*.nsis.zip
             src-tauri/target/${{ matrix.bundle-target }}/release/bundle/**/*.nsis.zip.sig
+            src-tauri/target/${{ matrix.bundle-target }}/release/bundle/**/*.zip
+            src-tauri/target/${{ matrix.bundle-target }}/release/bundle/**/*.zip.sig
           retention-days: 5
 
   # ── リリース作成 + gh-pages デプロイ ──
@@ -212,19 +214,28 @@ jobs:
           require_file "$MAC_ARM64_SIG" "macOS arm64 updater signature"
           require_file "$MAC_X64_APP" "macOS x64 updater archive"
           require_file "$MAC_X64_SIG" "macOS x64 updater signature"
-          require_file "$WIN_X64_ZIP" "Windows x64 updater archive"
-          require_file "$WIN_X64_SIG" "Windows x64 updater signature"
 
           MAC_ARM64_OUT="MC-Vector_${VERSION}_darwin-aarch64.app.tar.gz"
           MAC_X64_OUT="MC-Vector_${VERSION}_darwin-x86_64.app.tar.gz"
-          WIN_X64_OUT="MC-Vector_${VERSION}_windows-x86_64.nsis.zip"
 
           cp "$MAC_ARM64_APP" "release-assets/${MAC_ARM64_OUT}"
           cp "$MAC_ARM64_SIG" "release-assets/${MAC_ARM64_OUT}.sig"
           cp "$MAC_X64_APP" "release-assets/${MAC_X64_OUT}"
           cp "$MAC_X64_SIG" "release-assets/${MAC_X64_OUT}.sig"
-          cp "$WIN_X64_ZIP" "release-assets/${WIN_X64_OUT}"
-          cp "$WIN_X64_SIG" "release-assets/${WIN_X64_OUT}.sig"
+
+          HAS_WINDOWS_UPDATER="false"
+          WIN_X64_OUT="MC-Vector_${VERSION}_windows-x86_64.nsis.zip"
+          if [ -n "$WIN_X64_ZIP" ] && [ -f "$WIN_X64_ZIP" ] && [ -n "$WIN_X64_SIG" ] && [ -f "$WIN_X64_SIG" ]; then
+            cp "$WIN_X64_ZIP" "release-assets/${WIN_X64_OUT}"
+            cp "$WIN_X64_SIG" "release-assets/${WIN_X64_OUT}.sig"
+            HAS_WINDOWS_UPDATER="true"
+            echo "Windows updater artifacts detected and normalized."
+          else
+            echo "Windows updater archive/signature not found. Proceeding without windows updater metadata."
+          fi
+
+          echo "HAS_WINDOWS_UPDATER=${HAS_WINDOWS_UPDATER}" >> "$GITHUB_ENV"
+          echo "WIN_X64_OUT=${WIN_X64_OUT}" >> "$GITHUB_ENV"
 
           find artifacts -type f -name '*.dmg' -exec cp {} release-assets/ \;
           find artifacts/win-x64 -type f -name '*.exe' -exec cp {} release-assets/ \;
@@ -241,15 +252,12 @@ jobs:
 
           MAC_ARM64_FILE="MC-Vector_${VERSION}_darwin-aarch64.app.tar.gz"
           MAC_X64_FILE="MC-Vector_${VERSION}_darwin-x86_64.app.tar.gz"
-          WIN_X64_FILE="MC-Vector_${VERSION}_windows-x86_64.nsis.zip"
 
           for required in \
             "$MAC_ARM64_FILE" \
             "$MAC_ARM64_FILE.sig" \
             "$MAC_X64_FILE" \
-            "$MAC_X64_FILE.sig" \
-            "$WIN_X64_FILE" \
-            "$WIN_X64_FILE.sig"; do
+            "$MAC_X64_FILE.sig"; do
             if [ ! -f "release-assets/$required" ]; then
               echo "Missing normalized release asset: $required" >&2
               exit 1
@@ -258,7 +266,6 @@ jobs:
 
           MAC_ARM64_SIG=$(tr -d '\r\n' < "release-assets/${MAC_ARM64_FILE}.sig")
           MAC_X64_SIG=$(tr -d '\r\n' < "release-assets/${MAC_X64_FILE}.sig")
-          WIN_X64_SIG=$(tr -d '\r\n' < "release-assets/${WIN_X64_FILE}.sig")
 
           jq -n \
             --arg version "$VERSION" \
@@ -266,11 +273,9 @@ jobs:
             --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --arg mac_arm64_sig "$MAC_ARM64_SIG" \
             --arg mac_x64_sig "$MAC_X64_SIG" \
-            --arg win_x64_sig "$WIN_X64_SIG" \
             --arg base_url "$BASE_URL" \
             --arg mac_arm64_file "$MAC_ARM64_FILE" \
             --arg mac_x64_file "$MAC_X64_FILE" \
-            --arg win_x64_file "$WIN_X64_FILE" \
             '{
               version: $version,
               notes: $notes,
@@ -283,13 +288,28 @@ jobs:
                 "darwin-x86_64": {
                   signature: $mac_x64_sig,
                   url: ($base_url + "/" + $mac_x64_file)
-                },
-                "windows-x86_64": {
-                  signature: $win_x64_sig,
-                  url: ($base_url + "/" + $win_x64_file)
                 }
               }
             }' > gh-pages-deploy/latest.json
+
+          if [ "${HAS_WINDOWS_UPDATER:-false}" = "true" ]; then
+            WIN_X64_FILE="${WIN_X64_OUT:-MC-Vector_${VERSION}_windows-x86_64.nsis.zip}"
+            if [ -f "release-assets/${WIN_X64_FILE}.sig" ] && [ -f "release-assets/${WIN_X64_FILE}" ]; then
+              WIN_X64_SIG=$(tr -d '\r\n' < "release-assets/${WIN_X64_FILE}.sig")
+              jq \
+                --arg win_x64_sig "$WIN_X64_SIG" \
+                --arg base_url "$BASE_URL" \
+                --arg win_x64_file "$WIN_X64_FILE" \
+                '.platforms["windows-x86_64"] = {
+                  "signature": $win_x64_sig,
+                  "url": ($base_url + "/" + $win_x64_file)
+                }' \
+                gh-pages-deploy/latest.json > gh-pages-deploy/latest-with-win.json
+              mv gh-pages-deploy/latest-with-win.json gh-pages-deploy/latest.json
+            else
+              echo "HAS_WINDOWS_UPDATER=true but normalized windows files are missing. Skipping windows metadata."
+            fi
+          fi
 
           echo "Generated latest.json:"
           cat gh-pages-deploy/latest.json
