@@ -17,6 +17,7 @@
     "format": "biome format --write",
     "lint": "biome lint --write",
     "biome:check": "biome check",
+    "yamllint": "yamllint .",
     "prepare": "husky",
     "rustfmt": "cargo fmt --all",
     "lint-staged": "lint-staged",
