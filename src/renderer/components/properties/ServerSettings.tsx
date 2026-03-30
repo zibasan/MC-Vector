@@ -21,6 +21,16 @@ interface ServerSettingsProps {
   onSave: (updatedServer: MinecraftServer) => void;
 }
 
+const WEEKDAY_OPTIONS: Array<{ value: number; label: string }> = [
+  { value: 0, label: '日曜' },
+  { value: 1, label: '月曜' },
+  { value: 2, label: '火曜' },
+  { value: 3, label: '水曜' },
+  { value: 4, label: '木曜' },
+  { value: 5, label: '金曜' },
+  { value: 6, label: '土曜' },
+];
+
 const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
   const [name, setName] = useState(server.name);
   const [software, setSoftware] = useState(server.software || 'Paper');
@@ -36,6 +46,11 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
   const [autoBackupIntervalMin, setAutoBackupIntervalMin] = useState(
     server.autoBackupIntervalMin ?? 60
   );
+  const [autoBackupScheduleType, setAutoBackupScheduleType] = useState<
+    'interval' | 'daily' | 'weekly'
+  >(server.autoBackupScheduleType ?? 'interval');
+  const [autoBackupTime, setAutoBackupTime] = useState(server.autoBackupTime ?? '03:00');
+  const [autoBackupWeekday, setAutoBackupWeekday] = useState(server.autoBackupWeekday ?? 0);
 
   const [showJavaManager, setShowJavaManager] = useState(false);
   const [installedJava, setInstalledJava] = useState<JavaVersion[]>([]);
@@ -70,6 +85,9 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
     setAutoRestartDelaySec(server.autoRestartDelaySec ?? 5);
     setAutoBackupEnabled(Boolean(server.autoBackupEnabled));
     setAutoBackupIntervalMin(server.autoBackupIntervalMin ?? 60);
+    setAutoBackupScheduleType(server.autoBackupScheduleType ?? 'interval');
+    setAutoBackupTime(server.autoBackupTime ?? '03:00');
+    setAutoBackupWeekday(server.autoBackupWeekday ?? 0);
 
     loadJavaList();
 
@@ -120,6 +138,14 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
       1440,
       Math.max(1, Math.floor(autoBackupIntervalMin || 1))
     );
+    const normalizedScheduleType: 'interval' | 'daily' | 'weekly' =
+      autoBackupScheduleType === 'daily' || autoBackupScheduleType === 'weekly'
+        ? autoBackupScheduleType
+        : 'interval';
+    const normalizedBackupTime = /^([01]\d|2[0-3]):([0-5]\d)$/.test(autoBackupTime.trim())
+      ? autoBackupTime.trim()
+      : '03:00';
+    const normalizedBackupWeekday = Math.min(6, Math.max(0, Math.floor(autoBackupWeekday || 0)));
 
     onSave({
       ...server,
@@ -135,6 +161,9 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
       autoRestartDelaySec: normalizedRestartDelay,
       autoBackupEnabled,
       autoBackupIntervalMin: normalizedBackupInterval,
+      autoBackupScheduleType: normalizedScheduleType,
+      autoBackupTime: normalizedBackupTime,
+      autoBackupWeekday: normalizedBackupWeekday,
     });
   };
 
@@ -363,17 +392,64 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
 
             <div className="server-settings__row">
               <div className="server-settings__col">
-                <label className="server-settings__label">実行間隔（分）</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={1440}
-                  value={autoBackupIntervalMin}
+                <label className="server-settings__label">スケジュール方式</label>
+                <select
+                  value={autoBackupScheduleType}
                   disabled={!autoBackupEnabled}
-                  onChange={(event) => setAutoBackupIntervalMin(Number(event.target.value))}
+                  onChange={(event) =>
+                    setAutoBackupScheduleType(event.target.value as 'interval' | 'daily' | 'weekly')
+                  }
                   className="input-field"
-                />
+                >
+                  <option value="interval">一定間隔</option>
+                  <option value="daily">毎日指定時刻</option>
+                  <option value="weekly">毎週指定時刻</option>
+                </select>
               </div>
+
+              {autoBackupScheduleType === 'interval' ? (
+                <div className="server-settings__col">
+                  <label className="server-settings__label">実行間隔（分）</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={1440}
+                    value={autoBackupIntervalMin}
+                    disabled={!autoBackupEnabled}
+                    onChange={(event) => setAutoBackupIntervalMin(Number(event.target.value))}
+                    className="input-field"
+                  />
+                </div>
+              ) : (
+                <div className="server-settings__col">
+                  <label className="server-settings__label">実行時刻</label>
+                  <input
+                    type="time"
+                    value={autoBackupTime}
+                    disabled={!autoBackupEnabled}
+                    onChange={(event) => setAutoBackupTime(event.target.value)}
+                    className="input-field"
+                  />
+                </div>
+              )}
+
+              {autoBackupScheduleType === 'weekly' && (
+                <div className="server-settings__col">
+                  <label className="server-settings__label">曜日</label>
+                  <select
+                    value={autoBackupWeekday}
+                    disabled={!autoBackupEnabled}
+                    onChange={(event) => setAutoBackupWeekday(Number(event.target.value))}
+                    className="input-field"
+                  >
+                    {WEEKDAY_OPTIONS.map((weekday) => (
+                      <option key={weekday.value} value={weekday.value}>
+                        {weekday.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
 

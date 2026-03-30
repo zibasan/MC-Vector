@@ -23,7 +23,7 @@ User-requested set:
 | #30 | 有効/無効トグル | done | in-card rename toggle: .jar <-> .jar.disabled |
 | #32 | バージョン互換チェック | done | compatibility badges + pre-install warnings |
 | #36 | ドラッグ&ドロップアップロード | done | external file drop upload in Files view |
-| #39 | 自動バックアップスケジュール | done-partial | interval scheduler implemented; time-based policy pending |
+| #39 | 自動バックアップスケジュール | done | interval + daily + weekly time-based policy |
 | #40 | 差分バックアップ | done | metadata snapshot diff mode in Backups view |
 | #44 | バックアップタグ | done | tags/notes editor persisted in backup metadata |
 | #47 | ワールド削除GUI | done | world list + double-confirm delete flow |

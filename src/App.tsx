@@ -202,6 +202,7 @@ function App() {
   const autoRestartTimerRef = useRef<Record<string, ReturnType<typeof window.setTimeout>>>({});
   const autoBackupIntervalRef = useRef<Record<string, ReturnType<typeof window.setInterval>>>({});
   const autoBackupRunningRef = useRef<Record<string, boolean>>({});
+  const autoBackupLastRunKeyRef = useRef<Record<string, string>>({});
 
   const clearAutoRestartTimer = (serverId: string) => {
     const timerId = autoRestartTimerRef.current[serverId];
@@ -245,6 +246,55 @@ function App() {
       delete autoBackupIntervalRef.current[serverId];
     }
     delete autoBackupRunningRef.current[serverId];
+    delete autoBackupLastRunKeyRef.current[serverId];
+  };
+
+  const resolveAutoBackupScheduleType = (
+    server: MinecraftServer
+  ): 'interval' | 'daily' | 'weekly' => {
+    return server.autoBackupScheduleType === 'daily' || server.autoBackupScheduleType === 'weekly'
+      ? server.autoBackupScheduleType
+      : 'interval';
+  };
+
+  const resolveAutoBackupTime = (server: MinecraftServer): string => {
+    const raw = typeof server.autoBackupTime === 'string' ? server.autoBackupTime.trim() : '';
+    return /^([01]\d|2[0-3]):([0-5]\d)$/.test(raw) ? raw : '03:00';
+  };
+
+  const resolveAutoBackupWeekday = (server: MinecraftServer): number => {
+    const raw =
+      typeof server.autoBackupWeekday === 'number' && Number.isFinite(server.autoBackupWeekday)
+        ? Math.floor(server.autoBackupWeekday)
+        : 0;
+    return Math.min(6, Math.max(0, raw));
+  };
+
+  const buildTimeBasedAutoBackupKey = (server: MinecraftServer, now: Date): string | null => {
+    const scheduleType = resolveAutoBackupScheduleType(server);
+    if (scheduleType === 'interval') {
+      return null;
+    }
+
+    const [hourText, minuteText] = resolveAutoBackupTime(server).split(':');
+    const targetHour = Number(hourText);
+    const targetMinute = Number(minuteText);
+
+    if (now.getHours() !== targetHour || now.getMinutes() !== targetMinute) {
+      return null;
+    }
+
+    if (scheduleType === 'weekly') {
+      const targetWeekday = resolveAutoBackupWeekday(server);
+      if (now.getDay() !== targetWeekday) {
+        return null;
+      }
+    }
+
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${scheduleType}-${yyyy}-${mm}-${dd}-${hourText}-${minuteText}`;
   };
 
   const buildAutoBackupName = (server: MinecraftServer): string => {
@@ -316,16 +366,40 @@ function App() {
         continue;
       }
 
-      const intervalMinutes = Math.min(
-        1440,
-        Math.max(1, Math.floor(server.autoBackupIntervalMin ?? 60))
-      );
-      autoBackupIntervalRef.current[server.id] = window.setInterval(
-        () => {
-          void runAutoBackup(server.id);
-        },
-        intervalMinutes * 60 * 1000
-      );
+      const scheduleType = resolveAutoBackupScheduleType(server);
+      if (scheduleType === 'interval') {
+        const intervalMinutes = Math.min(
+          1440,
+          Math.max(1, Math.floor(server.autoBackupIntervalMin ?? 60))
+        );
+
+        autoBackupIntervalRef.current[server.id] = window.setInterval(
+          () => {
+            void runAutoBackup(server.id);
+          },
+          intervalMinutes * 60 * 1000
+        );
+        continue;
+      }
+
+      autoBackupIntervalRef.current[server.id] = window.setInterval(() => {
+        const latestServer = serversRef.current.find((candidate) => candidate.id === server.id);
+        if (!latestServer?.autoBackupEnabled || latestServer.status !== 'online') {
+          return;
+        }
+
+        const triggerKey = buildTimeBasedAutoBackupKey(latestServer, new Date());
+        if (!triggerKey) {
+          return;
+        }
+
+        if (autoBackupLastRunKeyRef.current[server.id] === triggerKey) {
+          return;
+        }
+
+        autoBackupLastRunKeyRef.current[server.id] = triggerKey;
+        void runAutoBackup(server.id);
+      }, 15 * 1000);
     }
   }, [servers]);
 
@@ -341,6 +415,7 @@ function App() {
       }
       autoBackupIntervalRef.current = {};
       autoBackupRunningRef.current = {};
+      autoBackupLastRunKeyRef.current = {};
     };
   }, []);
 
@@ -640,6 +715,9 @@ function App() {
         javaPath: (sd.javaPath as string) || undefined,
         autoBackupEnabled: false,
         autoBackupIntervalMin: 60,
+        autoBackupScheduleType: 'interval',
+        autoBackupTime: '03:00',
+        autoBackupWeekday: 0,
         createdDate: new Date().toISOString(),
       };
       await addServerApi(newServer);

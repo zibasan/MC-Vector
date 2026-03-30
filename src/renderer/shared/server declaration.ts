@@ -15,6 +15,9 @@ export interface MinecraftServer {
   autoRestartDelaySec?: number;
   autoBackupEnabled?: boolean;
   autoBackupIntervalMin?: number;
+  autoBackupScheduleType?: 'interval' | 'daily' | 'weekly';
+  autoBackupTime?: string;
+  autoBackupWeekday?: number;
   createdDate?: string;
 }
 
