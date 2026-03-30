@@ -3,9 +3,42 @@
     @apply h-full flex flex-col p-5;
   }
 
+  .plugin-browser__header {
+    @apply flex justify-between items-center mb-5;
+  }
+
+  .plugin-browser__title {
+    @apply m-0;
+  }
+
+  .plugin-browser__platform-controls {
+    @apply flex gap-2.5;
+  }
+
+  .plugin-browser__platform-select {
+    width: 150px;
+  }
+
+  .plugin-browser__search-row {
+    @apply mb-5 flex gap-2.5;
+  }
+
   .plugin-browser__unsupported-panel {
     @apply p-10 text-center rounded-lg;
     background-color: #252526;
+  }
+
+  .plugin-browser__unsupported-btn {
+    @apply mt-2;
+  }
+
+  .plugin-browser__unsupported-note {
+    @apply text-xs text-zinc-500 mt-3;
+  }
+
+  .plugin-browser__results-grid {
+    @apply flex-1 overflow-y-auto grid gap-4 pr-1;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   }
 
   .plugin-browser__result-card {
@@ -13,8 +46,48 @@
     background-color: #252526;
   }
 
+  .plugin-browser__result-body {
+    @apply flex-1 min-w-0 flex flex-col;
+  }
+
+  .plugin-browser__result-top {
+    @apply flex justify-between items-start mb-1.5;
+  }
+
+  .plugin-browser__result-title {
+    @apply font-bold text-base whitespace-nowrap overflow-hidden text-ellipsis mr-2.5;
+  }
+
+  .plugin-browser__result-actions {
+    @apply flex items-center gap-2;
+  }
+
+  .plugin-browser__installed-badge {
+    @apply text-xs font-semibold text-emerald-400;
+  }
+
   .plugin-browser__result-icon {
     @apply w-16 h-16 rounded-lg shrink-0 bg-zinc-800;
+  }
+
+  .plugin-browser__result-description {
+    @apply text-sm text-zinc-400 mb-auto line-clamp-2 leading-snug;
+  }
+
+  .plugin-browser__result-meta {
+    @apply mt-2.5 text-xs text-zinc-600 flex justify-between;
+  }
+
+  .plugin-browser__result-empty {
+    @apply col-span-full text-center text-zinc-600 p-5;
+  }
+
+  .plugin-browser__pager {
+    @apply mt-5 flex justify-center gap-5 items-center;
+  }
+
+  .plugin-browser__pager-label {
+    @apply text-zinc-400;
   }
 
   .plugin-browser__install-btn {

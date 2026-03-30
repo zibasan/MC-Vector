@@ -13,6 +13,58 @@
     @apply flex justify-between items-center mb-5;
   }
 
+  .java-manager-modal__available-section {
+    @apply mb-8;
+  }
+
+  .java-manager-modal__section-title {
+    @apply border-b border-zinc-700 pb-1.5 mb-4;
+  }
+
+  .java-manager-modal__section-title--compact {
+    @apply mb-2;
+  }
+
+  .java-manager-modal__version-grid {
+    @apply grid grid-cols-3 gap-4;
+  }
+
+  .java-manager-modal__download-btn {
+    @apply w-full;
+  }
+
+  .java-manager-modal__download-status {
+    @apply mt-3 text-xs text-zinc-400;
+  }
+
+  .java-manager-modal__manual-section {
+    @apply mb-6 flex items-center justify-between;
+  }
+
+  .java-manager-modal__manual-note {
+    @apply text-xs text-zinc-400;
+  }
+
+  .java-manager-modal__empty {
+    @apply text-zinc-400 italic;
+  }
+
+  .java-manager-modal__runtime-list {
+    @apply flex flex-col gap-2.5;
+  }
+
+  .java-manager-modal__runtime-name {
+    @apply font-bold;
+  }
+
+  .java-manager-modal__runtime-path {
+    @apply text-xs text-zinc-500 break-all;
+  }
+
+  .java-manager-modal__delete-btn {
+    @apply py-1.5 px-2.5 text-xs min-w-0;
+  }
+
   .java-manager-modal__close-button {
     @apply bg-transparent border-none text-white text-2xl;
     @apply hover:opacity-70;

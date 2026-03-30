@@ -81,9 +81,9 @@ export default function JavaManagerModal({ onClose }: Props) {
           </button>
         </div>
 
-        <div className="mb-8">
-          <h3 className="border-b border-zinc-700 pb-1.5 mb-4">Available Versions (Adoptium)</h3>
-          <div className="grid grid-cols-3 gap-4">
+        <div className="java-manager-modal__available-section">
+          <h3 className="java-manager-modal__section-title">Available Versions (Adoptium)</h3>
+          <div className="java-manager-modal__version-grid">
             {availableVersions.map((v) => {
               const isInstalled = installed.some((i) => i.version === v);
               return (
@@ -93,7 +93,7 @@ export default function JavaManagerModal({ onClose }: Props) {
                     <div className="text-success font-bold">Installed</div>
                   ) : (
                     <button
-                      className="btn-primary w-full disabled:opacity-50"
+                      className="btn-primary java-manager-modal__download-btn disabled:opacity-50"
                       onClick={() => handleDownload(v)}
                       disabled={downloading !== null}
                     >
@@ -105,14 +105,18 @@ export default function JavaManagerModal({ onClose }: Props) {
             })}
           </div>
           {downloading !== null && (
-            <div className="mt-3 text-xs text-zinc-400">{downloadStatus || 'Downloading...'}</div>
+            <div className="java-manager-modal__download-status">
+              {downloadStatus || 'Downloading...'}
+            </div>
           )}
         </div>
 
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h3 className="border-b border-zinc-700 pb-1.5 mb-2">手動でJavaを指定</h3>
-            <p className="text-xs text-zinc-400">
+        <div className="java-manager-modal__manual-section">
+          <div className="java-manager-modal__manual-copy">
+            <h3 className="java-manager-modal__section-title java-manager-modal__section-title--compact">
+              手動でJavaを指定
+            </h3>
+            <p className="java-manager-modal__manual-note">
               環境変数にパスを通す場合や、既存のJavaを利用したいときに選択できます。
             </p>
           </div>
@@ -136,20 +140,20 @@ export default function JavaManagerModal({ onClose }: Props) {
           </button>
         </div>
 
-        <div>
-          <h3 className="border-b border-zinc-700 pb-1.5 mb-4">Installed Runtimes</h3>
+        <div className="java-manager-modal__installed-section">
+          <h3 className="java-manager-modal__section-title">Installed Runtimes</h3>
           {installed.length === 0 ? (
-            <div className="text-zinc-400 italic">No runtimes managed by MC-Vector.</div>
+            <div className="java-manager-modal__empty">No runtimes managed by MC-Vector.</div>
           ) : (
-            <div className="flex flex-col gap-2.5">
+            <div className="java-manager-modal__runtime-list">
               {installed.map((java) => (
                 <div key={java.path} className="java-manager-modal__runtime-row">
                   <div>
-                    <div className="font-bold">{java.name}</div>
-                    <div className="text-xs text-zinc-500 break-all">{java.path}</div>
+                    <div className="java-manager-modal__runtime-name">{java.name}</div>
+                    <div className="java-manager-modal__runtime-path">{java.path}</div>
                   </div>
                   <button
-                    className="btn-stop py-1.5 px-2.5 text-xs min-w-0"
+                    className="btn-stop java-manager-modal__delete-btn"
                     onClick={() => handleDelete(java.version)}
                   >
                     Delete

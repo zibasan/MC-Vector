@@ -252,12 +252,12 @@ export default function PluginBrowser({ server }: Props) {
 
   return (
     <div className="plugin-browser">
-      <div className="flex justify-between items-center mb-5">
-        <h2 className="m-0">{isModServer ? 'Mod' : 'Plugin'} Browser</h2>
+      <div className="plugin-browser__header">
+        <h2 className="plugin-browser__title">{isModServer ? 'Mod' : 'Plugin'} Browser</h2>
 
-        <div className="flex gap-2.5">
+        <div className="plugin-browser__platform-controls">
           <select
-            className="input-field w-[150px]"
+            className="input-field plugin-browser__platform-select"
             value={platform}
             onChange={(e) => {
               setPlatform(e.target.value as unknown as typeof platform);
@@ -273,7 +273,7 @@ export default function PluginBrowser({ server }: Props) {
       </div>
 
       {platform === 'Modrinth' || platform === 'Hangar' ? (
-        <div className="mb-5 flex gap-2.5">
+        <div className="plugin-browser__search-row">
           <input
             type="text"
             className="input-field flex-1"
@@ -290,7 +290,7 @@ export default function PluginBrowser({ server }: Props) {
         <div className="plugin-browser__unsupported-panel">
           <p>このプラットフォームはアプリ内検索に対応していません。</p>
           <button
-            className="btn-primary mt-2"
+            className="btn-primary plugin-browser__unsupported-btn"
             onClick={() =>
               openExternal(
                 platform === 'CurseForge'
@@ -301,7 +301,7 @@ export default function PluginBrowser({ server }: Props) {
           >
             ブラウザで {platform} を開く
           </button>
-          <p className="text-xs text-zinc-500 mt-3">
+          <p className="plugin-browser__unsupported-note">
             ダウンロードした.jarは Files から plugins フォルダへ配置してください。
           </p>
         </div>
@@ -309,7 +309,7 @@ export default function PluginBrowser({ server }: Props) {
 
       {(platform === 'Modrinth' || platform === 'Hangar') && (
         <>
-          <div className="flex-1 overflow-y-auto grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-4 pr-1">
+          <div className="plugin-browser__results-grid">
             {results.map((item) => (
               <div key={item.id} className="plugin-browser__result-card">
                 <div
@@ -321,14 +321,12 @@ export default function PluginBrowser({ server }: Props) {
                   }}
                 ></div>
 
-                <div className="flex-1 min-w-0 flex flex-col">
-                  <div className="flex justify-between items-start mb-1.5">
-                    <div className="font-bold text-base whitespace-nowrap overflow-hidden text-ellipsis mr-2.5">
-                      {item.title}
-                    </div>
-                    <div className="flex items-center gap-2">
+                <div className="plugin-browser__result-body">
+                  <div className="plugin-browser__result-top">
+                    <div className="plugin-browser__result-title">{item.title}</div>
+                    <div className="plugin-browser__result-actions">
                       {findInstalledMatch(item) && (
-                        <span className="text-xs font-semibold text-emerald-400">Installed</span>
+                        <span className="plugin-browser__installed-badge">Installed</span>
                       )}
                       <button
                         onClick={() => handleInstall(item)}
@@ -340,11 +338,9 @@ export default function PluginBrowser({ server }: Props) {
                     </div>
                   </div>
 
-                  <div className="text-sm text-zinc-400 mb-auto line-clamp-2 leading-snug">
-                    {item.description}
-                  </div>
+                  <div className="plugin-browser__result-description">{item.description}</div>
 
-                  <div className="mt-2.5 text-xs text-zinc-600 flex justify-between">
+                  <div className="plugin-browser__result-meta">
                     <span>By {item.author}</span>
                     <span>
                       {item.downloads
@@ -359,11 +355,11 @@ export default function PluginBrowser({ server }: Props) {
             ))}
 
             {results.length === 0 && !loading && (
-              <div className="col-span-full text-center text-zinc-600 p-5">結果がありません。</div>
+              <div className="plugin-browser__result-empty">結果がありません。</div>
             )}
           </div>
 
-          <div className="mt-5 flex justify-center gap-5 items-center">
+          <div className="plugin-browser__pager">
             <button
               className="btn-secondary disabled:opacity-50"
               onClick={() => setPage((p) => Math.max(0, p - 1))}
@@ -371,7 +367,7 @@ export default function PluginBrowser({ server }: Props) {
             >
               ← Prev
             </button>
-            <span className="text-zinc-400">Page {page + 1}</span>
+            <span className="plugin-browser__pager-label">Page {page + 1}</span>
             <button
               className="btn-secondary disabled:opacity-50"
               onClick={() => setPage((p) => p + 1)}
