@@ -72,17 +72,17 @@ export default function UsersView({ server }: Props) {
   }, [server.path]);
 
   const loadAllLists = async () => {
-    setWhitelist(
-      ((await readJsonFile(`${server.path}${sep}whitelist.json`)) as PlayerEntry[] | null) || []
-    );
-    setOps(((await readJsonFile(`${server.path}${sep}ops.json`)) as PlayerEntry[] | null) || []);
-    setBannedPlayers(
-      ((await readJsonFile(`${server.path}${sep}banned-players.json`)) as PlayerEntry[] | null) ||
-        []
-    );
-    setBannedIps(
-      ((await readJsonFile(`${server.path}${sep}banned-ips.json`)) as PlayerEntry[] | null) || []
-    );
+    const [whitelistData, opsData, bannedPlayersData, bannedIpsData] = await Promise.all([
+      readJsonFile(`${server.path}${sep}whitelist.json`) as Promise<PlayerEntry[] | null>,
+      readJsonFile(`${server.path}${sep}ops.json`) as Promise<PlayerEntry[] | null>,
+      readJsonFile(`${server.path}${sep}banned-players.json`) as Promise<PlayerEntry[] | null>,
+      readJsonFile(`${server.path}${sep}banned-ips.json`) as Promise<PlayerEntry[] | null>,
+    ]);
+
+    setWhitelist(whitelistData || []);
+    setOps(opsData || []);
+    setBannedPlayers(bannedPlayersData || []);
+    setBannedIps(bannedIpsData || []);
   };
 
   const handleAdd = async (type: ListType, nameOrIp: string) => {

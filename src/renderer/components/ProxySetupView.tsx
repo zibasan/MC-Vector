@@ -5,7 +5,7 @@ import { type MinecraftServer } from '../components/../shared/server declaration
 
 interface ProxySetupViewProps {
   servers: MinecraftServer[];
-  onBuildNetwork: (config: ProxyNetworkConfig) => void;
+  onBuildNetwork: (config: ProxyNetworkConfig) => Promise<void> | void;
 }
 
 export interface ProxyNetworkConfig {
@@ -18,6 +18,7 @@ export default function ProxySetupView({ servers, onBuildNetwork }: ProxySetupVi
   const [proxySoftware, setProxySoftware] = useState('Velocity');
   const [proxyPort, setProxyPort] = useState(25577);
   const [selectedBackendIds, setSelectedBackendIds] = useState<string[]>([]);
+  const [isBuilding, setIsBuilding] = useState(false);
 
   const backendCandidates = servers.filter(
     (s) =>
@@ -32,6 +33,9 @@ export default function ProxySetupView({ servers, onBuildNetwork }: ProxySetupVi
   };
 
   const handleBuild = async () => {
+    if (isBuilding) {
+      return;
+    }
     if (selectedBackendIds.length < 2) {
       const confirmed = await ask('接続するサーバーが1つ以下です。ネットワークを構築しますか？', {
         title: 'プロキシ構成',
@@ -39,11 +43,16 @@ export default function ProxySetupView({ servers, onBuildNetwork }: ProxySetupVi
       });
       if (!confirmed) return;
     }
-    onBuildNetwork({
-      proxySoftware,
-      proxyPort,
-      backendServerIds: selectedBackendIds,
-    });
+    setIsBuilding(true);
+    try {
+      await onBuildNetwork({
+        proxySoftware,
+        proxyPort,
+        backendServerIds: selectedBackendIds,
+      });
+    } finally {
+      setIsBuilding(false);
+    }
   };
 
   const openHelp = async () => {
@@ -114,8 +123,12 @@ export default function ProxySetupView({ servers, onBuildNetwork }: ProxySetupVi
         </div>
 
         <div className="proxy-setup-view__actions">
-          <button className="btn-start proxy-setup-view__build-btn" onClick={handleBuild}>
-            ネットワーク構築を実行
+          <button
+            className="btn-start proxy-setup-view__build-btn disabled:opacity-50"
+            onClick={handleBuild}
+            disabled={isBuilding}
+          >
+            {isBuilding ? '実行中...' : 'ネットワーク構築を実行'}
           </button>
 
           <button className="btn-secondary proxy-setup-view__help-btn" onClick={openHelp}>

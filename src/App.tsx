@@ -466,38 +466,34 @@ function App() {
     try {
       const backendServers = servers.filter((s) => _config.backendServerIds.includes(s.id));
 
-      // 各バックエンドサーバーの server.properties を更新
-      for (let i = 0; i < backendServers.length; i++) {
-        const srv = backendServers[i];
-        const propsPath = `${srv.path}/server.properties`;
-        let props = '';
-        try {
-          props = await readFileContent(propsPath);
-        } catch {
-          props = '';
-        }
+      // 各バックエンドサーバーの server.properties と設定反映を並列実行
+      await Promise.all(
+        backendServers.map(async (srv, i) => {
+          const propsPath = `${srv.path}/server.properties`;
+          let props = '';
+          try {
+            props = await readFileContent(propsPath);
+          } catch {
+            props = '';
+          }
 
-        // online-mode=false に設定
-        if (props.includes('online-mode=')) {
-          props = props.replace(/online-mode=.*/g, 'online-mode=false');
-        } else {
-          props += '\nonline-mode=false';
-        }
+          if (props.includes('online-mode=')) {
+            props = props.replace(/online-mode=.*/g, 'online-mode=false');
+          } else {
+            props += '\nonline-mode=false';
+          }
 
-        // 各サーバーに一意のポートを割り当て (25566 + i)
-        const port = 25566 + i;
-        if (props.includes('server-port=')) {
-          props = props.replace(/server-port=.*/g, `server-port=${port}`);
-        } else {
-          props += `\nserver-port=${port}`;
-        }
+          const port = 25566 + i;
+          if (props.includes('server-port=')) {
+            props = props.replace(/server-port=.*/g, `server-port=${port}`);
+          } else {
+            props += `\nserver-port=${port}`;
+          }
 
-        await saveFileContent(propsPath, props);
-
-        // サーバーオブジェクトのポートも更新
-        const updated = { ...srv, port };
-        await updateServerApi(updated);
-      }
+          await saveFileContent(propsPath, props);
+          await updateServerApi({ ...srv, port });
+        })
+      );
 
       showToast(
         `${backendServers.length} 台のサーバーの設定を更新しました。プロキシサーバー (${_config.proxySoftware}) のポート ${_config.proxyPort} で接続してください。`,
