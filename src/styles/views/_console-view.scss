@@ -63,6 +63,55 @@
     color: #d4d4d4;
   }
 
+  .console-view__search-bar {
+    @apply h-[46px] border-y flex items-center gap-2 px-4;
+    background-color: #1a1b20;
+    border-color: #32323a;
+  }
+
+  .console-view__search-label {
+    @apply text-[11px] uppercase tracking-wider font-semibold;
+    color: #8b9bb4;
+  }
+
+  .console-view__search-input {
+    @apply flex-1 rounded-md border text-[13px] px-2.5 py-1.5 outline-none;
+    background-color: #121214;
+    border-color: #3f3f46;
+    color: #f3f4f6;
+  }
+
+  .console-view__search-count {
+    @apply text-xs font-semibold min-w-[64px] text-center;
+    color: #9ca3af;
+  }
+
+  .console-view__search-nav-btn,
+  .console-view__search-close-btn {
+    @apply rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors;
+    background-color: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
+  }
+
+  .console-view__search-nav-btn:hover,
+  .console-view__search-close-btn:hover {
+    background-color: #263041;
+  }
+
+  .console-view__search-nav-btn:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  .console-view__search-hit {
+    @apply rounded px-[1px];
+    background-color: rgba(250, 204, 21, 0.35);
+  }
+
+  .console-view__search-hit.is-active {
+    background-color: rgba(251, 146, 60, 0.6);
+  }
+
   .console-view__empty-log {
     @apply text-zinc-600 italic text-center mt-5;
   }
@@ -76,6 +125,17 @@
   .console-view__command-prefix {
     @apply mr-3 font-bold;
     color: #8b9bb4;
+  }
+
+  .console-view__find-button {
+    @apply rounded-md border px-2.5 py-1.5 text-xs font-semibold mr-3 transition-colors;
+    background-color: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
+  }
+
+  .console-view__find-button:hover {
+    background-color: #263041;
   }
 
   .console-view__command-input {

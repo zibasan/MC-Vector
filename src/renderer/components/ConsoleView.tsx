@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { sendCommand } from '../../lib/server-commands';
 import { tauriListen } from '../../lib/tauri-api';
 import { type MinecraftServer } from '../components/../shared/server declaration';
@@ -107,6 +107,30 @@ const ansiToSegments = (text: string): AnsiSegment[] => {
   return segments;
 };
 
+const stripAnsiCodes = (text: string): string =>
+  text.replace(new RegExp(String.fromCharCode(27) + '\\[[0-9;]*m', 'g'), '');
+
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const countMatches = (text: string, query: string): number => {
+  if (!query) {
+    return 0;
+  }
+
+  const regex = new RegExp(escapeRegExp(query), 'gi');
+  let count = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    count += 1;
+    if (match[0].length === 0) {
+      regex.lastIndex += 1;
+    }
+  }
+
+  return count;
+};
+
 const getSeverityStyle = (text: string): AnsiStyle | undefined => {
   const upper = text.toUpperCase();
   if (upper.includes('ERROR')) {
@@ -131,12 +155,93 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, logs, ngrokUrl }) => {
   const [memoryUsage, setMemoryUsage] = useState(0);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeMatchIndex, setActiveMatchIndex] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const matchRefs = useRef<Record<string, HTMLSpanElement | null>>({});
+
+  const normalizedSearchQuery = searchQuery.trim();
+  const lowerSearchQuery = normalizedSearchQuery.toLowerCase();
+  const totalMatches = useMemo(() => {
+    if (!normalizedSearchQuery) {
+      return 0;
+    }
+
+    return logs.reduce((total, line) => {
+      return total + countMatches(stripAnsiCodes(line), normalizedSearchQuery);
+    }, 0);
+  }, [logs, normalizedSearchQuery]);
+
+  const openSearch = () => {
+    setIsSearchOpen(true);
+    requestAnimationFrame(() => searchInputRef.current?.focus());
+  };
+
+  const closeSearch = () => {
+    setIsSearchOpen(false);
+    setSearchQuery('');
+    setActiveMatchIndex(0);
+  };
+
+  const jumpToMatch = (direction: 1 | -1) => {
+    if (totalMatches === 0) {
+      return;
+    }
+
+    setActiveMatchIndex((prev) => {
+      const next = prev + direction;
+      if (next < 0) {
+        return totalMatches - 1;
+      }
+      if (next >= totalMatches) {
+        return 0;
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
-    if (autoScroll) {
+    if (autoScroll && !(isSearchOpen && normalizedSearchQuery)) {
       logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [logs, autoScroll]);
+  }, [logs, autoScroll, isSearchOpen, normalizedSearchQuery]);
+
+  useEffect(() => {
+    const onWindowKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'f') {
+        event.preventDefault();
+        openSearch();
+      }
+    };
+
+    window.addEventListener('keydown', onWindowKeyDown);
+    return () => window.removeEventListener('keydown', onWindowKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (!isSearchOpen) {
+      return;
+    }
+    requestAnimationFrame(() => searchInputRef.current?.focus());
+  }, [isSearchOpen]);
+
+  useEffect(() => {
+    if (totalMatches === 0) {
+      setActiveMatchIndex(0);
+      return;
+    }
+    setActiveMatchIndex((prev) => (prev >= totalMatches ? 0 : prev));
+  }, [totalMatches]);
+
+  useEffect(() => {
+    if (!isSearchOpen || !normalizedSearchQuery || totalMatches === 0) {
+      return;
+    }
+
+    const activeElement = matchRefs.current[`m-${activeMatchIndex}`];
+    activeElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [activeMatchIndex, totalMatches, isSearchOpen, normalizedSearchQuery, logs.length]);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -226,6 +331,59 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, logs, ngrokUrl }) => {
         </div>
       </div>
 
+      {isSearchOpen && (
+        <div className="console-view__search-bar">
+          <span className="console-view__search-label">Find</span>
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(event) => {
+              setSearchQuery(event.target.value);
+              setActiveMatchIndex(0);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                jumpToMatch(event.shiftKey ? -1 : 1);
+              }
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                closeSearch();
+              }
+            }}
+            placeholder="Search logs..."
+            className="console-view__search-input"
+          />
+
+          <div className="console-view__search-count">
+            {totalMatches === 0 ? '0 / 0' : `${activeMatchIndex + 1} / ${totalMatches}`}
+          </div>
+
+          <button
+            type="button"
+            className="console-view__search-nav-btn"
+            onClick={() => jumpToMatch(-1)}
+            disabled={totalMatches === 0}
+          >
+            Prev
+          </button>
+
+          <button
+            type="button"
+            className="console-view__search-nav-btn"
+            onClick={() => jumpToMatch(1)}
+            disabled={totalMatches === 0}
+          >
+            Next
+          </button>
+
+          <button type="button" className="console-view__search-close-btn" onClick={closeSearch}>
+            Close
+          </button>
+        </div>
+      )}
+
       <div
         ref={logContainerRef}
         className="console-view__log-pane"
@@ -236,27 +394,69 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, logs, ngrokUrl }) => {
           setAutoScroll(distanceFromBottom < 120);
         }}
       >
-        {logs.map((log: string, index: number) => (
-          <div key={index} className="break-words">
-            {(() => {
-              const severityStyle = getSeverityStyle(log);
-              return ansiToSegments(log).map((seg, i) => {
-                const style = { ...seg.style } as AnsiStyle;
-                if (severityStyle) {
-                  if (!style.color) {
-                    style.color = severityStyle.color;
+        {(() => {
+          let renderedMatchIndex = -1;
+
+          return logs.map((log: string, index: number) => (
+            <div key={index} className="break-words">
+              {(() => {
+                const severityStyle = getSeverityStyle(log);
+                return ansiToSegments(log).map((seg, i) => {
+                  const style = { ...seg.style } as AnsiStyle;
+                  if (severityStyle) {
+                    if (!style.color) {
+                      style.color = severityStyle.color;
+                    }
+                    if (!style.fontWeight) style.fontWeight = severityStyle.fontWeight;
                   }
-                  if (!style.fontWeight) style.fontWeight = severityStyle.fontWeight;
-                }
-                return (
-                  <span key={i} style={style}>
-                    {seg.text}
-                  </span>
-                );
-              });
-            })()}
-          </div>
-        ))}
+
+                  if (!normalizedSearchQuery) {
+                    return (
+                      <span key={i} style={style}>
+                        {seg.text}
+                      </span>
+                    );
+                  }
+
+                  const parts = seg.text.split(
+                    new RegExp(`(${escapeRegExp(normalizedSearchQuery)})`, 'gi')
+                  );
+
+                  return (
+                    <span key={i} style={style}>
+                      {parts.map((part, partIndex) => {
+                        if (!part) {
+                          return null;
+                        }
+
+                        if (part.toLowerCase() === lowerSearchQuery) {
+                          renderedMatchIndex += 1;
+                          const currentMatchIndex = renderedMatchIndex;
+                          const refKey = `m-${currentMatchIndex}`;
+                          const isActive = currentMatchIndex === activeMatchIndex;
+
+                          return (
+                            <mark
+                              key={`${i}-${partIndex}-match`}
+                              ref={(element) => {
+                                matchRefs.current[refKey] = element;
+                              }}
+                              className={`console-view__search-hit ${isActive ? 'is-active' : ''}`}
+                            >
+                              {part}
+                            </mark>
+                          );
+                        }
+
+                        return <span key={`${i}-${partIndex}`}>{part}</span>;
+                      })}
+                    </span>
+                  );
+                });
+              })()}
+            </div>
+          ));
+        })()}
 
         <div ref={logEndRef} />
 
@@ -264,6 +464,9 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, logs, ngrokUrl }) => {
       </div>
 
       <div className="console-view__command-bar">
+        <button type="button" className="console-view__find-button" onClick={openSearch}>
+          Find
+        </button>
         <span className="console-view__command-prefix">&gt;</span>
         <input
           type="text"
