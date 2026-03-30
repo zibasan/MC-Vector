@@ -1,7 +1,7 @@
 import { ask } from '@tauri-apps/plugin-dialog';
-import { mkdir } from '@tauri-apps/plugin-fs';
+import { copyFile, mkdir, readDir } from '@tauri-apps/plugin-fs';
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import iconBackups from './assets/icons/backups.svg';
 import iconConsole from './assets/icons/console.svg';
 import iconDashboard from './assets/icons/dashboard.svg';
@@ -22,10 +22,13 @@ import {
   deleteServer as deleteServerApi,
   downloadServerJar,
   getServers,
+  getServerTemplates,
   isServerRunning,
   onDownloadProgress,
   onServerLog,
   onServerStatusChange,
+  type ServerTemplate,
+  saveServerTemplate,
   startServer as startServerApi,
   stopServer as stopServerApi,
   updateServer as updateServerApi,
@@ -97,6 +100,7 @@ function App() {
     progress: number;
     msg: string;
   } | null>(null);
+  const [serverTemplates, setServerTemplates] = useState<ServerTemplate[]>([]);
   const { showToast } = useToast();
 
   const isSidebarOpen = useUiStore((state) => state.isSidebarOpen);
@@ -419,11 +423,67 @@ function App() {
     };
   }, []);
 
+  const loadTemplates = async () => {
+    try {
+      const templates = await getServerTemplates();
+      setServerTemplates(templates);
+    } catch (error) {
+      console.error('Failed to load server templates:', error);
+      setServerTemplates([]);
+    }
+  };
+
+  const buildTemplateFromServer = (
+    server: MinecraftServer,
+    templateName: string
+  ): ServerTemplate => {
+    return {
+      id: crypto.randomUUID(),
+      name: templateName,
+      profileName: server.profileName,
+      groupName: server.groupName,
+      version: server.version,
+      software: server.software,
+      port: server.port,
+      memory: server.memory,
+      javaPath: server.javaPath,
+      autoRestartOnCrash: server.autoRestartOnCrash,
+      maxAutoRestarts: server.maxAutoRestarts,
+      autoRestartDelaySec: server.autoRestartDelaySec,
+      autoBackupEnabled: server.autoBackupEnabled,
+      autoBackupIntervalMin: server.autoBackupIntervalMin,
+      autoBackupScheduleType: server.autoBackupScheduleType,
+      autoBackupTime: server.autoBackupTime,
+      autoBackupWeekday: server.autoBackupWeekday,
+    };
+  };
+
+  const cloneServerDirectory = async (sourceDir: string, targetDir: string): Promise<void> => {
+    await mkdir(targetDir, { recursive: true });
+
+    const entries = await readDir(sourceDir);
+    for (const entry of entries) {
+      const entryName = entry.name;
+      if (!entryName) {
+        continue;
+      }
+
+      const sourcePath = `${sourceDir}/${entryName}`;
+      const targetPath = `${targetDir}/${entryName}`;
+      if (entry.isDirectory) {
+        await cloneServerDirectory(sourcePath, targetPath);
+      } else {
+        await copyFile(sourcePath, targetPath);
+      }
+    }
+  };
+
   useEffect(() => {
     const loadServers = async () => {
       try {
         const loadedServers = await getServers();
         setServers(loadedServers);
+        await loadTemplates();
         if (loadedServers.length > 0 && !selectedServerId) {
           setSelectedServerId(loadedServers[0].id);
         }
@@ -706,6 +766,8 @@ function App() {
       const newServer: MinecraftServer = {
         id,
         name: (sd.name as string) || 'New Server',
+        profileName: typeof sd.profileName === 'string' ? sd.profileName || undefined : undefined,
+        groupName: typeof sd.groupName === 'string' ? sd.groupName || undefined : undefined,
         version: (sd.version as string) || '',
         software: (sd.software as string) || 'Vanilla',
         port: (sd.port as number) || 25565,
@@ -713,11 +775,21 @@ function App() {
         path: serverPath,
         status: 'offline',
         javaPath: (sd.javaPath as string) || undefined,
-        autoBackupEnabled: false,
-        autoBackupIntervalMin: 60,
-        autoBackupScheduleType: 'interval',
-        autoBackupTime: '03:00',
-        autoBackupWeekday: 0,
+        autoRestartOnCrash:
+          typeof sd.autoRestartOnCrash === 'boolean' ? sd.autoRestartOnCrash : false,
+        maxAutoRestarts: typeof sd.maxAutoRestarts === 'number' ? sd.maxAutoRestarts : 3,
+        autoRestartDelaySec:
+          typeof sd.autoRestartDelaySec === 'number' ? sd.autoRestartDelaySec : 5,
+        autoBackupEnabled: typeof sd.autoBackupEnabled === 'boolean' ? sd.autoBackupEnabled : false,
+        autoBackupIntervalMin:
+          typeof sd.autoBackupIntervalMin === 'number' ? sd.autoBackupIntervalMin : 60,
+        autoBackupScheduleType:
+          sd.autoBackupScheduleType === 'daily' || sd.autoBackupScheduleType === 'weekly'
+            ? sd.autoBackupScheduleType
+            : 'interval',
+        autoBackupTime: typeof sd.autoBackupTime === 'string' ? sd.autoBackupTime : '03:00',
+        autoBackupWeekday:
+          typeof sd.autoBackupWeekday === 'number' ? Math.floor(sd.autoBackupWeekday) : 0,
         createdDate: new Date().toISOString(),
       };
       await addServerApi(newServer);
@@ -904,6 +976,88 @@ function App() {
     }
   };
 
+  const handleDuplicateServer = async () => {
+    if (!contextMenu) {
+      return;
+    }
+
+    const { serverId } = contextMenu;
+    const target = servers.find((server) => server.id === serverId);
+    setContextMenu(null);
+    if (!target) {
+      return;
+    }
+
+    const confirmed = await ask(`「${target.name}」を複製しますか？`, {
+      title: 'サーバー複製',
+      kind: 'info',
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const basePath = `${target.path}-clone`;
+      const existingPaths = new Set(servers.map((server) => server.path));
+      let candidatePath = basePath;
+      let suffix = 1;
+      while (existingPaths.has(candidatePath)) {
+        candidatePath = `${basePath}-${suffix}`;
+        suffix += 1;
+      }
+
+      await cloneServerDirectory(target.path, candidatePath);
+
+      const duplicatedServer: MinecraftServer = {
+        ...target,
+        id: crypto.randomUUID(),
+        name: `${target.name} Copy`,
+        path: candidatePath,
+        status: 'offline',
+        createdDate: new Date().toISOString(),
+      };
+
+      await addServerApi(duplicatedServer);
+      setServers((prev) => [...prev, duplicatedServer]);
+      setSelectedServerId(duplicatedServer.id);
+      showToast('サーバーを複製しました', 'success');
+    } catch (error) {
+      console.error('Duplicate server error:', error);
+      showToast('サーバー複製に失敗しました', 'error');
+    }
+  };
+
+  const handleSaveServerTemplate = async () => {
+    if (!contextMenu) {
+      return;
+    }
+
+    const { serverId } = contextMenu;
+    const target = servers.find((server) => server.id === serverId);
+    setContextMenu(null);
+    if (!target) {
+      return;
+    }
+
+    const templateName = window.prompt(
+      'テンプレート名を入力してください',
+      `${target.name} Template`
+    );
+    if (!templateName || !templateName.trim()) {
+      return;
+    }
+
+    try {
+      const template = buildTemplateFromServer(target, templateName.trim());
+      await saveServerTemplate(template);
+      await loadTemplates();
+      showToast('テンプレートを保存しました', 'success');
+    } catch (error) {
+      console.error('Save template error:', error);
+      showToast('テンプレート保存に失敗しました', 'error');
+    }
+  };
+
   const handleClickOutside = () => {
     if (contextMenu) {
       setContextMenu(null);
@@ -1001,6 +1155,23 @@ function App() {
   };
   const themeColors =
     themePalette[resolvedTheme as Exclude<AppTheme, 'system'>] || themePalette.dark;
+
+  const groupedServers = useMemo(() => {
+    const grouped = new Map<string, MinecraftServer[]>();
+    for (const server of servers) {
+      const groupName = server.groupName?.trim() || 'Ungrouped';
+      const bucket = grouped.get(groupName) ?? [];
+      bucket.push(server);
+      grouped.set(groupName, bucket);
+    }
+
+    return Array.from(grouped.entries())
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([groupName, entries]) => ({
+        groupName,
+        servers: [...entries].sort((left, right) => left.name.localeCompare(right.name)),
+      }));
+  }, [servers]);
 
   const getReleaseNotesText = () => {
     const notes: unknown = updatePrompt?.releaseNotes;
@@ -1205,17 +1376,28 @@ function App() {
           >
             <div className="app-sidebar__servers-title">SERVERS</div>
             <div className="app-sidebar__server-list">
-              {servers.map((server) => (
-                <div
-                  key={server.id}
-                  className={`app-sidebar__server-item ${server.id === selectedServerId ? 'is-active' : ''}`}
-                  onClick={() => setSelectedServerId(server.id)}
-                  onContextMenu={(e) => handleContextMenu(e, server.id)}
-                >
-                  <div className={`status-indicator ${server.status}`}></div>
-                  <div className="flex flex-col">
-                    <div className="font-semibold text-sm text-text-primary">{server.name}</div>
+              {groupedServers.map((group) => (
+                <div key={group.groupName} className="mb-2.5">
+                  <div className="px-2 py-1 text-[0.68rem] uppercase tracking-[0.12em] text-zinc-400">
+                    {group.groupName}
                   </div>
+
+                  {group.servers.map((server) => (
+                    <div
+                      key={server.id}
+                      className={`app-sidebar__server-item ${server.id === selectedServerId ? 'is-active' : ''}`}
+                      onClick={() => setSelectedServerId(server.id)}
+                      onContextMenu={(e) => handleContextMenu(e, server.id)}
+                    >
+                      <div className={`status-indicator ${server.status}`}></div>
+                      <div className="flex flex-col">
+                        <div className="font-semibold text-sm text-text-primary">{server.name}</div>
+                        {server.profileName && (
+                          <div className="text-[0.72rem] text-zinc-400">{server.profileName}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
@@ -1291,14 +1473,38 @@ function App() {
         </div>
       )}
       {showAddServerModal && (
-        <AddServerModal onClose={() => setShowAddServerModal(false)} onAdd={handleAddServer} />
+        <AddServerModal
+          onClose={() => setShowAddServerModal(false)}
+          onAdd={handleAddServer}
+          templates={serverTemplates}
+        />
       )}
       {contextMenu && (
         <div className="app-context-menu" style={{ top: contextMenu.y, left: contextMenu.x }}>
           <div
+            onClick={(event) => {
+              event.stopPropagation();
+              void handleDuplicateServer();
+            }}
+            className="app-context-menu__item"
+          >
+            📄 複製
+          </div>
+
+          <div
+            onClick={(event) => {
+              event.stopPropagation();
+              void handleSaveServerTemplate();
+            }}
+            className="app-context-menu__item"
+          >
+            🧩 テンプレート保存
+          </div>
+
+          <div
             onClick={(e) => {
               e.stopPropagation();
-              handleDeleteServer();
+              void handleDeleteServer();
             }}
             className="app-context-menu__danger-item"
           >

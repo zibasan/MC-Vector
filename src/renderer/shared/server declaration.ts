@@ -3,6 +3,8 @@ export type ServerStatus = 'online' | 'offline' | 'starting' | 'stopping' | 'res
 export interface MinecraftServer {
   id: string;
   name: string;
+  profileName?: string;
+  groupName?: string;
   version: string;
   software: string;
   port: number;

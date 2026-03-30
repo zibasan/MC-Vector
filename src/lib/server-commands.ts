@@ -3,6 +3,27 @@ import type { MinecraftServer } from '../renderer/shared/server declaration';
 import { tauriInvoke, tauriListen, type UnlistenFn } from './tauri-api';
 
 const STORE_NAME = 'servers.json';
+const SERVER_TEMPLATES_KEY = 'serverTemplates';
+
+export interface ServerTemplate {
+  id: string;
+  name: string;
+  profileName?: string;
+  groupName?: string;
+  version: string;
+  software: string;
+  port: number;
+  memory: number;
+  javaPath?: string;
+  autoRestartOnCrash?: boolean;
+  maxAutoRestarts?: number;
+  autoRestartDelaySec?: number;
+  autoBackupEnabled?: boolean;
+  autoBackupIntervalMin?: number;
+  autoBackupScheduleType?: 'interval' | 'daily' | 'weekly';
+  autoBackupTime?: string;
+  autoBackupWeekday?: number;
+}
 
 // --- サーバー CRUD (Store で完結 → Rust 不要) ---
 
@@ -38,6 +59,33 @@ export async function deleteServer(id: string): Promise<boolean> {
   await store.set('servers', filtered);
   await store.save();
   return true;
+}
+
+export async function getServerTemplates(): Promise<ServerTemplate[]> {
+  const store = await load(STORE_NAME);
+  return (await store.get<ServerTemplate[]>(SERVER_TEMPLATES_KEY)) ?? [];
+}
+
+export async function saveServerTemplate(template: ServerTemplate): Promise<ServerTemplate> {
+  const store = await load(STORE_NAME);
+  const templates = (await store.get<ServerTemplate[]>(SERVER_TEMPLATES_KEY)) ?? [];
+  const index = templates.findIndex((entry) => entry.id === template.id);
+  if (index >= 0) {
+    templates[index] = template;
+  } else {
+    templates.push(template);
+  }
+  await store.set(SERVER_TEMPLATES_KEY, templates);
+  await store.save();
+  return template;
+}
+
+export async function deleteServerTemplate(templateId: string): Promise<void> {
+  const store = await load(STORE_NAME);
+  const templates = (await store.get<ServerTemplate[]>(SERVER_TEMPLATES_KEY)) ?? [];
+  const filtered = templates.filter((template) => template.id !== templateId);
+  await store.set(SERVER_TEMPLATES_KEY, filtered);
+  await store.save();
 }
 
 // --- サーバー操作 (Rust コマンド経由) ---

@@ -33,6 +33,8 @@ const WEEKDAY_OPTIONS: Array<{ value: number; label: string }> = [
 
 const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
   const [name, setName] = useState(server.name);
+  const [profileName, setProfileName] = useState(server.profileName || '');
+  const [groupName, setGroupName] = useState(server.groupName || '');
   const [software, setSoftware] = useState(server.software || 'Paper');
   const [version, setVersion] = useState(server.version);
   const [memory, setMemory] = useState(server.memory);
@@ -68,6 +70,8 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
 
   useEffect(() => {
     setName(server.name);
+    setProfileName(server.profileName || '');
+    setGroupName(server.groupName || '');
     setVersion(server.version);
     setMemory(server.memory);
     setPort(server.port);
@@ -150,6 +154,8 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
     onSave({
       ...server,
       name,
+      profileName: profileName.trim() || undefined,
+      groupName: groupName.trim() || undefined,
       version,
       memory,
       port,
@@ -235,6 +241,30 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
               onChange={(e) => setName(e.target.value)}
               className="input-field"
             />
+          </div>
+
+          <div className="server-settings__row">
+            <div className="server-settings__col">
+              <label className="server-settings__label">プロファイル名</label>
+              <input
+                type="text"
+                value={profileName}
+                onChange={(event) => setProfileName(event.target.value)}
+                placeholder="例: Survival"
+                className="input-field"
+              />
+            </div>
+
+            <div className="server-settings__col">
+              <label className="server-settings__label">グループ名</label>
+              <input
+                type="text"
+                value={groupName}
+                onChange={(event) => setGroupName(event.target.value)}
+                placeholder="例: Production"
+                className="input-field"
+              />
+            </div>
           </div>
 
           <div className="server-settings__row">

@@ -159,6 +159,11 @@
     @apply hover:bg-red-500/10;
   }
 
+  .app-context-menu__item {
+    @apply px-3 py-2 text-zinc-200 text-sm rounded transition-colors flex items-center gap-2;
+    @apply hover:bg-white/10;
+  }
+
   .app-update-overlay {
     @apply fixed inset-0 bg-black/70 flex items-center justify-center p-4;
     z-index: 10000;

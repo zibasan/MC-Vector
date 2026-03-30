@@ -7,11 +7,11 @@ User-requested set:
 
 | Task | Title | Status | Notes |
 |---|---|---|---|
-| #1 | サーバープロファイル | pending | Phase 4 |
-| #2 | サーバーテンプレート保存 | pending | Phase 4 |
+| #1 | サーバープロファイル | done | profile fields in create/settings + sidebar display |
+| #2 | サーバーテンプレート保存 | done | save template from context menu + apply in add modal |
 | #6 | クラッシュ検知自動再起動 | done | retry/delay/limit implemented |
-| #8 | サーバー複製 | pending | Phase 4 |
-| #10 | インスタンスグループ管理 | pending | Phase 4 |
+| #8 | サーバー複製 | done | context menu clone with directory copy |
+| #10 | インスタンスグループ管理 | done | sidebar grouping by groupName |
 | #11 | ログ検索 | done | Ctrl/Cmd+F + match nav |
 | #12 | ログフィルタ | done | ALL/INFO/WARN/ERROR/FATAL |
 | #13 | ログ色分け | done | severity colors applied in console output |
@@ -63,7 +63,7 @@ User-requested set:
 2. #44 バックアップタグ
 3. #47 ワールド削除GUI
 
-### Phase E (Server Expansion) - Next
+### Phase E (Server Expansion) - Completed
 
 1. #1 サーバープロファイル
 2. #2 サーバーテンプレート
