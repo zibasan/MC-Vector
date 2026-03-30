@@ -46,6 +46,10 @@ import SettingsWindow from './renderer/components/SettingsWindow.tsx';
 import { useToast } from './renderer/components/ToastProvider';
 import UsersView from './renderer/components/UsersView';
 import { type AppView, type MinecraftServer } from './renderer/shared/server declaration';
+import { useConsoleStore } from './store/consoleStore';
+import { useServerStore } from './store/serverStore';
+import { type AppTheme, useSettingsStore } from './store/settingsStore';
+import { useUiStore } from './store/uiStore';
 
 const TAB_CYCLE: AppView[] = [
   'dashboard',
@@ -71,30 +75,23 @@ type NavItemProps = {
   label: string;
   view: AppView;
   current: AppView;
-  set: React.Dispatch<React.SetStateAction<AppView>>;
+  set: (view: AppView) => void;
   iconSrc: string;
 };
-type AppTheme =
-  | 'dark'
-  | 'darkBlue'
-  | 'grey'
-  | 'forest'
-  | 'sunset'
-  | 'neon'
-  | 'coffee'
-  | 'ocean'
-  | 'system';
 
 function App() {
-  const [servers, setServers] = useState<MinecraftServer[]>([]);
-  const [selectedServerId, setSelectedServerId] = useState<string>('');
-  const [currentView, setCurrentView] = useState<AppView>('dashboard');
-  const [showAddServerModal, setShowAddServerModal] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-    serverId: string;
-  } | null>(null);
+  const servers = useServerStore((state) => state.servers);
+  const setServers = useServerStore((state) => state.setServers);
+  const selectedServerId = useServerStore((state) => state.selectedServerId);
+  const setSelectedServerId = useServerStore((state) => state.setSelectedServerId);
+
+  const currentView = useUiStore((state) => state.currentView);
+  const setCurrentView = useUiStore((state) => state.setCurrentView);
+  const showAddServerModal = useUiStore((state) => state.showAddServerModal);
+  const setShowAddServerModal = useUiStore((state) => state.setShowAddServerModal);
+  const contextMenu = useUiStore((state) => state.contextMenu);
+  const setContextMenu = useUiStore((state) => state.setContextMenu);
+
   const [downloadStatus, setDownloadStatus] = useState<{
     id: string;
     progress: number;
@@ -102,7 +99,8 @@ function App() {
   } | null>(null);
   const { showToast } = useToast();
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const isSidebarOpen = useUiStore((state) => state.isSidebarOpen);
+  const setIsSidebarOpen = useUiStore((state) => state.setIsSidebarOpen);
 
   const [updatePrompt, setUpdatePrompt] = useState<{
     version?: string;
@@ -112,10 +110,10 @@ function App() {
   const [updateReady, setUpdateReady] = useState(false);
 
   const [ngrokData, setNgrokData] = useState<Record<string, string | null>>({});
-  const [appTheme, setAppTheme] = useState<AppTheme>('system');
-  const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(
-    window.matchMedia('(prefers-color-scheme: dark)').matches
-  );
+  const appTheme = useSettingsStore((state) => state.appTheme);
+  const setAppTheme = useSettingsStore((state) => state.setAppTheme);
+  const systemPrefersDark = useSettingsStore((state) => state.systemPrefersDark);
+  const setSystemPrefersDark = useSettingsStore((state) => state.setSystemPrefersDark);
 
   const normalizeTheme = (value: unknown): AppTheme => {
     const allowed: AppTheme[] = [
@@ -194,7 +192,9 @@ function App() {
     };
   }, []);
 
-  const [serverLogs, setServerLogs] = useState<Record<string, string[]>>({});
+  const serverLogs = useConsoleStore((state) => state.serverLogs);
+  const appendServerLog = useConsoleStore((state) => state.appendServerLog);
+  const removeServerLogs = useConsoleStore((state) => state.removeServerLogs);
   const selectedServerIdRef = useRef(selectedServerId);
   const serversRef = useRef<MinecraftServer[]>([]);
   const expectedOfflineEventsRef = useRef<Record<string, number>>({});
@@ -370,14 +370,7 @@ function App() {
           return;
         }
         const formattedLog = data.line.replace(/\n/g, '\r\n');
-        setServerLogs((prev) => {
-          const currentLogs = prev[data.serverId] || [];
-          const newLogs = [...currentLogs, formattedLog];
-          if (newLogs.length > 2000) {
-            newLogs.shift();
-          }
-          return { ...prev, [data.serverId]: newLogs };
-        });
+        appendServerLog(data.serverId, formattedLog);
       });
       unlisteners.push(u1);
 
@@ -819,11 +812,7 @@ function App() {
       if (success) {
         const newServers = servers.filter((s) => s.id !== serverId);
         setServers(newServers);
-        setServerLogs((prev) => {
-          const n = { ...prev };
-          delete n[serverId];
-          return n;
-        });
+        removeServerLogs(serverId);
         if (selectedServerId === serverId) {
           setSelectedServerId(newServers.length > 0 ? newServers[0].id : '');
         }

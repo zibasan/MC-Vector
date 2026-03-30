@@ -23,7 +23,7 @@ export interface HangarProject {
 }
 
 export interface HangarDownloadInfo {
-  downloadUrl: string;
+  downloadUrl: string | null;
   externalUrl: string | null;
   fileName: string | null;
 }
@@ -37,7 +37,8 @@ export interface HangarVersion {
 export interface HangarResolvedDownload {
   versionName: string;
   fileName: string;
-  downloadUrl: string;
+  downloadUrl: string | null;
+  externalUrl: string | null;
 }
 
 export interface SpigetResource {
@@ -76,9 +77,21 @@ function asNumber(value: unknown, fallback = 0): number {
 }
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, init);
+  const headers = new Headers(init?.headers);
+  if (!headers.has('Accept')) {
+    headers.set('Accept', 'application/json');
+  }
+  if (!headers.has('User-Agent')) {
+    headers.set('User-Agent', 'MC-Vector/2.0');
+  }
+
+  const response = await fetch(url, {
+    ...init,
+    headers,
+  });
+
   if (!response.ok) {
-    throw new Error(`API error ${response.status}: ${url}`);
+    throw new Error(`API error ${response.status} ${response.statusText}: ${url}`);
   }
   return response.json() as Promise<T>;
 }
@@ -135,14 +148,15 @@ function parseHangarVersion(version: unknown): HangarVersion | null {
       continue;
     }
     const downloadUrl = asString(payload.downloadUrl);
-    if (!downloadUrl) {
+    const externalUrl = asString(payload.externalUrl);
+    if (!downloadUrl && !externalUrl) {
       continue;
     }
 
     const fileInfoRaw = isRecord(payload.fileInfo) ? payload.fileInfo : null;
     downloads[platform.toUpperCase()] = {
-      downloadUrl,
-      externalUrl: typeof payload.externalUrl === 'string' ? payload.externalUrl : null,
+      downloadUrl: downloadUrl || null,
+      externalUrl: externalUrl || null,
       fileName: fileInfoRaw ? asString(fileInfoRaw.name) || null : null,
     };
   }
@@ -335,14 +349,37 @@ export async function resolveHangarDownload(params: {
     return null;
   }
 
+  const pickDependencies = (version: HangarVersion): string[] => {
+    const preferred = version.platformDependencies[platform];
+    if (preferred && preferred.length > 0) {
+      return preferred;
+    }
+    const fallback = Object.values(version.platformDependencies).find(
+      (values) => values.length > 0
+    );
+    return fallback ?? [];
+  };
+
+  const pickDownload = (version: HangarVersion): HangarDownloadInfo | null => {
+    const preferred = version.downloads[platform];
+    if (preferred) {
+      return preferred;
+    }
+    return Object.values(version.downloads)[0] ?? null;
+  };
+
   const compatibleVersion = versions.find((version) => {
-    const dependencies = version.platformDependencies[platform] ?? [];
+    const dependencies = pickDependencies(version);
     return isMatchingMinecraftVersion(dependencies, params.minecraftVersion);
   });
 
   const selected = compatibleVersion ?? versions[0];
-  const selectedDownload = selected.downloads[platform] ?? Object.values(selected.downloads)[0];
+  const selectedDownload = pickDownload(selected);
   if (!selectedDownload) {
+    return null;
+  }
+
+  if (!selectedDownload.downloadUrl && !selectedDownload.externalUrl) {
     return null;
   }
 
@@ -353,6 +390,7 @@ export async function resolveHangarDownload(params: {
     versionName: selected.name,
     fileName,
     downloadUrl: selectedDownload.downloadUrl,
+    externalUrl: selectedDownload.externalUrl,
   };
 }
 

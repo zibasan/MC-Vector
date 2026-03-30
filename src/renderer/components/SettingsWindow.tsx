@@ -97,6 +97,11 @@ const SettingsWindow = ({ onClose }: { onClose?: () => void }) => {
     setUpdateState({ status: 'checking' });
     try {
       const result = await checkForUpdates();
+      if (result.error) {
+        setUpdateState({ status: 'error', error: result.error });
+        return;
+      }
+
       if (result.available) {
         setUpdateState({
           status: 'available',

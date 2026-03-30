@@ -10,6 +10,22 @@ interface UpdateCheckResult {
   reason?: string;
 }
 
+function normalizeUpdaterError(error: unknown): string {
+  const raw = String(error);
+  const lower = raw.toLowerCase();
+
+  if (lower.includes('signature verification failed')) {
+    return (
+      'アップデート署名の検証に失敗しました。\n' +
+      '配信中の latest.json / .sig / updater pubkey が一致していない可能性があります。\n' +
+      'しばらく待って再試行するか、最新リリースの配信状態を確認してください。\n\n' +
+      `詳細: ${raw}`
+    );
+  }
+
+  return raw;
+}
+
 function createReadOnlyErrorMessage(location: string): string {
   return (
     `アプリは読み取り専用の場所から実行されています。\n\n` +
@@ -52,17 +68,22 @@ export async function checkForUpdates(): Promise<{
   available: boolean;
   version?: string;
   body?: string;
+  error?: string;
 }> {
   try {
     const update = await check();
     if (update) {
       currentUpdate = update;
-      return { available: true, version: update.version, body: update.body ?? undefined };
+      return {
+        available: true,
+        version: update.version,
+        body: update.body ?? undefined,
+      };
     }
     return { available: false };
   } catch (e) {
     console.error('Update check failed:', e);
-    return { available: false };
+    return { available: false, error: normalizeUpdaterError(e) };
   }
 }
 
@@ -129,13 +150,14 @@ export async function downloadAndInstallUpdate(
 
     await relaunch();
   } catch (error) {
-    // Handle the "Read-only file system" error specifically
+    // Handle update errors with user-friendly details
     const errorMessage = String(error);
     if (errorMessage.includes('Read-only file system') || errorMessage.includes('os error 30')) {
       const location = await getAppLocation();
       throw new Error(createReadOnlyErrorMessage(location));
     }
-    throw error;
+
+    throw new Error(normalizeUpdaterError(error));
   }
 }
 

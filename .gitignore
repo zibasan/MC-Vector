@@ -2,6 +2,8 @@
 /dist
 /release
 docs/*
+!docs/engineering-requirements.md
+!docs/next-phase-plan.md
 /dist-electron
 .DS_Store
 # Logs

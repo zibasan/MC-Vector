@@ -78,6 +78,13 @@ function normalizeFileExtension(value?: string): string {
   return value.startsWith('.') ? value : `.${value}`;
 }
 
+function toErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
+
 function mapSpigotResource(resource: SpigetResource): ProjectItem {
   return {
     id: String(resource.id),
@@ -294,7 +301,14 @@ export default function PluginBrowser({ server }: Props) {
       setResults(items);
     } catch (error) {
       console.error(error);
-      showToast('データの取得に失敗しました', 'error');
+      const message = toErrorMessage(error);
+      if (platform === 'Hangar') {
+        showToast(`Hangarの取得に失敗しました: ${message}`, 'error');
+      } else if (platform === 'Spigot') {
+        showToast(`Spigotの取得に失敗しました: ${message}`, 'error');
+      } else {
+        showToast('データの取得に失敗しました', 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -367,6 +381,13 @@ export default function PluginBrowser({ server }: Props) {
 
         if (!resolved) {
           showToast('対応バージョンが見つかりませんでした', 'error');
+          return;
+        }
+
+        if (!resolved.downloadUrl) {
+          const externalUrl = resolved.externalUrl || `https://hangar.papermc.io/${owner}/${slug}`;
+          await openExternal(externalUrl);
+          showToast('このHangarリソースはブラウザ経由でのダウンロードが必要です', 'info');
           return;
         }
 
@@ -530,6 +551,20 @@ export default function PluginBrowser({ server }: Props) {
           <p className="plugin-browser__unsupported-note">
             ダウンロードした .jar は Files から {folderName} フォルダへ配置してください。
           </p>
+        </div>
+      )}
+
+      {isInAppSearch && platform === 'Spigot' && (
+        <div className="plugin-browser__platform-note">
+          Spigot にはブラウザ経由でのみ配布されるリソースがあります。Open
+          と表示される場合は外部ページから取得してください。
+        </div>
+      )}
+
+      {isInAppSearch && platform === 'Hangar' && (
+        <div className="plugin-browser__platform-note">
+          Hangar には直接ダウンロード URL
+          を公開していないバージョンがあります。その場合は自動的に外部ページを開きます。
         </div>
       )}
 

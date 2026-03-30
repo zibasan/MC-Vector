@@ -101,6 +101,11 @@
     @apply text-xs text-zinc-500 mt-3;
   }
 
+  .plugin-browser__platform-note {
+    @apply rounded-lg border border-cyan-400/20 px-3 py-2 text-xs text-cyan-200;
+    background: rgba(8, 47, 73, 0.32);
+  }
+
   .plugin-browser__results-grid {
     @apply flex-1 overflow-y-auto grid gap-4 pr-1;
     grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));

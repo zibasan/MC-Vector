@@ -48,6 +48,40 @@ Frontend UI is built with React and Tailwind, with SCSS partials used to keep re
 4. Treat optional properties as nullable and provide safe fallbacks in rendering and install flows.
 5. If a guard cannot prove shape safety, fail with a user-visible error instead of unsafe casting.
 
+### Type Guard Example (Required Pattern)
+
+```ts
+type JsonRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is JsonRecord {
+	return typeof value === 'object' && value !== null;
+}
+
+function parseProject(value: unknown): { id: string; title: string } | null {
+	if (!isRecord(value)) {
+		return null;
+	}
+	const id = typeof value.id === 'string' ? value.id : '';
+	const title = typeof value.title === 'string' ? value.title : '';
+	if (!id || !title) {
+		return null;
+	}
+	return { id, title };
+}
+```
+
+### Adapter Layer Example (Required Pattern)
+
+```ts
+interface PluginSourceAdapter {
+	search(query: string, gameVersion: string, page: number): Promise<PluginProject[]>;
+	resolveDownload(project: PluginProject, gameVersion: string): Promise<PluginDownload | null>;
+}
+```
+
+Keep source-specific parsing and fallback logic inside adapters under `src/lib/adapters`.
+UI components must never consume raw API payloads directly.
+
 ## Phase Execution Rules
 
 1. Implement large requests by phase, not by scattered partial edits.
@@ -55,6 +89,12 @@ Frontend UI is built with React and Tailwind, with SCSS partials used to keep re
 3. After each phase, run build and diagnostics, then report unresolved risks.
 4. Keep one commit scope per phase unless a single phase becomes too large and must be split.
 5. Align feature phases with `docs/engineering-requirements.md` and update status after significant changes.
+
+## Delivery Tracking Files
+
+1. Keep `docs/engineering-requirements.md` aligned with current implementation constraints.
+2. Keep `docs/next-phase-plan.md` updated after each substantial implementation.
+3. When task status changes, update the status matrix in `docs/next-phase-plan.md` in the same prompt.
 
 ## Refactor Checklist
 
