@@ -10,6 +10,9 @@ export interface MinecraftServer {
   path: string;
   status: ServerStatus;
   javaPath?: string;
+  autoRestartOnCrash?: boolean;
+  maxAutoRestarts?: number;
+  autoRestartDelaySec?: number;
   createdDate?: string;
 }
 

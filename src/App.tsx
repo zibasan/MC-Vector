@@ -195,10 +195,79 @@ function App() {
 
   const [serverLogs, setServerLogs] = useState<Record<string, string[]>>({});
   const selectedServerIdRef = useRef(selectedServerId);
+  const serversRef = useRef<MinecraftServer[]>([]);
+  const expectedOfflineEventsRef = useRef<Record<string, number>>({});
+  const autoRestartAttemptsRef = useRef<Record<string, number>>({});
+  const autoRestartTimerRef = useRef<Record<string, ReturnType<typeof window.setTimeout>>>({});
+
+  const clearAutoRestartTimer = (serverId: string) => {
+    const timerId = autoRestartTimerRef.current[serverId];
+    if (timerId) {
+      window.clearTimeout(timerId);
+      delete autoRestartTimerRef.current[serverId];
+    }
+  };
+
+  const resetAutoRestartState = (serverId: string) => {
+    clearAutoRestartTimer(serverId);
+    delete autoRestartAttemptsRef.current[serverId];
+  };
+
+  const markExpectedOffline = (serverId: string) => {
+    expectedOfflineEventsRef.current[serverId] =
+      (expectedOfflineEventsRef.current[serverId] ?? 0) + 1;
+  };
+
+  const consumeExpectedOffline = (serverId: string): boolean => {
+    const current = expectedOfflineEventsRef.current[serverId] ?? 0;
+    if (current <= 0) {
+      return false;
+    }
+    if (current === 1) {
+      delete expectedOfflineEventsRef.current[serverId];
+    } else {
+      expectedOfflineEventsRef.current[serverId] = current - 1;
+    }
+    return true;
+  };
+
+  const clearExpectedOffline = (serverId: string) => {
+    delete expectedOfflineEventsRef.current[serverId];
+  };
 
   useEffect(() => {
     selectedServerIdRef.current = selectedServerId;
   }, [selectedServerId]);
+
+  useEffect(() => {
+    serversRef.current = servers;
+
+    const activeServerIds = new Set(servers.map((server) => server.id));
+    for (const serverId of Object.keys(autoRestartTimerRef.current)) {
+      if (!activeServerIds.has(serverId)) {
+        clearAutoRestartTimer(serverId);
+      }
+    }
+    for (const serverId of Object.keys(autoRestartAttemptsRef.current)) {
+      if (!activeServerIds.has(serverId)) {
+        delete autoRestartAttemptsRef.current[serverId];
+      }
+    }
+    for (const serverId of Object.keys(expectedOfflineEventsRef.current)) {
+      if (!activeServerIds.has(serverId)) {
+        delete expectedOfflineEventsRef.current[serverId];
+      }
+    }
+  }, [servers]);
+
+  useEffect(() => {
+    return () => {
+      for (const timerId of Object.values(autoRestartTimerRef.current)) {
+        window.clearTimeout(timerId);
+      }
+      autoRestartTimerRef.current = {};
+    };
+  }, []);
 
   useEffect(() => {
     const loadServers = async () => {
@@ -254,13 +323,102 @@ function App() {
         if (cancelled) {
           return;
         }
-        setServers((prev) =>
-          prev.map((s) =>
-            s.id === data.serverId
-              ? { ...s, status: data.status as unknown as MinecraftServer['status'] }
-              : s
-          )
+        const status = data.status as MinecraftServer['status'];
+        setServers((prev) => prev.map((s) => (s.id === data.serverId ? { ...s, status } : s)));
+
+        if (status === 'online') {
+          clearExpectedOffline(data.serverId);
+          resetAutoRestartState(data.serverId);
+          return;
+        }
+
+        if (status !== 'offline') {
+          return;
+        }
+
+        if (consumeExpectedOffline(data.serverId)) {
+          resetAutoRestartState(data.serverId);
+          return;
+        }
+
+        const targetServer = serversRef.current.find((server) => server.id === data.serverId);
+        if (!targetServer?.autoRestartOnCrash) {
+          resetAutoRestartState(data.serverId);
+          return;
+        }
+
+        const maxAutoRestarts = Math.min(
+          20,
+          Math.max(0, Math.floor(targetServer.maxAutoRestarts ?? 3))
         );
+        const restartDelaySec = Math.min(
+          300,
+          Math.max(1, Math.floor(targetServer.autoRestartDelaySec ?? 5))
+        );
+
+        if (maxAutoRestarts <= 0) {
+          return;
+        }
+
+        const currentAttempt = autoRestartAttemptsRef.current[data.serverId] ?? 0;
+        if (currentAttempt >= maxAutoRestarts) {
+          showToast(`${targetServer.name} の自動再起動は上限に達しました`, 'error');
+          return;
+        }
+
+        const nextAttempt = currentAttempt + 1;
+        autoRestartAttemptsRef.current[data.serverId] = nextAttempt;
+
+        clearAutoRestartTimer(data.serverId);
+        showToast(
+          `${targetServer.name} が異常終了しました。${restartDelaySec}秒後に自動再起動します (${nextAttempt}/${maxAutoRestarts})`,
+          'info'
+        );
+
+        autoRestartTimerRef.current[data.serverId] = window.setTimeout(async () => {
+          clearAutoRestartTimer(data.serverId);
+
+          const latestServer = serversRef.current.find((server) => server.id === data.serverId);
+          if (!latestServer?.autoRestartOnCrash) {
+            resetAutoRestartState(data.serverId);
+            return;
+          }
+
+          try {
+            const running = await isServerRunning(data.serverId);
+            if (running) {
+              resetAutoRestartState(data.serverId);
+              return;
+            }
+
+            setServers((prev) =>
+              prev.map((server) =>
+                server.id === data.serverId ? { ...server, status: 'starting' } : server
+              )
+            );
+
+            const javaPath = latestServer.javaPath || 'java';
+            const jarFile = latestServer.software === 'Forge' ? 'forge-server.jar' : 'server.jar';
+            await startServerApi(
+              latestServer.id,
+              javaPath,
+              latestServer.path,
+              latestServer.memory,
+              jarFile
+            );
+          } catch (error) {
+            console.error('Auto restart failed:', error);
+            setServers((prev) =>
+              prev.map((server) =>
+                server.id === data.serverId ? { ...server, status: 'offline' } : server
+              )
+            );
+            showToast(
+              `${latestServer.name} の自動再起動に失敗しました (${nextAttempt}/${maxAutoRestarts})`,
+              'error'
+            );
+          }
+        }, restartDelaySec * 1000);
       });
       unlisteners.push(u3);
 
@@ -296,35 +454,51 @@ function App() {
 
   const activeServer = servers.find((s) => s.id === selectedServerId);
 
+  const startServerProcess = async (server: MinecraftServer) => {
+    const javaPath = server.javaPath || 'java';
+    const jarFile = server.software === 'Forge' ? 'forge-server.jar' : 'server.jar';
+    await startServerApi(server.id, javaPath, server.path, server.memory, jarFile);
+  };
+
   const handleStart = async () => {
     if (!activeServer) {
       showToast('サーバーが選択されていません', 'error');
       return;
     }
-    setServers((prev) =>
-      prev.map((s) => (s.id === selectedServerId ? { ...s, status: 'starting' } : s))
-    );
-    const javaPath = activeServer.javaPath || 'java';
-    const jarFile = activeServer.software === 'Forge' ? 'forge-server.jar' : 'server.jar';
+
+    const serverId = activeServer.id;
+    clearExpectedOffline(serverId);
+    resetAutoRestartState(serverId);
+    setServers((prev) => prev.map((s) => (s.id === serverId ? { ...s, status: 'starting' } : s)));
+
     try {
-      await startServerApi(
-        activeServer.id,
-        javaPath,
-        activeServer.path,
-        activeServer.memory,
-        jarFile
-      );
+      await startServerProcess(activeServer);
     } catch (e) {
       console.error('Start failed:', e);
-      setServers((prev) =>
-        prev.map((s) => (s.id === selectedServerId ? { ...s, status: 'offline' } : s))
-      );
+      setServers((prev) => prev.map((s) => (s.id === serverId ? { ...s, status: 'offline' } : s)));
       showToast('サーバーの起動に失敗しました', 'error');
     }
   };
+
   const handleStop = async () => {
     if (selectedServerId) {
-      await stopServerApi(selectedServerId);
+      markExpectedOffline(selectedServerId);
+      clearAutoRestartTimer(selectedServerId);
+      setServers((prev) =>
+        prev.map((s) => (s.id === selectedServerId ? { ...s, status: 'stopping' } : s))
+      );
+
+      try {
+        await stopServerApi(selectedServerId);
+      } catch (e) {
+        console.error('Stop failed:', e);
+        clearExpectedOffline(selectedServerId);
+        resetAutoRestartState(selectedServerId);
+        setServers((prev) =>
+          prev.map((s) => (s.id === selectedServerId ? { ...s, status: 'offline' } : s))
+        );
+        showToast('サーバーの停止に失敗しました', 'error');
+      }
     }
   };
 
@@ -333,28 +507,38 @@ function App() {
       showToast('サーバーが選択されていません', 'error');
       return;
     }
-    setServers((prev) =>
-      prev.map((s) => (s.id === selectedServerId ? { ...s, status: 'restarting' } : s))
-    );
-    await stopServerApi(selectedServerId);
-    // サーバーが完全に停止するまでポーリング
-    const maxWait = 30; // 最大30秒待つ
-    for (let i = 0; i < maxWait; i++) {
-      await new Promise((r) => setTimeout(r, 1000));
-      const running = await isServerRunning(selectedServerId);
-      if (!running) {
-        break;
+
+    const serverId = activeServer.id;
+    markExpectedOffline(serverId);
+    clearAutoRestartTimer(serverId);
+    setServers((prev) => prev.map((s) => (s.id === serverId ? { ...s, status: 'restarting' } : s)));
+
+    try {
+      await stopServerApi(serverId);
+
+      // サーバーが完全に停止するまでポーリング
+      const maxWait = 30;
+      for (let i = 0; i < maxWait; i++) {
+        await new Promise((r) => setTimeout(r, 1000));
+        const running = await isServerRunning(serverId);
+        if (!running) {
+          break;
+        }
       }
+
+      const running = await isServerRunning(serverId);
+      if (running) {
+        throw new Error('Timed out waiting for server shutdown');
+      }
+
+      await startServerProcess(activeServer);
+    } catch (e) {
+      console.error('Restart failed:', e);
+      clearExpectedOffline(serverId);
+      resetAutoRestartState(serverId);
+      setServers((prev) => prev.map((s) => (s.id === serverId ? { ...s, status: 'offline' } : s)));
+      showToast('サーバーの再起動に失敗しました', 'error');
     }
-    const javaPath = activeServer.javaPath || 'java';
-    const jarFile = activeServer.software === 'Forge' ? 'forge-server.jar' : 'server.jar';
-    await startServerApi(
-      selectedServerId,
-      javaPath,
-      activeServer.path,
-      activeServer.memory,
-      jarFile
-    );
   };
 
   const handleUpdateServer = async (updatedServer: MinecraftServer) => {

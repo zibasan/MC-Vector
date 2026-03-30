@@ -29,6 +29,9 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
   const [port, setPort] = useState(server.port);
   const [path, setPath] = useState(server.path);
   const [javaPath, setJavaPath] = useState(server.javaPath || '');
+  const [autoRestartOnCrash, setAutoRestartOnCrash] = useState(Boolean(server.autoRestartOnCrash));
+  const [maxAutoRestarts, setMaxAutoRestarts] = useState(server.maxAutoRestarts ?? 3);
+  const [autoRestartDelaySec, setAutoRestartDelaySec] = useState(server.autoRestartDelaySec ?? 5);
 
   const [showJavaManager, setShowJavaManager] = useState(false);
   const [installedJava, setInstalledJava] = useState<JavaVersion[]>([]);
@@ -55,7 +58,12 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
     }
     if (server.javaPath) {
       setJavaPath(server.javaPath);
+    } else {
+      setJavaPath('');
     }
+    setAutoRestartOnCrash(Boolean(server.autoRestartOnCrash));
+    setMaxAutoRestarts(server.maxAutoRestarts ?? 3);
+    setAutoRestartDelaySec(server.autoRestartDelaySec ?? 5);
 
     loadJavaList();
 
@@ -100,6 +108,9 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
   };
 
   const handleSubmit = () => {
+    const normalizedRestartLimit = Math.min(20, Math.max(0, Math.floor(maxAutoRestarts || 0)));
+    const normalizedRestartDelay = Math.min(300, Math.max(1, Math.floor(autoRestartDelaySec || 1)));
+
     onSave({
       ...server,
       name,
@@ -109,6 +120,9 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
       path,
       software,
       javaPath: javaPath || undefined,
+      autoRestartOnCrash,
+      maxAutoRestarts: normalizedRestartLimit,
+      autoRestartDelaySec: normalizedRestartDelay,
     });
   };
 
@@ -281,6 +295,46 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
                 readOnly
                 className="input-field server-settings__path-input"
               />
+            </div>
+          </div>
+
+          <div className="server-settings__field-block">
+            <label className="server-settings__label">クラッシュ時の自動再起動</label>
+            <label className="server-settings__java-row">
+              <input
+                type="checkbox"
+                checked={autoRestartOnCrash}
+                onChange={(event) => setAutoRestartOnCrash(event.target.checked)}
+              />
+              <span>異常終了を検知したら自動再起動する</span>
+            </label>
+
+            <div className="server-settings__row">
+              <div className="server-settings__col">
+                <label className="server-settings__label">最大再試行回数</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={20}
+                  value={maxAutoRestarts}
+                  disabled={!autoRestartOnCrash}
+                  onChange={(event) => setMaxAutoRestarts(Number(event.target.value))}
+                  className="input-field"
+                />
+              </div>
+
+              <div className="server-settings__col">
+                <label className="server-settings__label">再起動待機秒数</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={300}
+                  value={autoRestartDelaySec}
+                  disabled={!autoRestartOnCrash}
+                  onChange={(event) => setAutoRestartDelaySec(Number(event.target.value))}
+                  className="input-field"
+                />
+              </div>
             </div>
           </div>
 

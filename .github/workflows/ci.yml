@@ -31,6 +31,7 @@ jobs:
   build-check:
     runs-on: ${{ matrix.platform }}
     strategy:
+      fail-fast: false
       matrix:
         platform: [macos-latest, windows-latest]
     steps:
@@ -47,4 +48,4 @@ jobs:
         with:
           workspaces: ./src-tauri -> target
       - run: pnpm install --frozen-lockfile
-      - run: pnpm tauri build --debug --bundles none
+      - run: pnpm tauri build --debug --no-bundle
