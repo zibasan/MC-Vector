@@ -1,11 +1,30 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Download,
+  ExternalLink,
+  Flame,
+  Loader2,
+  type LucideIcon,
+  Package,
+  Search,
+  Server,
+  Sparkles,
+  Star,
+} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { deleteItem, listFiles } from '../../lib/file-commands';
 import {
   installHangarProject,
   installModrinthProject,
+  installSpigotProject,
+  resolveHangarDownload,
+  type SpigetResource,
   searchHangar,
   searchModrinth,
+  searchSpigot,
 } from '../../lib/plugin-commands';
 import { type MinecraftServer } from '../components/../shared/server declaration';
 import { useToast } from './ToastProvider';
@@ -13,6 +32,8 @@ import { useToast } from './ToastProvider';
 interface Props {
   server: MinecraftServer;
 }
+
+type BrowserPlatform = 'Modrinth' | 'Hangar' | 'CurseForge' | 'Spigot';
 
 interface ProjectItem {
   id: string;
@@ -27,6 +48,52 @@ interface ProjectItem {
   source_obj: Record<string, unknown>;
 }
 
+interface PlatformOption {
+  key: BrowserPlatform;
+  label: string;
+  hint: string;
+  inApp: boolean;
+  icon: LucideIcon;
+}
+
+const LIMIT = 30;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function toSlug(value: string): string {
+  const normalized = value
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return normalized || 'plugin';
+}
+
+function normalizeFileExtension(value?: string): string {
+  if (!value) {
+    return '.jar';
+  }
+  return value.startsWith('.') ? value : `.${value}`;
+}
+
+function mapSpigotResource(resource: SpigetResource): ProjectItem {
+  return {
+    id: String(resource.id),
+    title: resource.name,
+    description: resource.tag || 'No description provided.',
+    author: resource.authorName || 'Unknown',
+    icon_url: resource.iconUrl,
+    downloads: resource.downloads,
+    slug: toSlug(resource.name),
+    platform: 'Spigot',
+    source_obj: {
+      ...resource,
+    },
+  };
+}
+
 export default function PluginBrowser({ server }: Props) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ProjectItem[]>([]);
@@ -37,32 +104,91 @@ export default function PluginBrowser({ server }: Props) {
     null
   );
   const [page, setPage] = useState(0);
-  const LIMIT = 30;
+
   const isModServer = ['Fabric', 'Forge', 'NeoForge'].includes(server.software || '');
-  const [platform, setPlatform] = useState<'Modrinth' | 'Hangar' | 'CurseForge' | 'Spigot'>(
-    isModServer ? 'Modrinth' : 'Modrinth'
-  );
+  const [platform, setPlatform] = useState<BrowserPlatform>('Modrinth');
   const isPaper = ['Paper', 'LeafMC', 'Waterfall', 'Velocity'].includes(server.software || '');
   const { showToast } = useToast();
   const folderName = isModServer ? 'mods' : 'plugins';
+
+  const platformOptions = useMemo<PlatformOption[]>(() => {
+    const options: PlatformOption[] = [
+      {
+        key: 'Modrinth',
+        label: 'Modrinth',
+        hint: isModServer ? 'Mods + Datapacks' : 'Plugins + Mods',
+        inApp: true,
+        icon: Package,
+      },
+    ];
+
+    if (isPaper) {
+      options.push({
+        key: 'Hangar',
+        label: 'Hangar',
+        hint: 'Paper ecosystem',
+        inApp: true,
+        icon: Server,
+      });
+    }
+
+    if (!isModServer) {
+      options.push({
+        key: 'Spigot',
+        label: 'SpigotMC',
+        hint: 'Spiget API',
+        inApp: true,
+        icon: Flame,
+      });
+    }
+
+    if (isModServer) {
+      options.push({
+        key: 'CurseForge',
+        label: 'CurseForge',
+        hint: 'Open in web',
+        inApp: false,
+        icon: ExternalLink,
+      });
+    }
+
+    return options;
+  }, [isModServer, isPaper]);
+
+  useEffect(() => {
+    if (!platformOptions.some((option) => option.key === platform)) {
+      setPlatform(platformOptions[0]?.key ?? 'Modrinth');
+      setPage(0);
+    }
+  }, [platform, platformOptions]);
+
+  const selectedPlatform =
+    platformOptions.find((option) => option.key === platform) ?? platformOptions[0];
+  const isInAppSearch = selectedPlatform?.inApp ?? false;
 
   const refreshInstalled = async () => {
     try {
       const dirPath = `${server.path}/${folderName}`;
       const entries = await listFiles(dirPath);
-      setInstalledFiles(entries.filter((e) => !e.isDirectory).map((e) => e.name));
-    } catch (e) {
-      console.error(e);
+      setInstalledFiles(entries.filter((entry) => !entry.isDirectory).map((entry) => entry.name));
+    } catch (error) {
+      console.error(error);
       setInstalledFiles([]);
     }
   };
 
   useEffect(() => {
-    search();
-  }, [page, platform]);
+    if (isInAppSearch) {
+      void search();
+      return;
+    }
+
+    setLoading(false);
+    setResults([]);
+  }, [page, platform, isInAppSearch]);
 
   useEffect(() => {
-    refreshInstalled();
+    void refreshInstalled();
   }, [server.id, server.path, isModServer]);
 
   const normalize = (text?: unknown) =>
@@ -72,39 +198,50 @@ export default function PluginBrowser({ server }: Props) {
       .replace(/[^a-z0-9]/g, '');
 
   const findInstalledMatch = (item: ProjectItem) => {
-    // Strategy 1: normalized slug/title/id matching
     const candidates = [
       item.slug,
       item.title,
       item.id,
-      item.source_obj?.slug,
-      item.source_obj?.project_id,
+      item.source_obj.slug,
+      item.source_obj.project_id,
+      item.source_obj.name,
+      item.source_obj.id,
     ]
       .map(normalize)
       .filter(Boolean);
 
-    // Strategy 2: case-insensitive plain name matching (less aggressive)
-    const plainCandidates = [item.slug, item.title, item.source_obj?.slug]
+    const plainCandidates = [item.slug, item.title, item.source_obj.slug]
       .filter(Boolean)
-      .map((s) => String(s).toLowerCase());
+      .map((value) => String(value).toLowerCase());
 
     return (
       installedFiles.find((file) => {
         const base = normalize(file);
         const fileLower = file.toLowerCase();
-        // Remove extension and version number for loose matching
         const fileBase = fileLower.replace(/\.[^.]+$/, '').replace(/-[\d.]+$/, '');
 
-        // Normalized match (existing logic)
-        if (candidates.some((c) => base.includes(c) || c.includes(base))) return true;
-        // Plain case-insensitive match on filename
-        if (plainCandidates.some((c) => fileLower.includes(c) || fileBase === c)) return true;
+        if (candidates.some((candidate) => base.includes(candidate) || candidate.includes(base))) {
+          return true;
+        }
+
+        if (
+          plainCandidates.some(
+            (candidate) => fileLower.includes(candidate) || fileBase === candidate
+          )
+        ) {
+          return true;
+        }
+
         return false;
       }) || null
     );
   };
 
-  const search = async () => {
+  async function search() {
+    if (!isInAppSearch) {
+      return;
+    }
+
     setLoading(true);
     setResults([]);
 
@@ -116,53 +253,52 @@ export default function PluginBrowser({ server }: Props) {
         const searchType = isModServer ? 'mod' : 'plugin';
         const facets = `[["project_type:${searchType}"],["versions:${server.version}"]]`;
         const result = await searchModrinth(query, facets, offset);
-        const hits = result.hits;
 
-        items = hits.map((h: unknown) => {
-          const hh = h as Record<string, unknown>;
-          return {
-            id: (hh.project_id as string) || '',
-            title: (hh.title as string) || '',
-            description: (hh.description as string) || '',
-            author: (hh.author as string) || '',
-            icon_url: (hh.icon_url as string) || undefined,
-            downloads: (hh.downloads as number) || undefined,
-            slug: (hh.slug as string) || (hh.project_id as string) || '',
-            platform: 'Modrinth',
-            source_obj: hh,
-          } as ProjectItem;
-        });
+        items = result.hits
+          .map((hit) => ({
+            id: hit.project_id || hit.slug,
+            title: hit.title,
+            description: hit.description,
+            author: hit.author || 'Unknown',
+            icon_url: hit.icon_url || undefined,
+            downloads: hit.downloads || undefined,
+            slug: hit.slug || hit.project_id || '',
+            platform: 'Modrinth' as const,
+            source_obj: {
+              ...hit,
+            },
+          }))
+          .filter((item) => Boolean(item.id));
       } else if (platform === 'Hangar') {
-        const data = await searchHangar(query, server.version, offset);
-        const hits = data.result;
+        const data = await searchHangar(query, offset);
 
-        items = hits.map((h: unknown) => {
-          const hh = h as Record<string, unknown>;
-          const namespace = hh.namespace as Record<string, unknown> | undefined;
-          const stats = hh.stats as Record<string, unknown> | undefined;
-          return {
-            id: (hh.name as string) || '',
-            title: (hh.name as string) || '',
-            description: (hh.description as string) || '',
-            author: (namespace?.owner as string) || '',
-            icon_url: (hh.avatarUrl as string) || undefined,
-            stars: (stats?.stars as number) || undefined,
-            downloads: (stats?.downloads as number) || undefined,
-            slug: (namespace?.slug as string) || (hh.name as string) || '',
-            platform: 'Hangar',
-            source_obj: hh,
-          } as ProjectItem;
-        });
+        items = data.result.map((project) => ({
+          id: `${project.namespace.owner}/${project.namespace.slug}`,
+          title: project.name,
+          description: project.description,
+          author: project.namespace.owner,
+          icon_url: project.avatarUrl || undefined,
+          stars: project.stats.stars || undefined,
+          downloads: project.stats.downloads || undefined,
+          slug: project.namespace.slug,
+          platform: 'Hangar' as const,
+          source_obj: {
+            ...project,
+          },
+        }));
+      } else if (platform === 'Spigot') {
+        const resources = await searchSpigot(query, page + 1, LIMIT);
+        items = resources.map(mapSpigotResource);
       }
 
       setResults(items);
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
       showToast('データの取得に失敗しました', 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const performInstall = async (
     item: ProjectItem,
@@ -173,8 +309,8 @@ export default function PluginBrowser({ server }: Props) {
       const targetPath = `${server.path}/${folderName}/${installedFile}`;
       try {
         await deleteItem(targetPath);
-      } catch (err) {
-        console.error(err);
+      } catch (error) {
+        console.error(error);
         showToast('既存ファイルの削除に失敗しました', 'error');
         return;
       }
@@ -188,51 +324,97 @@ export default function PluginBrowser({ server }: Props) {
         params.append('loaders', `["${loader}"]`);
         params.append('game_versions', `["${server.version}"]`);
 
-        const res = await fetch(
+        const response = await fetch(
           `https://api.modrinth.com/v2/project/${item.id}/version?${params.toString()}`
         );
-        const versions = await res.json();
 
-        if (!versions || versions.length === 0) {
+        if (!response.ok) {
+          throw new Error(`Modrinth version fetch failed: ${response.status}`);
+        }
+
+        const versionsPayload = (await response.json()) as unknown;
+        if (!Array.isArray(versionsPayload) || versionsPayload.length === 0) {
           showToast('対応バージョンが見つかりませんでした', 'error');
           return;
         }
-        const file = versions[0].files[0];
 
-        await installModrinthProject(versions[0].id, file.filename, `${server.path}/${folderName}`);
-        showToast(
-          `${mode === 'fresh' ? 'インストール完了' : mode === 'overwrite' ? '上書き完了' : 'アップデート完了'}: ${item.title}`,
-          'success'
-        );
+        const firstVersion = versionsPayload[0];
+        if (!isRecord(firstVersion) || typeof firstVersion.id !== 'string') {
+          showToast('バージョン情報の取得に失敗しました', 'error');
+          return;
+        }
+
+        let fileName = `${item.slug || item.id}.jar`;
+        if (Array.isArray(firstVersion.files)) {
+          const firstFile = firstVersion.files.find(
+            (entry) => isRecord(entry) && typeof entry.filename === 'string'
+          );
+          if (isRecord(firstFile) && typeof firstFile.filename === 'string') {
+            fileName = firstFile.filename;
+          }
+        }
+
+        await installModrinthProject(firstVersion.id, fileName, `${server.path}/${folderName}`);
       } else if (item.platform === 'Hangar') {
-        const author = item.author || '';
-        const slug = item.slug || '';
-        const res = await fetch(
-          `https://hangar.papermc.io/api/v1/projects/${author}/${slug}/versions?limit=1&platform=PAPER&platformVersion=${server.version}`
-        );
-        const data = await res.json();
+        const owner = item.author;
+        const slug = item.slug || item.title;
+        const resolved = await resolveHangarDownload({
+          owner,
+          slug,
+          software: server.software || 'Paper',
+          minecraftVersion: server.version || '',
+        });
 
-        if (!data.result || data.result.length === 0) {
+        if (!resolved) {
           showToast('対応バージョンが見つかりませんでした', 'error');
           return;
         }
 
-        const version = data.result[0];
-        const downloadUrl = version.downloads.PAPER.downloadUrl;
-        const fileName = `${slug}-${version.name}.jar`;
-
-        await installHangarProject(downloadUrl, fileName, `${server.path}/${folderName}`);
-        showToast(
-          `${mode === 'fresh' ? 'インストール完了' : mode === 'overwrite' ? '上書き完了' : 'アップデート完了'}: ${item.title}`,
-          'success'
+        await installHangarProject(
+          resolved.downloadUrl,
+          resolved.fileName,
+          `${server.path}/${folderName}`
         );
+      } else if (item.platform === 'Spigot') {
+        const resourceId = Number(item.id);
+        if (!Number.isFinite(resourceId)) {
+          showToast('SpigotリソースIDが不正です', 'error');
+          return;
+        }
+
+        const shouldOpenBrowser =
+          item.source_obj.external === true || item.source_obj.premium === true;
+        if (shouldOpenBrowser) {
+          await openExternal(`https://www.spigotmc.org/resources/${resourceId}/`);
+          showToast('このリソースはブラウザ経由でのダウンロードが必要です', 'info');
+          return;
+        }
+
+        const extension = normalizeFileExtension(
+          typeof item.source_obj.fileType === 'string' ? item.source_obj.fileType : '.jar'
+        );
+        const versionId =
+          typeof item.source_obj.latestVersionId === 'number'
+            ? item.source_obj.latestVersionId
+            : undefined;
+        const fileName = `${toSlug(item.title)}-${resourceId}${extension}`;
+
+        await installSpigotProject(resourceId, fileName, `${server.path}/${folderName}`, versionId);
       }
-    } catch (e) {
-      console.error(e);
+
+      const successLabel =
+        mode === 'fresh'
+          ? 'インストール完了'
+          : mode === 'overwrite'
+            ? '上書き完了'
+            : 'アップデート完了';
+      showToast(`${successLabel}: ${item.title}`, 'success');
+    } catch (error) {
+      console.error(error);
       showToast('インストールエラー', 'error');
     } finally {
       setInstallingId(null);
-      refreshInstalled();
+      await refreshInstalled();
     }
   };
 
@@ -247,133 +429,234 @@ export default function PluginBrowser({ server }: Props) {
   };
 
   const openExternal = async (url: string) => {
-    await openUrl(url);
+    try {
+      await openUrl(url);
+    } catch (error) {
+      console.error(error);
+      showToast('ブラウザを開けませんでした', 'error');
+    }
+  };
+
+  const actionLabel = (item: ProjectItem) => {
+    if (installingId === item.id) {
+      return 'Installing...';
+    }
+    const requiresBrowser =
+      item.platform === 'Spigot' &&
+      (item.source_obj.external === true || item.source_obj.premium === true);
+    return requiresBrowser ? 'Open' : 'Install';
   };
 
   return (
     <div className="plugin-browser">
-      <div className="plugin-browser__header">
-        <h2 className="plugin-browser__title">{isModServer ? 'Mod' : 'Plugin'} Browser</h2>
-
-        <div className="plugin-browser__platform-controls">
-          <select
-            className="input-field plugin-browser__platform-select"
-            value={platform}
-            onChange={(e) => {
-              setPlatform(e.target.value as unknown as typeof platform);
-              setPage(0);
-            }}
-          >
-            <option value="Modrinth">Modrinth</option>
-            {isPaper && <option value="Hangar">Hangar (Paper)</option>}
-            {isModServer && <option value="CurseForge">CurseForge (Web)</option>}
-            {!isModServer && <option value="Spigot">SpigotMC (Web)</option>}
-          </select>
+      <div className="plugin-browser__hero">
+        <div>
+          <h2 className="plugin-browser__hero-title">
+            Discover {isModServer ? 'Mods' : 'Plugins'}
+          </h2>
+          <p className="plugin-browser__hero-description">
+            {selectedPlatform?.label} から直接検索して、{folderName}{' '}
+            フォルダへ即時インストールできます。
+          </p>
+        </div>
+        <div className="plugin-browser__hero-chip">
+          <Sparkles size={14} />
+          <span>In-app installer</span>
         </div>
       </div>
 
-      {platform === 'Modrinth' || platform === 'Hangar' ? (
+      <div className="plugin-browser__platform-grid">
+        {platformOptions.map((option) => {
+          const Icon = option.icon;
+          const active = option.key === platform;
+
+          return (
+            <motion.button
+              key={option.key}
+              type="button"
+              whileTap={{ scale: 0.97 }}
+              whileHover={{ y: -1 }}
+              className={`plugin-browser__platform-chip ${active ? 'is-active' : ''}`}
+              onClick={() => {
+                setPlatform(option.key);
+                setPage(0);
+              }}
+            >
+              <Icon size={16} />
+              <div className="plugin-browser__platform-copy">
+                <span className="plugin-browser__platform-label">{option.label}</span>
+                <span className="plugin-browser__platform-hint">{option.hint}</span>
+              </div>
+            </motion.button>
+          );
+        })}
+      </div>
+
+      {isInAppSearch ? (
         <div className="plugin-browser__search-row">
-          <input
-            type="text"
-            className="input-field flex-1"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={`Search on ${platform}...`}
-            onKeyDown={(e) => e.key === 'Enter' && search()}
-          />
-          <button className="btn-primary disabled:opacity-50" onClick={search} disabled={loading}>
-            {loading ? '...' : 'Search'}
+          <div className="plugin-browser__search-input-wrap">
+            <Search size={16} />
+            <input
+              type="text"
+              className="plugin-browser__search-input"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={`Search on ${selectedPlatform?.label || platform}...`}
+              onKeyDown={(event) => event.key === 'Enter' && void search()}
+            />
+          </div>
+
+          <button
+            type="button"
+            className="plugin-browser__search-btn"
+            onClick={() => void search()}
+            disabled={loading}
+          >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+            <span>{loading ? 'Searching...' : 'Search'}</span>
           </button>
         </div>
       ) : (
         <div className="plugin-browser__unsupported-panel">
           <p>このプラットフォームはアプリ内検索に対応していません。</p>
           <button
-            className="btn-primary plugin-browser__unsupported-btn"
-            onClick={() =>
-              openExternal(
-                platform === 'CurseForge'
-                  ? 'https://www.curseforge.com/minecraft/mc-mods'
-                  : 'https://www.spigotmc.org/resources/'
-              )
-            }
+            type="button"
+            className="plugin-browser__unsupported-btn"
+            onClick={() => openExternal('https://www.curseforge.com/minecraft/mc-mods')}
           >
-            ブラウザで {platform} を開く
+            <ExternalLink size={16} />
+            <span>ブラウザで {selectedPlatform?.label || platform} を開く</span>
           </button>
           <p className="plugin-browser__unsupported-note">
-            ダウンロードした.jarは Files から plugins フォルダへ配置してください。
+            ダウンロードした .jar は Files から {folderName} フォルダへ配置してください。
           </p>
         </div>
       )}
 
-      {(platform === 'Modrinth' || platform === 'Hangar') && (
+      {isInAppSearch && (
         <>
           <div className="plugin-browser__results-grid">
-            {results.map((item) => (
-              <div key={item.id} className="plugin-browser__result-card">
-                <div
-                  className="plugin-browser__result-icon"
-                  style={{
-                    backgroundImage: item.icon_url ? `url(${item.icon_url})` : 'none',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                  }}
-                ></div>
+            <AnimatePresence initial={false}>
+              {results.map((item, index) => {
+                const installedMatch = findInstalledMatch(item);
+                const requiresBrowser =
+                  item.platform === 'Spigot' &&
+                  (item.source_obj.external === true || item.source_obj.premium === true);
 
-                <div className="plugin-browser__result-body">
-                  <div className="plugin-browser__result-top">
-                    <div className="plugin-browser__result-title">{item.title}</div>
-                    <div className="plugin-browser__result-actions">
-                      {findInstalledMatch(item) && (
-                        <span className="plugin-browser__installed-badge">Installed</span>
+                return (
+                  <motion.div
+                    key={`${item.platform}-${item.id}`}
+                    layout
+                    initial={{ opacity: 0, y: 14, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.16) }}
+                    className="plugin-browser__result-card"
+                  >
+                    <div
+                      className="plugin-browser__result-icon"
+                      style={{
+                        backgroundImage: item.icon_url ? `url(${item.icon_url})` : 'none',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    />
+
+                    <div className="plugin-browser__result-body">
+                      <div className="plugin-browser__result-top">
+                        <div className="plugin-browser__result-title-wrap">
+                          <div className="plugin-browser__result-title">{item.title}</div>
+                          <div className="plugin-browser__result-source">{item.platform}</div>
+                        </div>
+
+                        <div className="plugin-browser__result-actions">
+                          {installedMatch && (
+                            <span className="plugin-browser__installed-badge">Installed</span>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleInstall(item)}
+                            disabled={installingId === item.id}
+                            className={`plugin-browser__install-btn ${
+                              requiresBrowser ? 'plugin-browser__install-btn--external' : ''
+                            }`}
+                          >
+                            {installingId === item.id ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : requiresBrowser ? (
+                              <ExternalLink size={14} />
+                            ) : (
+                              <Download size={14} />
+                            )}
+                            <span>{actionLabel(item)}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="plugin-browser__result-description">
+                        {item.description || 'No description provided.'}
+                      </div>
+
+                      <div className="plugin-browser__result-meta">
+                        <span className="plugin-browser__meta-item">
+                          <Server size={13} />
+                          <span>{item.author}</span>
+                        </span>
+                        <span className="plugin-browser__meta-item">
+                          <Download size={13} />
+                          <span>{item.downloads ? item.downloads.toLocaleString() : '-'}</span>
+                        </span>
+                        {item.stars ? (
+                          <span className="plugin-browser__meta-item">
+                            <Star size={13} />
+                            <span>{item.stars}</span>
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {requiresBrowser && (
+                        <div className="plugin-browser__result-tag">External download required</div>
                       )}
-                      <button
-                        onClick={() => handleInstall(item)}
-                        disabled={installingId === item.id}
-                        className="plugin-browser__install-btn"
-                      >
-                        {installingId === item.id ? '...' : 'Install'}
-                      </button>
                     </div>
-                  </div>
+                  </motion.div>
+                );
+              })}
 
-                  <div className="plugin-browser__result-description">{item.description}</div>
-
-                  <div className="plugin-browser__result-meta">
-                    <span>By {item.author}</span>
-                    <span>
-                      {item.downloads
-                        ? `⬇ ${item.downloads.toLocaleString()}`
-                        : item.stars
-                          ? `★ ${item.stars}`
-                          : ''}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {results.length === 0 && !loading && (
-              <div className="plugin-browser__result-empty">結果がありません。</div>
-            )}
+              {results.length === 0 && !loading && (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="plugin-browser__result-empty"
+                >
+                  結果がありません。
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <div className="plugin-browser__pager">
             <button
-              className="btn-secondary disabled:opacity-50"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              type="button"
+              className="plugin-browser__pager-btn"
+              onClick={() => setPage((value) => Math.max(0, value - 1))}
               disabled={page === 0 || loading}
             >
-              ← Prev
+              <ArrowLeft size={14} />
+              <span>Prev</span>
             </button>
+
             <span className="plugin-browser__pager-label">Page {page + 1}</span>
+
             <button
-              className="btn-secondary disabled:opacity-50"
-              onClick={() => setPage((p) => p + 1)}
+              type="button"
+              className="plugin-browser__pager-btn"
+              onClick={() => setPage((value) => value + 1)}
               disabled={results.length < LIMIT || loading}
             >
-              Next →
+              <span>Next</span>
+              <ArrowRight size={14} />
             </button>
           </div>
         </>
@@ -396,27 +679,36 @@ export default function PluginBrowser({ server }: Props) {
 
             <div className="plugin-browser__dup-actions">
               <button
+                type="button"
                 className="plugin-browser__dup-btn plugin-browser__dup-btn--cancel"
                 onClick={() => setDupDialog(null)}
               >
                 キャンセル
               </button>
+
               <button
+                type="button"
                 className="plugin-browser__dup-btn plugin-browser__dup-btn--overwrite"
                 onClick={() => {
                   const target = dupDialog;
                   setDupDialog(null);
-                  if (target) void performInstall(target.item, 'overwrite', target.installedFile);
+                  if (target) {
+                    void performInstall(target.item, 'overwrite', target.installedFile);
+                  }
                 }}
               >
                 上書き
               </button>
+
               <button
+                type="button"
                 className="plugin-browser__dup-btn plugin-browser__dup-btn--update"
                 onClick={() => {
                   const target = dupDialog;
                   setDupDialog(null);
-                  if (target) void performInstall(target.item, 'update', target.installedFile);
+                  if (target) {
+                    void performInstall(target.item, 'update', target.installedFile);
+                  }
                 }}
               >
                 アップデート

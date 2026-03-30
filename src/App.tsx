@@ -36,7 +36,7 @@ import ConsoleView from './renderer/components/ConsoleView';
 import DashboardView from './renderer/components/DashboardView';
 import FilesView from './renderer/components/FilesView';
 import NgrokGuideView from './renderer/components/NgrokGuideView';
-import PluginBrowser from './renderer/components/PluginBrowser';
+import PluginBrowser from './renderer/components/PluginBrowser.tsx';
 import ProxyHelpView from './renderer/components/ProxyHelpView';
 import ProxySetupView, { type ProxyNetworkConfig } from './renderer/components/ProxySetupView';
 import PropertiesView from './renderer/components/properties/PropertiesView';

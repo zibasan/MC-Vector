@@ -180,52 +180,116 @@ jobs:
         with:
           path: artifacts
 
+      - name: Collect and normalize release artifacts
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.check-version.outputs.version }}"
+          mkdir -p release-assets gh-pages-deploy
+
+          require_file() {
+            local file_path="$1"
+            local label="$2"
+            if [ -z "$file_path" ] || [ ! -f "$file_path" ]; then
+              echo "Missing required artifact: $label" >&2
+              exit 1
+            fi
+          }
+
+          MAC_ARM64_APP=$(find artifacts/mac-arm64 -type f -name '*.app.tar.gz' ! -name '*.sig' | head -1 || true)
+          MAC_ARM64_SIG=$(find artifacts/mac-arm64 -type f -name '*.app.tar.gz.sig' | head -1 || true)
+          MAC_X64_APP=$(find artifacts/mac-x64 -type f -name '*.app.tar.gz' ! -name '*.sig' | head -1 || true)
+          MAC_X64_SIG=$(find artifacts/mac-x64 -type f -name '*.app.tar.gz.sig' | head -1 || true)
+          WIN_X64_ZIP=$(find artifacts/win-x64 -type f -name '*.nsis.zip' ! -name '*.sig' | head -1 || true)
+          if [ -z "$WIN_X64_ZIP" ]; then
+            WIN_X64_ZIP=$(find artifacts/win-x64 -type f -name '*.zip' ! -name '*.sig' | head -1 || true)
+          fi
+          WIN_X64_SIG=$(find artifacts/win-x64 -type f -name '*.nsis.zip.sig' | head -1 || true)
+          if [ -z "$WIN_X64_SIG" ]; then
+            WIN_X64_SIG=$(find artifacts/win-x64 -type f -name '*.zip.sig' | head -1 || true)
+          fi
+
+          require_file "$MAC_ARM64_APP" "macOS arm64 updater archive"
+          require_file "$MAC_ARM64_SIG" "macOS arm64 updater signature"
+          require_file "$MAC_X64_APP" "macOS x64 updater archive"
+          require_file "$MAC_X64_SIG" "macOS x64 updater signature"
+          require_file "$WIN_X64_ZIP" "Windows x64 updater archive"
+          require_file "$WIN_X64_SIG" "Windows x64 updater signature"
+
+          MAC_ARM64_OUT="MC-Vector_${VERSION}_darwin-aarch64.app.tar.gz"
+          MAC_X64_OUT="MC-Vector_${VERSION}_darwin-x86_64.app.tar.gz"
+          WIN_X64_OUT="MC-Vector_${VERSION}_windows-x86_64.nsis.zip"
+
+          cp "$MAC_ARM64_APP" "release-assets/${MAC_ARM64_OUT}"
+          cp "$MAC_ARM64_SIG" "release-assets/${MAC_ARM64_OUT}.sig"
+          cp "$MAC_X64_APP" "release-assets/${MAC_X64_OUT}"
+          cp "$MAC_X64_SIG" "release-assets/${MAC_X64_OUT}.sig"
+          cp "$WIN_X64_ZIP" "release-assets/${WIN_X64_OUT}"
+          cp "$WIN_X64_SIG" "release-assets/${WIN_X64_OUT}.sig"
+
+          find artifacts -type f -name '*.dmg' -exec cp {} release-assets/ \;
+          find artifacts/win-x64 -type f -name '*.exe' -exec cp {} release-assets/ \;
+
+          echo "=== Files to be released ==="
+          ls -lh release-assets/
+
       - name: Generate latest.json for updater
         run: |
-          mkdir -p gh-pages-deploy
+          set -euo pipefail
           VERSION="${{ needs.check-version.outputs.version }}"
           TAG="v${VERSION}"
           BASE_URL="https://github.com/tukuyomil032/MC-Vector/releases/download/${TAG}"
 
-          MAC_ARM64_SIG=""
-          MAC_X64_SIG=""
-          WIN_X64_SIG=""
+          MAC_ARM64_FILE="MC-Vector_${VERSION}_darwin-aarch64.app.tar.gz"
+          MAC_X64_FILE="MC-Vector_${VERSION}_darwin-x86_64.app.tar.gz"
+          WIN_X64_FILE="MC-Vector_${VERSION}_windows-x86_64.nsis.zip"
 
-          # 署名ファイルはネストされたフォルダ内にあるので再帰検索する
-          SIG_FILE=$(find artifacts/mac-arm64 -name '*.app.tar.gz.sig' 2>/dev/null | head -1)
-          if [ -n "$SIG_FILE" ]; then MAC_ARM64_SIG=$(cat "$SIG_FILE"); fi
+          for required in \
+            "$MAC_ARM64_FILE" \
+            "$MAC_ARM64_FILE.sig" \
+            "$MAC_X64_FILE" \
+            "$MAC_X64_FILE.sig" \
+            "$WIN_X64_FILE" \
+            "$WIN_X64_FILE.sig"; do
+            if [ ! -f "release-assets/$required" ]; then
+              echo "Missing normalized release asset: $required" >&2
+              exit 1
+            fi
+          done
 
-          SIG_FILE=$(find artifacts/mac-x64 -name '*.app.tar.gz.sig' 2>/dev/null | head -1)
-          if [ -n "$SIG_FILE" ]; then MAC_X64_SIG=$(cat "$SIG_FILE"); fi
+          MAC_ARM64_SIG=$(tr -d '\r\n' < "release-assets/${MAC_ARM64_FILE}.sig")
+          MAC_X64_SIG=$(tr -d '\r\n' < "release-assets/${MAC_X64_FILE}.sig")
+          WIN_X64_SIG=$(tr -d '\r\n' < "release-assets/${WIN_X64_FILE}.sig")
 
-          SIG_FILE=$(find artifacts/win-x64 -name '*.nsis.zip.sig' 2>/dev/null | head -1)
-          if [ -n "$SIG_FILE" ]; then WIN_X64_SIG=$(cat "$SIG_FILE"); fi
-
-          MAC_ARM64_FILE=$(find artifacts/mac-arm64 -name '*.app.tar.gz' ! -name '*.sig' 2>/dev/null | head -1 | xargs -I{} basename {} 2>/dev/null || echo "")
-          MAC_X64_FILE=$(find artifacts/mac-x64 -name '*.app.tar.gz' ! -name '*.sig' 2>/dev/null | head -1 | xargs -I{} basename {} 2>/dev/null || echo "")
-          WIN_X64_FILE=$(find artifacts/win-x64 -name '*.nsis.zip' ! -name '*.sig' 2>/dev/null | head -1 | xargs -I{} basename {} 2>/dev/null || echo "")
-
-          cat > gh-pages-deploy/latest.json << EOF
-          {
-            "version": "${VERSION}",
-            "notes": "MC-Vector ${TAG}",
-            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "platforms": {
-              "darwin-aarch64": {
-                "signature": "${MAC_ARM64_SIG}",
-                "url": "${BASE_URL}/${MAC_ARM64_FILE}"
-              },
-              "darwin-x86_64": {
-                "signature": "${MAC_X64_SIG}",
-                "url": "${BASE_URL}/${MAC_X64_FILE}"
-              },
-              "windows-x86_64": {
-                "signature": "${WIN_X64_SIG}",
-                "url": "${BASE_URL}/${WIN_X64_FILE}"
+          jq -n \
+            --arg version "$VERSION" \
+            --arg notes "MC-Vector ${TAG}" \
+            --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg mac_arm64_sig "$MAC_ARM64_SIG" \
+            --arg mac_x64_sig "$MAC_X64_SIG" \
+            --arg win_x64_sig "$WIN_X64_SIG" \
+            --arg base_url "$BASE_URL" \
+            --arg mac_arm64_file "$MAC_ARM64_FILE" \
+            --arg mac_x64_file "$MAC_X64_FILE" \
+            --arg win_x64_file "$WIN_X64_FILE" \
+            '{
+              version: $version,
+              notes: $notes,
+              pub_date: $pub_date,
+              platforms: {
+                "darwin-aarch64": {
+                  signature: $mac_arm64_sig,
+                  url: ($base_url + "/" + $mac_arm64_file)
+                },
+                "darwin-x86_64": {
+                  signature: $mac_x64_sig,
+                  url: ($base_url + "/" + $mac_x64_file)
+                },
+                "windows-x86_64": {
+                  signature: $win_x64_sig,
+                  url: ($base_url + "/" + $win_x64_file)
+                }
               }
-            }
-          }
-          EOF
+            }' > gh-pages-deploy/latest.json
 
           echo "Generated latest.json:"
           cat gh-pages-deploy/latest.json
@@ -237,14 +301,6 @@ jobs:
           publish_dir: ./gh-pages-deploy
           publish_branch: gh-pages
           keep_files: false
-
-      - name: Prepare release assets
-        run: |
-          mkdir -p release-assets
-          echo "=== Searching for release files ==="
-          find artifacts -type f \( -name "*.dmg" -o -name "*.app.tar.gz" -o -name "*.exe" \) -exec cp {} release-assets/ \;
-          echo "=== Files to be released ==="
-          ls -lh release-assets/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

@@ -40,6 +40,22 @@ Frontend UI is built with React and Tailwind, with SCSS partials used to keep re
 3. Preserve existing user-facing behavior when refactoring.
 4. When extracting repeated UI patterns, prefer semantic class names over anonymous utility chains.
 
+## Type Safety Guardrails
+
+1. Do not introduce `any` in production code. Use `unknown` for external input and narrow with type guards.
+2. Every API payload consumed from Modrinth/Hangar/Spigot must be parsed through runtime guards before UI use.
+3. Keep discriminated unions explicit for platform-specific behavior (for example plugin source switching).
+4. Treat optional properties as nullable and provide safe fallbacks in rendering and install flows.
+5. If a guard cannot prove shape safety, fail with a user-visible error instead of unsafe casting.
+
+## Phase Execution Rules
+
+1. Implement large requests by phase, not by scattered partial edits.
+2. Complete all tasks in the active phase before proposing the next phase.
+3. After each phase, run build and diagnostics, then report unresolved risks.
+4. Keep one commit scope per phase unless a single phase becomes too large and must be split.
+5. Align feature phases with `docs/engineering-requirements.md` and update status after significant changes.
+
 ## Refactor Checklist
 
 Before finishing a refactor:
