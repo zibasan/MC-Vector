@@ -5,8 +5,11 @@
   }
 
   .java-manager-modal-panel {
-    @apply bg-bg-secondary p-6 rounded-xl border border-border-color shadow-[0_20px_50px_rgba(0,0,0,0.5)];
+    @apply p-6 rounded-xl border shadow-[0_20px_50px_rgba(0,0,0,0.5)];
     width: 600px;
+    font-family: var(--mv-font-display);
+    border-color: var(--mv-border-soft);
+    background: linear-gradient(150deg, rgba(17, 24, 39, 0.96), rgba(24, 24, 27, 0.95));
   }
 
   .java-manager-modal__header {
@@ -18,7 +21,7 @@
   }
 
   .java-manager-modal__section-title {
-    @apply border-b border-zinc-700 pb-1.5 mb-4;
+    @apply border-b border-zinc-700/80 pb-1.5 mb-4;
   }
 
   .java-manager-modal__section-title--compact {
@@ -71,8 +74,9 @@
   }
 
   .java-manager-modal__version-card {
-    @apply p-4 rounded-lg text-center border border-zinc-700;
-    background-color: #252526;
+    @apply p-4 rounded-lg text-center border;
+    border-color: rgba(63, 63, 70, 0.78);
+    background: rgba(15, 23, 42, 0.74);
   }
 
   .java-manager-modal__version-title {
@@ -81,6 +85,7 @@
 
   .java-manager-modal__runtime-row {
     @apply flex items-center justify-between px-4 py-2.5 rounded-md;
-    background-color: #252526;
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(63, 63, 70, 0.72);
   }
 }

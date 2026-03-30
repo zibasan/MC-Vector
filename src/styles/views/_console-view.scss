@@ -1,13 +1,15 @@
 @layer components {
   .console-view {
-    @apply flex flex-col h-full;
-    background-color: #1e1e1e;
+    @apply flex flex-col h-full p-5 gap-4;
+    font-family: var(--mv-font-display);
+    background: var(--mv-view-bg);
   }
 
   .console-view__status-bar {
-    @apply grid grid-cols-3 border-b py-3 shrink-0;
-    background-color: #252526;
-    border-color: #3e3e42;
+    @apply grid grid-cols-3 py-3 rounded-2xl border shrink-0;
+    background: var(--mv-panel-bg);
+    border-color: var(--mv-border-soft);
+    box-shadow: var(--mv-shadow-panel);
   }
 
   .console-view__status-col {
@@ -16,12 +18,12 @@
 
   .console-view__status-col--with-divider {
     @apply border-r overflow-hidden;
-    border-color: #3e3e42;
+    border-color: rgba(82, 82, 91, 0.58);
   }
 
   .console-view__status-label {
-    @apply text-xs mb-1 font-bold tracking-wider;
-    color: #8b9bb4;
+    @apply text-[0.66rem] mb-1 font-bold tracking-[0.14em] uppercase;
+    color: #9ca3af;
   }
 
   .console-view__address {
@@ -37,34 +39,39 @@
   }
 
   .console-view__status-value {
-    @apply font-bold text-sm text-yellow-500;
+    @apply font-bold text-sm;
+    color: #f59e0b;
   }
 
   .console-view__status-value--online {
-    @apply text-green-500;
+    color: #34d399;
   }
 
   .console-view__status-value--offline {
-    @apply text-red-500;
+    color: #f87171;
   }
 
   .console-view__status-value--restarting {
-    @apply text-blue-500;
+    color: #38bdf8;
   }
 
   .console-view__memory-value {
     @apply font-bold text-sm;
-    color: #f0f0f0;
+    color: #e5e7eb;
   }
 
   .console-view__log-pane {
-    @apply flex-1 p-4 overflow-y-auto font-mono text-[13px] whitespace-pre-wrap leading-relaxed;
-    background-color: #121214;
-    color: #d4d4d4;
+    @apply flex-1 p-4 overflow-y-auto font-mono text-[13px] whitespace-pre-wrap leading-relaxed rounded-2xl border;
+    background:
+      linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(23, 23, 29, 0.9)),
+      radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.1), transparent 45%);
+    border-color: var(--mv-border-soft);
+    color: #d4d4d8;
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.24);
   }
 
   .console-view__log-line {
-    @apply pl-2.5 border-l-2 mb-0.5;
+    @apply pl-2.5 border-l-2 mb-0.5 rounded-r-sm;
     border-left-color: transparent;
   }
 
@@ -88,9 +95,9 @@
   }
 
   .console-view__search-bar {
-    @apply h-[46px] border-y flex items-center gap-2 px-4;
-    background-color: #1a1b20;
-    border-color: #32323a;
+    @apply h-[46px] border rounded-xl flex items-center gap-2 px-4;
+    background: rgba(15, 23, 42, 0.78);
+    border-color: var(--mv-border-soft);
   }
 
   .console-view__search-label {
@@ -100,8 +107,8 @@
 
   .console-view__search-input {
     @apply flex-1 rounded-md border text-[13px] px-2.5 py-1.5 outline-none;
-    background-color: #121214;
-    border-color: #3f3f46;
+    background-color: rgba(17, 24, 39, 0.82);
+    border-color: rgba(82, 82, 91, 0.85);
     color: #f3f4f6;
   }
 
@@ -113,14 +120,14 @@
   .console-view__search-nav-btn,
   .console-view__search-close-btn {
     @apply rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors;
-    background-color: #1f2937;
-    border-color: #374151;
+    background-color: rgba(30, 41, 59, 0.75);
+    border-color: rgba(71, 85, 105, 0.82);
     color: #e5e7eb;
   }
 
   .console-view__search-nav-btn:hover,
   .console-view__search-close-btn:hover {
-    background-color: #263041;
+    background-color: rgba(51, 65, 85, 0.8);
   }
 
   .console-view__search-nav-btn:disabled {
@@ -137,44 +144,45 @@
   }
 
   .console-view__empty-log {
-    @apply text-zinc-600 italic text-center mt-5;
+    @apply text-zinc-500 italic text-center mt-5;
   }
 
   .console-view__command-bar {
-    @apply h-[60px] border-t flex items-center px-5 shrink-0;
-    background-color: #252526;
-    border-color: #3e3e42;
+    @apply border rounded-2xl flex items-center px-4 py-3 gap-2 shrink-0;
+    background: var(--mv-panel-bg-alt);
+    border-color: var(--mv-border-soft);
+    box-shadow: var(--mv-shadow-panel);
   }
 
   .console-view__command-prefix {
-    @apply mr-3 font-bold;
+    @apply font-bold;
     color: #8b9bb4;
   }
 
   .console-view__find-button {
-    @apply rounded-md border px-2.5 py-1.5 text-xs font-semibold mr-3 transition-colors;
-    background-color: #1f2937;
-    border-color: #374151;
+    @apply rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-colors;
+    background-color: rgba(30, 41, 59, 0.72);
+    border-color: rgba(71, 85, 105, 0.82);
     color: #e5e7eb;
   }
 
   .console-view__find-button:hover {
-    background-color: #263041;
+    background-color: rgba(51, 65, 85, 0.8);
   }
 
   .console-view__save-button {
-    @apply rounded-md border px-2.5 py-1.5 text-xs font-semibold mr-3 transition-colors;
-    background-color: #0f3d2f;
-    border-color: #14532d;
+    @apply rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-colors;
+    background-color: rgba(6, 95, 70, 0.48);
+    border-color: rgba(16, 185, 129, 0.55);
     color: #d1fae5;
   }
 
   .console-view__save-button:hover {
-    background-color: #13553f;
+    background-color: rgba(6, 120, 87, 0.56);
   }
 
   .console-view__filter-wrap {
-    @apply ml-3 flex items-center gap-2;
+    @apply ml-2 flex items-center gap-2;
   }
 
   .console-view__filter-label {
@@ -184,24 +192,63 @@
 
   .console-view__filter-select {
     @apply rounded-md border text-xs px-2 py-1.5 outline-none;
-    background-color: #121214;
-    border-color: #3f3f46;
+    background-color: rgba(17, 24, 39, 0.82);
+    border-color: rgba(82, 82, 91, 0.85);
     color: #f3f4f6;
   }
 
   .console-view__command-input {
-    @apply flex-1 rounded-md text-white text-sm py-2.5 px-3 outline-none font-mono border;
-    background-color: #18181b;
-    border-color: #3f3f46;
+    @apply flex-1 rounded-md text-white text-sm py-2.5 px-3 outline-none font-mono border min-w-0;
+    background-color: rgba(17, 24, 39, 0.82);
+    border-color: rgba(82, 82, 91, 0.82);
   }
 
   .console-view__send-button {
-    @apply bg-accent text-white border-none py-2.5 px-5 rounded-md ml-3 font-bold text-sm transition-colors;
-    @apply hover:bg-accent-hover;
+    @apply text-white border-none py-2.5 px-5 rounded-md font-bold text-sm transition-all;
+    background: linear-gradient(125deg, rgba(14, 165, 233, 0.95), rgba(6, 182, 212, 0.9));
+    box-shadow: 0 8px 20px rgba(14, 165, 233, 0.22);
+  }
+
+  .console-view__send-button:hover {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
   }
 
   .console-view__history-hint {
     @apply text-[11px] font-semibold ml-3;
     color: #8b9bb4;
+  }
+}
+
+@media (max-width: 1080px) {
+  .console-view {
+    @apply p-4;
+  }
+
+  .console-view__command-bar {
+    @apply flex-wrap;
+  }
+
+  .console-view__history-hint {
+    @apply hidden;
+  }
+}
+
+@media (max-width: 760px) {
+  .console-view__status-bar {
+    @apply grid-cols-1 gap-2 px-2;
+  }
+
+  .console-view__status-col--with-divider {
+    @apply border-r-0 border-b pb-2;
+    border-color: rgba(82, 82, 91, 0.58);
+  }
+
+  .console-view__search-bar {
+    @apply flex-wrap h-auto py-2.5;
+  }
+
+  .console-view__filter-wrap {
+    @apply ml-0;
   }
 }

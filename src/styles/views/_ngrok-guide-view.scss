@@ -1,15 +1,21 @@
 @layer components {
   .ngrok-guide-view {
-    @apply p-10 text-white h-screen box-border overflow-y-auto;
-    background-color: #1e1e1e;
+    @apply p-8 text-white h-full box-border overflow-y-auto;
+    font-family: var(--mv-font-display);
+    background: var(--mv-view-bg);
   }
 
   .ngrok-guide-view__title {
-    @apply border-b border-zinc-700 pb-4 mt-0;
+    @apply border rounded-2xl px-5 py-4 m-0 text-[1.35rem] font-semibold tracking-wide;
+    border-color: var(--mv-border-soft);
+    background: var(--mv-panel-bg);
+    box-shadow: var(--mv-shadow-panel);
   }
 
   .ngrok-guide-view__intro {
-    @apply mb-8;
+    @apply my-4 rounded-xl border px-4 py-3;
+    border-color: rgba(14, 165, 233, 0.28);
+    background: rgba(8, 47, 73, 0.32);
   }
 
   .ngrok-guide-view__intro-text {
@@ -17,25 +23,37 @@
   }
 
   .ngrok-guide-view__step {
-    @apply rounded-lg p-5 mb-5 border relative;
-    background-color: #252526;
-    border-color: #3e3e42;
+    @apply rounded-xl p-5 mb-4 border relative;
+    border-color: var(--mv-border-soft);
+    background: var(--mv-panel-bg-alt);
+    box-shadow: 0 12px 32px rgba(2, 6, 23, 0.22);
   }
 
   .ngrok-guide-view__step-badge {
-    @apply absolute -top-2.5 left-5 bg-accent px-2.5 py-0.5 rounded-xl text-xs font-bold;
+    @apply absolute -top-2.5 left-5 px-2.5 py-0.5 rounded-xl text-xs font-bold;
+    background: linear-gradient(125deg, rgba(14, 165, 233, 0.95), rgba(6, 182, 212, 0.9));
+    box-shadow: 0 8px 22px rgba(14, 165, 233, 0.24);
   }
 
   .ngrok-guide-view__cta-btn {
     @apply mt-2;
+    background: linear-gradient(125deg, rgba(14, 165, 233, 0.95), rgba(6, 182, 212, 0.9));
+    box-shadow: 0 8px 20px rgba(14, 165, 233, 0.22);
   }
 
   .ngrok-guide-view__token-example {
-    @apply p-2.5 rounded font-mono text-zinc-500 mt-2.5;
-    background-color: #111;
+    @apply p-2.5 rounded font-mono text-zinc-400 mt-2.5 border;
+    border-color: rgba(63, 63, 70, 0.82);
+    background: rgba(15, 23, 42, 0.78);
   }
 
   .ngrok-guide-view__note {
     @apply text-sm text-zinc-400 mt-2;
+  }
+}
+
+@media (max-width: 900px) {
+  .ngrok-guide-view {
+    @apply p-4;
   }
 }

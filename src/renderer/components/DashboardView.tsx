@@ -236,11 +236,15 @@ export default function DashboardView({ server }: Props) {
         </div>
         <div className="dashboard-view__stat-card">
           <div className="dashboard-view__stat-label">Current CPU</div>
-          <div className="dashboard-view__stat-value text-blue-500">{currentCpu}%</div>
+          <div className="dashboard-view__stat-value" style={{ color: '#38bdf8' }}>
+            {currentCpu}%
+          </div>
         </div>
         <div className="dashboard-view__stat-card">
           <div className="dashboard-view__stat-label">Current Memory</div>
-          <div className="dashboard-view__stat-value text-purple-500">{currentMem} MB</div>
+          <div className="dashboard-view__stat-value" style={{ color: '#34d399' }}>
+            {currentMem} MB
+          </div>
         </div>
         <div className="dashboard-view__stat-card">
           <div className="dashboard-view__stat-label">Current TPS</div>
@@ -259,15 +263,25 @@ export default function DashboardView({ server }: Props) {
           <div className="dashboard-view__chart-body">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={resourceStats}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis dataKey="timeLabel" stroke="#666" tick={{ fontSize: 10 }} minTickGap={24} />
-                <YAxis stroke="#666" tick={{ fontSize: 10 }} />
-                <Tooltip contentStyle={{ backgroundColor: '#333', border: 'none' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis
+                  dataKey="timeLabel"
+                  stroke="#94a3b8"
+                  tick={{ fontSize: 10 }}
+                  minTickGap={24}
+                />
+                <YAxis stroke="#94a3b8" tick={{ fontSize: 10 }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#111827',
+                    border: '1px solid rgba(82, 82, 91, 0.7)',
+                  }}
+                />
                 <Area
                   type="monotone"
                   dataKey="cpu"
-                  stroke="#3b82f6"
-                  fill="rgba(59, 130, 246, 0.3)"
+                  stroke="#38bdf8"
+                  fill="rgba(56, 189, 248, 0.28)"
                   isAnimationActive={false}
                 />
               </AreaChart>
@@ -280,15 +294,25 @@ export default function DashboardView({ server }: Props) {
           <div className="dashboard-view__chart-body">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={resourceStats}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis dataKey="timeLabel" stroke="#666" tick={{ fontSize: 10 }} minTickGap={24} />
-                <YAxis stroke="#666" tick={{ fontSize: 10 }} />
-                <Tooltip contentStyle={{ backgroundColor: '#333', border: 'none' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis
+                  dataKey="timeLabel"
+                  stroke="#94a3b8"
+                  tick={{ fontSize: 10 }}
+                  minTickGap={24}
+                />
+                <YAxis stroke="#94a3b8" tick={{ fontSize: 10 }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#111827',
+                    border: '1px solid rgba(82, 82, 91, 0.7)',
+                  }}
+                />
                 <Area
                   type="monotone"
                   dataKey="memory"
-                  stroke="#a855f7"
-                  fill="rgba(168, 85, 247, 0.3)"
+                  stroke="#34d399"
+                  fill="rgba(52, 211, 153, 0.24)"
                   isAnimationActive={false}
                 />
               </AreaChart>
@@ -306,20 +330,25 @@ export default function DashboardView({ server }: Props) {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={tpsStats}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                   <XAxis
                     dataKey="timeLabel"
-                    stroke="#666"
+                    stroke="#94a3b8"
                     tick={{ fontSize: 10 }}
                     minTickGap={24}
                   />
-                  <YAxis stroke="#666" tick={{ fontSize: 10 }} domain={[0, 22]} />
-                  <Tooltip contentStyle={{ backgroundColor: '#333', border: 'none' }} />
+                  <YAxis stroke="#94a3b8" tick={{ fontSize: 10 }} domain={[0, 22]} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#111827',
+                      border: '1px solid rgba(82, 82, 91, 0.7)',
+                    }}
+                  />
                   <Area
                     type="monotone"
                     dataKey="tps"
                     stroke="#22c55e"
-                    fill="rgba(34, 197, 94, 0.3)"
+                    fill="rgba(34, 197, 94, 0.24)"
                     isAnimationActive={false}
                     connectNulls
                   />

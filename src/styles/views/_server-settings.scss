@@ -1,24 +1,31 @@
 @layer components {
   .server-settings {
-    @apply h-full overflow-y-auto p-10 box-border block;
+    @apply h-full overflow-y-auto p-8 box-border block;
+    font-family: var(--mv-font-display);
     color: #ecf0f1;
+    background: var(--mv-view-bg);
   }
 
   .server-settings__inner {
-    @apply max-w-4xl pb-12;
+    @apply max-w-5xl pb-8;
   }
 
   .server-settings__title {
-    @apply mt-0 mb-8 border-b border-zinc-700 pb-2.5;
+    @apply m-0 mb-4 rounded-2xl border px-5 py-4 text-[1.35rem] font-semibold tracking-wide;
+    border-color: var(--mv-border-soft);
+    background: var(--mv-panel-bg);
+    box-shadow: var(--mv-shadow-panel);
   }
 
   .server-settings__panel {
-    @apply mb-8 p-6 rounded-lg border border-border-color;
-    background-color: #252526;
+    @apply mb-4 p-6 rounded-2xl border;
+    border-color: var(--mv-border-soft);
+    background: var(--mv-panel-bg-alt);
+    box-shadow: var(--mv-shadow-panel);
   }
 
   .server-settings__panel-title {
-    @apply mt-0 mb-5 text-zinc-300 text-lg;
+    @apply mt-0 mb-5 text-cyan-200 text-sm uppercase tracking-[0.1em] font-semibold;
   }
 
   .server-settings__field-block {
@@ -26,7 +33,7 @@
   }
 
   .server-settings__label {
-    @apply block mb-2 text-zinc-400;
+    @apply block mb-2 text-zinc-300 text-sm;
   }
 
   .server-settings__row {
@@ -47,7 +54,7 @@
 
   .server-settings__path-input {
     @apply flex-1 text-zinc-500;
-    background-color: #222;
+    background-color: rgba(15, 23, 42, 0.78);
   }
 
   .server-settings__actions {
@@ -59,12 +66,14 @@
   }
 
   .server-settings__ngrok-panel {
-    @apply p-6 rounded-lg border border-zinc-700;
-    background-color: #252526;
+    @apply p-6 rounded-2xl border;
+    border-color: var(--mv-border-soft);
+    background: var(--mv-panel-bg-alt);
+    box-shadow: var(--mv-shadow-panel);
   }
 
   .server-settings__ngrok-panel.is-active {
-    @apply border-accent;
+    border-color: rgba(34, 211, 238, 0.54);
   }
 
   .server-settings__ngrok-header {
@@ -80,7 +89,8 @@
   }
 
   .server-settings__online-badge {
-    @apply text-xs bg-success text-white px-2 py-0.5 rounded;
+    @apply text-xs text-white px-2 py-0.5 rounded-full;
+    background: linear-gradient(120deg, rgba(34, 197, 94, 0.9), rgba(16, 185, 129, 0.8));
   }
 
   .server-settings__ngrok-description {
@@ -112,7 +122,7 @@
   }
 
   .server-settings__ngrok-switch-track.is-on {
-    @apply bg-accent;
+    background: linear-gradient(120deg, rgba(6, 182, 212, 0.95), rgba(16, 185, 129, 0.85));
   }
 
   .server-settings__ngrok-switch-track.is-off {
@@ -128,8 +138,9 @@
   }
 
   .server-settings__address-card {
-    @apply p-4 rounded-md mb-4;
-    background-color: #1e1e1e;
+    @apply p-4 rounded-xl mb-4 border;
+    border-color: rgba(14, 165, 233, 0.25);
+    background: rgba(8, 47, 73, 0.34);
   }
 
   .server-settings__address-label {
@@ -141,7 +152,9 @@
   }
 
   .server-settings__address-code {
-    @apply text-xl text-white font-mono bg-zinc-800 px-2.5 py-1.5 rounded;
+    @apply text-xl text-white font-mono px-2.5 py-1.5 rounded border;
+    border-color: rgba(63, 63, 70, 0.8);
+    background: rgba(15, 23, 42, 0.8);
   }
 
   .server-settings__copy-btn {
@@ -149,8 +162,9 @@
   }
 
   .server-settings__log-panel {
-    @apply text-zinc-400 p-2.5 rounded h-[150px] overflow-y-auto text-xs font-mono border border-zinc-800;
-    background-color: #111;
+    @apply text-zinc-400 p-2.5 rounded-xl h-[150px] overflow-y-auto text-xs font-mono border;
+    border-color: rgba(63, 63, 70, 0.75);
+    background: rgba(15, 23, 42, 0.78);
   }
 
   .server-settings__log-line {
@@ -164,8 +178,8 @@
 
   .server-settings__token-panel {
     width: 450px;
-    background-color: #2c2c2c;
-    border-color: #3f3f46;
+    border-color: var(--mv-border-soft);
+    background: linear-gradient(145deg, rgba(17, 24, 39, 0.96), rgba(24, 24, 27, 0.95));
   }
 
   .server-settings__token-title {
@@ -173,7 +187,7 @@
   }
 
   .server-settings__token-text {
-    @apply text-zinc-400 text-sm;
+    @apply text-zinc-400 text-sm leading-relaxed;
   }
 
   .server-settings__token-actions {
@@ -182,5 +196,31 @@
 
   .server-settings__token-cancel {
     @apply mr-2.5;
+  }
+}
+
+@media (max-width: 980px) {
+  .server-settings {
+    @apply p-4;
+  }
+
+  .server-settings__row {
+    @apply flex-col gap-3;
+  }
+
+  .server-settings__ngrok-header {
+    @apply flex-col items-start;
+  }
+
+  .server-settings__ngrok-controls {
+    @apply w-full flex-wrap;
+  }
+
+  .server-settings__address-row {
+    @apply flex-col items-stretch;
+  }
+
+  .server-settings__address-code {
+    @apply text-sm break-all;
   }
 }

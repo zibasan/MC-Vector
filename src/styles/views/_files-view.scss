@@ -1,16 +1,20 @@
 @layer components {
   .files-view {
-    @apply h-full flex flex-col text-zinc-300;
+    @apply h-full flex flex-col text-zinc-300 p-5 gap-4;
+    font-family: var(--mv-font-display);
+    background: var(--mv-view-bg);
   }
 
   .files-view__toolbar {
-    @apply py-2.5 px-5 border-b border-zinc-800 flex items-center gap-2.5;
-    background-color: #252526;
+    @apply py-3 px-4 border rounded-2xl flex items-center gap-2.5;
+    background: var(--mv-panel-bg);
+    border-color: var(--mv-border-soft);
+    box-shadow: var(--mv-shadow-panel);
   }
 
   .files-view__toolbar-btn {
-    @apply bg-transparent border-none text-zinc-400 p-1.5 rounded transition-colors;
-    @apply hover:bg-zinc-800 hover:text-white;
+    @apply bg-transparent border border-transparent text-zinc-400 p-1.5 rounded-md transition-all;
+    @apply hover:bg-zinc-800/60 hover:text-white hover:border-zinc-600;
   }
 
   .files-view__toolbar-btn:disabled {
@@ -22,12 +26,13 @@
   }
 
   .files-view__toolbar-divider {
-    @apply w-px h-5 bg-zinc-700 mx-1.5;
+    @apply w-px h-5 bg-zinc-700/70 mx-1.5;
   }
 
   .files-view__breadcrumb-shell {
-    @apply flex-1 px-2.5 py-1.5 rounded overflow-x-auto whitespace-nowrap;
-    background-color: #1e1e1e;
+    @apply flex-1 px-2.5 py-1.5 rounded-lg overflow-x-auto whitespace-nowrap;
+    background: rgba(15, 23, 42, 0.82);
+    border: 1px solid rgba(63, 63, 70, 0.72);
   }
 
   .files-view__breadcrumbs {
@@ -36,7 +41,7 @@
 
   .files-view__breadcrumb-link {
     @apply cursor-pointer px-1 py-0.5 rounded;
-    @apply hover:bg-zinc-800 hover:text-white hover:underline;
+    @apply hover:bg-zinc-800/70 hover:text-white hover:underline;
   }
 
   .files-view__breadcrumb-link--disabled {
@@ -48,8 +53,10 @@
   }
 
   .files-view__list-pane {
-    @apply flex-1 overflow-y-auto p-0 relative;
-    background-color: #1e1e1e;
+    @apply flex-1 overflow-y-auto p-0 relative rounded-2xl border;
+    background: linear-gradient(145deg, rgba(17, 24, 39, 0.94), rgba(24, 24, 27, 0.9));
+    border-color: var(--mv-border-soft);
+    box-shadow: 0 16px 38px rgba(2, 6, 23, 0.24);
   }
 
   .files-view__list-pane.is-drop-active {
@@ -58,19 +65,20 @@
 
   .files-view__drop-hint {
     @apply absolute inset-4 rounded-lg border-2 border-dashed text-sm font-semibold flex items-center justify-center pointer-events-none;
-    border-color: rgba(52, 211, 153, 0.65);
+    border-color: rgba(56, 189, 248, 0.65);
     color: #bbf7d0;
-    background: rgba(6, 78, 59, 0.32);
+    background: rgba(8, 47, 73, 0.42);
     z-index: 4;
   }
 
   .files-view__row {
-    @apply flex items-center p-2.5 bg-transparent border-b border-zinc-800 cursor-pointer select-none last:border-b-0;
-    @apply hover:bg-zinc-800/50;
+    @apply flex items-center p-2.5 bg-transparent border-b border-zinc-700/60 cursor-pointer select-none last:border-b-0 transition-colors;
+    @apply hover:bg-zinc-800/45;
   }
 
   .files-view__row.is-selected {
-    @apply bg-zinc-900/50;
+    @apply bg-cyan-400/10;
+    box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.2);
   }
 
   .files-view__name {
@@ -78,7 +86,8 @@
   }
 
   .files-view__name--dir {
-    @apply font-bold text-accent;
+    @apply font-bold;
+    color: #67e8f9;
   }
 
   .files-view__name--file {
@@ -91,12 +100,13 @@
 
   .files-view__editor-overlay {
     @apply fixed inset-0 z-[2000] flex flex-col;
-    background-color: #1e1e1e;
+    background: linear-gradient(145deg, rgba(2, 6, 23, 0.95), rgba(15, 23, 42, 0.92));
   }
 
   .files-view__editor-header {
-    @apply p-2.5 flex justify-between items-center;
-    background-color: #252526;
+    @apply p-2.5 flex justify-between items-center border-b;
+    background: var(--mv-panel-bg);
+    border-color: var(--mv-border-soft);
   }
 
   .files-view__editor-actions {
@@ -113,15 +123,18 @@
 
   .files-view__create-option {
     @apply flex flex-col items-center justify-center gap-2 p-5 rounded-lg cursor-pointer transition-all border-2;
-    @apply border-transparent bg-zinc-800 text-zinc-400;
+    @apply border-transparent text-zinc-300;
+    background: rgba(30, 41, 59, 0.62);
   }
 
   .files-view__create-option.is-active {
-    @apply border-accent bg-accent/15 text-white;
+    @apply text-white;
+    border-color: rgba(34, 211, 238, 0.65);
+    background: linear-gradient(120deg, rgba(6, 182, 212, 0.24), rgba(16, 185, 129, 0.18));
   }
 
   .files-view__create-option--import:hover {
-    @apply bg-zinc-700;
+    background: rgba(51, 65, 85, 0.72);
   }
 
   .files-view__create-option-label {
@@ -141,22 +154,43 @@
   }
 
   .files-view__context-menu {
-    @apply fixed border border-zinc-700 rounded-md shadow-[0_4px_10px_rgba(0,0,0,0.5)] min-w-[180px] p-1;
+    @apply fixed border rounded-md min-w-[180px] p-1;
     z-index: 3000;
-    background-color: #252526;
+    border-color: rgba(63, 63, 70, 0.92);
+    background: linear-gradient(145deg, rgba(17, 24, 39, 0.96), rgba(24, 24, 27, 0.96));
+    box-shadow: 0 18px 42px rgba(2, 6, 23, 0.42);
   }
 
   .files-view__context-item {
     @apply flex items-center gap-2.5 px-3 py-2 cursor-pointer text-sm rounded transition-colors;
-    @apply hover:bg-accent hover:text-white;
+    @apply hover:text-white;
+    background: transparent;
+  }
+
+  .files-view__context-item:hover {
+    background: linear-gradient(120deg, rgba(6, 182, 212, 0.25), rgba(16, 185, 129, 0.18));
   }
 
   .files-view__context-item--danger {
-    @apply hover:bg-red-500 hover:text-white;
+    @apply hover:text-white;
+  }
+
+  .files-view__context-item--danger:hover {
+    background: rgba(239, 68, 68, 0.24);
   }
 
   .files-view__context-spacer,
   .files-view__context-icon {
     @apply w-4 h-4 inline-block object-contain;
+  }
+}
+
+@media (max-width: 900px) {
+  .files-view {
+    @apply p-4;
+  }
+
+  .files-view__toolbar {
+    @apply flex-wrap;
   }
 }

@@ -1,19 +1,28 @@
 @layer components {
   .proxy-setup-view {
-    @apply h-full p-10 overflow-y-auto text-white;
+    @apply h-full p-8 overflow-y-auto text-white;
+    font-family: var(--mv-font-display);
+    background: var(--mv-view-bg);
   }
 
   .proxy-setup-view__title {
-    @apply mt-0 mb-5 border-b border-zinc-700 pb-2.5;
+    @apply m-0 mb-4 rounded-2xl border px-5 py-4 text-[1.35rem] font-semibold tracking-wide;
+    border-color: var(--mv-border-soft);
+    background: var(--mv-panel-bg);
+    box-shadow: var(--mv-shadow-panel);
   }
 
   .proxy-setup-view__description {
-    @apply text-zinc-400 mb-8;
+    @apply text-zinc-300 mb-4 rounded-xl border px-4 py-3 leading-relaxed;
+    border-color: rgba(14, 165, 233, 0.28);
+    background: rgba(8, 47, 73, 0.32);
   }
 
   .proxy-setup-view__panel {
-    @apply p-8 max-w-4xl rounded-lg border border-border-color;
-    background-color: #252526;
+    @apply p-6 max-w-4xl rounded-2xl border;
+    border-color: var(--mv-border-soft);
+    background: var(--mv-panel-bg-alt);
+    box-shadow: var(--mv-shadow-panel);
   }
 
   .proxy-setup-view__field {
@@ -25,7 +34,7 @@
   }
 
   .proxy-setup-view__label {
-    @apply block mb-2 font-bold;
+    @apply block mb-2 text-sm font-semibold uppercase tracking-[0.08em] text-zinc-300;
   }
 
   .proxy-setup-view__label--spaced {
@@ -33,20 +42,21 @@
   }
 
   .proxy-setup-view__hint {
-    @apply text-xs text-zinc-500 mt-1.5;
+    @apply text-xs text-zinc-400 mt-1.5;
   }
 
   .proxy-setup-view__backend-list {
-    @apply p-2.5 rounded border border-zinc-700 max-h-[200px] overflow-y-auto;
-    background-color: #1e1e1e;
+    @apply p-2.5 rounded-xl border max-h-[240px] overflow-y-auto;
+    border-color: rgba(63, 63, 70, 0.78);
+    background: rgba(15, 23, 42, 0.78);
   }
 
   .proxy-setup-view__backend-empty {
-    @apply text-zinc-600 p-2.5;
+    @apply text-zinc-500 p-2.5;
   }
 
   .proxy-setup-view__backend-row {
-    @apply flex items-center p-2 border-b border-zinc-800;
+    @apply flex items-center p-2.5 border-b border-zinc-700/65 rounded-md;
   }
 
   .proxy-setup-view__backend-row:last-child {
@@ -58,7 +68,7 @@
   }
 
   .proxy-setup-view__backend-name {
-    @apply font-bold;
+    @apply font-semibold;
   }
 
   .proxy-setup-view__backend-detail {
@@ -75,5 +85,20 @@
 
   .proxy-setup-view__help-btn {
     @apply py-3 px-5 text-sm;
+  }
+}
+
+@media (max-width: 900px) {
+  .proxy-setup-view {
+    @apply p-4;
+  }
+
+  .proxy-setup-view__actions {
+    @apply flex-col items-stretch;
+  }
+
+  .proxy-setup-view__build-btn,
+  .proxy-setup-view__help-btn {
+    @apply w-full;
   }
 }

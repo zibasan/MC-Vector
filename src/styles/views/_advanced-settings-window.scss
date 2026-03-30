@@ -5,11 +5,15 @@
 
   .advanced-settings-window {
     @apply fixed inset-0 z-[2000] flex flex-col;
-    @apply bg-bg-primary animate-fadeIn;
+    @apply animate-fadeIn;
+    font-family: var(--mv-font-display);
+    background: linear-gradient(145deg, rgba(2, 6, 23, 0.96), rgba(15, 23, 42, 0.95));
   }
 
   .advanced-settings-window__header {
-    @apply px-8 py-4 bg-bg-secondary border-b border-border-color flex justify-between items-center;
+    @apply px-8 py-4 border-b flex justify-between items-center;
+    background: var(--mv-panel-bg);
+    border-color: var(--mv-border-soft);
   }
 
   .advanced-settings-window__title {
@@ -26,7 +30,9 @@
 
   .advanced-settings-window__sidebar {
     width: 220px;
-    @apply bg-bg-secondary border-r border-border-color py-5 flex flex-col;
+    @apply border-r py-5 flex flex-col;
+    background: rgba(15, 23, 42, 0.75);
+    border-color: rgba(63, 63, 70, 0.8);
   }
 
   .advanced-settings-window__tab {
@@ -34,7 +40,8 @@
   }
 
   .advanced-settings-window__tab.is-active {
-    @apply bg-bg-tertiary text-accent border-l-accent font-bold;
+    @apply text-cyan-100 border-l-cyan-300 font-bold;
+    background: linear-gradient(120deg, rgba(6, 182, 212, 0.22), rgba(16, 185, 129, 0.15));
   }
 
   .advanced-settings-window__tab.is-idle {
@@ -42,11 +49,15 @@
   }
 
   .advanced-settings-window__content {
-    @apply flex-1 p-8 overflow-y-auto bg-bg-primary;
+    @apply flex-1 p-8 overflow-y-auto;
+    background: var(--mv-view-bg);
   }
 
   .advanced-settings-window__section-title {
-    @apply mt-0 mb-5 border-b border-zinc-700 pb-2.5;
+    @apply mt-0 mb-5 rounded-2xl border px-5 py-4 text-[1.2rem] font-semibold tracking-wide;
+    border-color: var(--mv-border-soft);
+    background: var(--mv-panel-bg);
+    box-shadow: var(--mv-shadow-panel);
   }
 
   .advanced-settings-window__grid {
@@ -55,8 +66,11 @@
   }
 
   .advanced-settings-window__card {
-    @apply bg-bg-tertiary border border-border-color rounded-lg p-4 flex flex-col gap-3 relative;
+    @apply border rounded-xl p-4 flex flex-col gap-3 relative;
     overflow: visible;
+    border-color: var(--mv-border-soft);
+    background: var(--mv-panel-bg-alt);
+    box-shadow: 0 12px 30px rgba(2, 6, 23, 0.22);
   }
 
   .advanced-settings-window__card-head {
@@ -73,18 +87,20 @@
   }
 
   .advanced-settings-window__card-key {
-    @apply text-xs text-accent;
+    @apply text-xs text-cyan-200;
   }
 
   .advanced-settings-window__card-description {
-    @apply text-xs text-text-secondary leading-relaxed;
+    @apply text-xs text-zinc-400 leading-relaxed;
   }
 
   .advanced-settings-window__tooltip {
-    @apply invisible opacity-0 bg-zinc-800 text-white rounded-md p-2.5 shadow-xl border border-accent;
+    @apply invisible opacity-0 text-white rounded-md p-2.5 shadow-xl border;
     @apply absolute top-full left-0 mt-2 text-xs whitespace-normal break-words transition-opacity;
     width: min(320px, 90vw);
     z-index: 20;
+    border-color: rgba(34, 211, 238, 0.45);
+    background: rgba(15, 23, 42, 0.95);
   }
 
   .advanced-settings-window__card-info:hover .advanced-settings-window__tooltip {
@@ -100,7 +116,13 @@
   }
 
   .advanced-settings-window__input {
-    @apply w-full px-2 py-2 bg-bg-secondary border border-border-color text-text-primary rounded;
-    @apply focus:outline-none focus:border-accent;
+    @apply w-full px-2 py-2 border text-text-primary rounded;
+    @apply focus:outline-none;
+    background: rgba(15, 23, 42, 0.78);
+    border-color: rgba(63, 63, 70, 0.82);
+  }
+
+  .advanced-settings-window__input:focus {
+    border-color: rgba(34, 211, 238, 0.55);
   }
 }

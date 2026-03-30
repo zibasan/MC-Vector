@@ -1,27 +1,37 @@
 @layer components {
   .users-view {
-    @apply h-full p-5 flex flex-col;
+    @apply h-full p-5 flex flex-col gap-4;
+    font-family: var(--mv-font-display);
+    background: var(--mv-view-bg);
   }
 
   .users-view__title {
-    @apply mt-0 mb-5 border-b border-zinc-700 pb-2.5;
+    @apply m-0 px-5 py-4 rounded-2xl border text-[1.35rem] font-semibold tracking-wide text-zinc-100;
+    background: var(--mv-panel-bg);
+    border-color: var(--mv-border-soft);
+    box-shadow: var(--mv-shadow-panel);
   }
 
   .users-view__grid {
-    @apply grid grid-cols-2 grid-rows-2 gap-5 flex-1 min-h-0;
+    @apply grid grid-cols-2 grid-rows-2 gap-4 flex-1 min-h-0;
   }
 
   .users-view__card {
-    @apply rounded-lg border border-zinc-700 flex flex-col overflow-hidden;
-    background-color: #252526;
+    @apply rounded-xl border flex flex-col overflow-hidden;
+    border-color: var(--mv-border-soft);
+    background: var(--mv-panel-bg-alt);
+    box-shadow: 0 12px 30px rgba(2, 6, 23, 0.2);
   }
 
   .users-view__card-header {
-    @apply px-4 py-2.5 bg-zinc-800 font-bold border-b border-zinc-700 flex justify-between items-center;
+    @apply px-4 py-3 font-bold border-b border-zinc-700/75 flex justify-between items-center;
+    background: rgba(15, 23, 42, 0.7);
   }
 
   .users-view__count {
-    @apply text-xs text-zinc-400 font-normal;
+    @apply text-xs text-zinc-400 font-normal rounded-full px-2 py-0.5 border;
+    border-color: rgba(63, 63, 70, 0.72);
+    background: rgba(39, 39, 42, 0.55);
   }
 
   .users-view__list {
@@ -29,12 +39,13 @@
   }
 
   .users-view__empty {
-    @apply text-zinc-600 text-center mt-5;
+    @apply text-zinc-500 text-center mt-5;
   }
 
   .users-view__item {
-    @apply flex items-center justify-between p-2 mb-1.5 rounded;
-    background-color: #2b2b2b;
+    @apply flex items-center justify-between p-2.5 mb-2 rounded-lg border;
+    border-color: rgba(63, 63, 70, 0.72);
+    background: rgba(15, 23, 42, 0.58);
   }
 
   .users-view__item-main {
@@ -49,12 +60,17 @@
     @apply font-bold text-sm;
   }
 
+  .users-view__item-meta {
+    @apply flex flex-col;
+  }
+
   .users-view__remove-btn {
-    @apply py-0.5 px-2 text-xs;
+    @apply py-0.5 px-2 text-xs min-w-0;
   }
 
   .users-view__form {
-    @apply p-2.5 border-t border-zinc-700 flex gap-1.5;
+    @apply p-2.5 border-t border-zinc-700/75 flex gap-1.5;
+    background: rgba(15, 23, 42, 0.45);
   }
 
   .users-view__input {
@@ -63,5 +79,16 @@
 
   .users-view__add-btn {
     @apply py-1.5 px-3;
+  }
+}
+
+@media (max-width: 980px) {
+  .users-view {
+    @apply p-4;
+  }
+
+  .users-view__grid {
+    @apply grid-cols-1;
+    grid-template-rows: none;
   }
 }
