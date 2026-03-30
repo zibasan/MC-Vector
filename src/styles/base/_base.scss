@@ -1,0 +1,38 @@
+@layer base {
+  * {
+    @apply box-border select-none;
+  }
+
+  body,
+  html {
+    @apply m-0 p-0 h-full font-sans bg-bg-primary text-text-primary overflow-hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-zinc-700 rounded;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-zinc-600;
+  }
+
+  button {
+    font-family: inherit;
+    @apply cursor-pointer border-none outline-none;
+  }
+
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    @apply m-0;
+  }
+}

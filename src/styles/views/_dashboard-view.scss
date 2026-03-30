@@ -1,0 +1,47 @@
+@layer components {
+  .dashboard-view {
+    @apply h-full p-5 overflow-y-auto;
+  }
+
+  .dashboard-view__title {
+    @apply mt-0 mb-5 border-b border-zinc-700 pb-2.5;
+  }
+
+  .dashboard-view__stats-grid {
+    @apply grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-5 mb-8;
+  }
+
+  .dashboard-view__stat-card {
+    @apply p-5 text-center rounded-lg border border-border-color;
+    background-color: #252526;
+  }
+
+  .dashboard-view__stat-label {
+    @apply text-sm text-zinc-400 mb-1.5;
+  }
+
+  .dashboard-view__stat-value {
+    @apply text-2xl font-bold;
+  }
+
+  .dashboard-view__stat-sub {
+    @apply text-xs text-zinc-600;
+  }
+
+  .dashboard-view__chart-grid {
+    @apply grid grid-cols-2 gap-5 h-[300px];
+  }
+
+  .dashboard-view__chart-card {
+    @apply p-4 rounded-lg border border-border-color flex flex-col;
+    background-color: #1e1e24;
+  }
+
+  .dashboard-view__chart-title {
+    @apply m-0 mb-2.5 text-base text-zinc-400;
+  }
+
+  .dashboard-view__chart-body {
+    @apply flex-1;
+  }
+}

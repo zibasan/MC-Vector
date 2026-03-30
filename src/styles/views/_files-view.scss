@@ -1,0 +1,150 @@
+@layer components {
+  .files-view {
+    @apply h-full flex flex-col text-zinc-300;
+  }
+
+  .files-view__toolbar {
+    @apply py-2.5 px-5 border-b border-zinc-800 flex items-center gap-2.5;
+    background-color: #252526;
+  }
+
+  .files-view__toolbar-btn {
+    @apply bg-transparent border-none text-zinc-400 p-1.5 rounded transition-colors;
+    @apply hover:bg-zinc-800 hover:text-white;
+  }
+
+  .files-view__toolbar-btn:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  .files-view__toolbar-btn--danger {
+    @apply hover:bg-red-500/20 hover:text-red-400;
+  }
+
+  .files-view__toolbar-divider {
+    @apply w-px h-5 bg-zinc-700 mx-1.5;
+  }
+
+  .files-view__breadcrumb-shell {
+    @apply flex-1 px-2.5 py-1.5 rounded overflow-x-auto whitespace-nowrap;
+    background-color: #1e1e1e;
+  }
+
+  .files-view__breadcrumbs {
+    @apply flex items-center font-mono text-zinc-300;
+  }
+
+  .files-view__breadcrumb-link {
+    @apply cursor-pointer px-1 py-0.5 rounded;
+    @apply hover:bg-zinc-800 hover:text-white hover:underline;
+  }
+
+  .files-view__breadcrumb-link--disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  .files-view__breadcrumb-separator {
+    @apply mx-1.5 text-zinc-600;
+  }
+
+  .files-view__list-pane {
+    @apply flex-1 overflow-y-auto p-0;
+    background-color: #1e1e1e;
+  }
+
+  .files-view__row {
+    @apply flex items-center p-2.5 bg-transparent border-b border-zinc-800 cursor-pointer select-none last:border-b-0;
+    @apply hover:bg-zinc-800/50;
+  }
+
+  .files-view__row.is-selected {
+    @apply bg-zinc-900/50;
+  }
+
+  .files-view__name {
+    @apply flex-1 whitespace-nowrap overflow-hidden text-ellipsis;
+  }
+
+  .files-view__name--dir {
+    @apply font-bold text-accent;
+  }
+
+  .files-view__name--file {
+    @apply font-normal text-text-primary;
+  }
+
+  .files-view__empty {
+    @apply p-5 text-center text-text-secondary;
+  }
+
+  .files-view__editor-overlay {
+    @apply fixed inset-0 z-[2000] flex flex-col;
+    background-color: #1e1e1e;
+  }
+
+  .files-view__editor-header {
+    @apply p-2.5 flex justify-between items-center;
+    background-color: #252526;
+  }
+
+  .files-view__editor-actions {
+    @apply flex items-center;
+  }
+
+  .files-view__modal-panel {
+    width: 450px;
+  }
+
+  .files-view__create-grid {
+    @apply grid grid-cols-3 gap-2.5 mb-2.5;
+  }
+
+  .files-view__create-option {
+    @apply flex flex-col items-center justify-center gap-2 p-5 rounded-lg cursor-pointer transition-all border-2;
+    @apply border-transparent bg-zinc-800 text-zinc-400;
+  }
+
+  .files-view__create-option.is-active {
+    @apply border-accent bg-accent/15 text-white;
+  }
+
+  .files-view__create-option--import:hover {
+    @apply bg-zinc-700;
+  }
+
+  .files-view__create-option-label {
+    @apply text-sm;
+  }
+
+  .files-view__create-option-label.is-active {
+    @apply font-bold;
+  }
+
+  .files-view__create-option-label.is-idle {
+    @apply font-normal;
+  }
+
+  .files-view__modal-label {
+    @apply block text-zinc-400 text-sm;
+  }
+
+  .files-view__context-menu {
+    @apply fixed border border-zinc-700 rounded-md shadow-[0_4px_10px_rgba(0,0,0,0.5)] min-w-[180px] p-1;
+    z-index: 3000;
+    background-color: #252526;
+  }
+
+  .files-view__context-item {
+    @apply flex items-center gap-2.5 px-3 py-2 cursor-pointer text-sm rounded transition-colors;
+    @apply hover:bg-accent hover:text-white;
+  }
+
+  .files-view__context-item--danger {
+    @apply hover:bg-red-500 hover:text-white;
+  }
+
+  .files-view__context-spacer,
+  .files-view__context-icon {
+    @apply w-4 h-4 inline-block object-contain;
+  }
+}

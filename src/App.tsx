@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import './index.scss';
 import iconBackups from './assets/icons/backups.svg';
 import iconConsole from './assets/icons/console.svg';
 import iconDashboard from './assets/icons/dashboard.svg';
@@ -773,12 +772,12 @@ function App() {
 
   return (
     <div
-      className="flex h-screen w-screen"
+      className="app-shell"
       onClick={handleClickOutside}
       style={{ background: themeColors.mainBg, color: themeColors.text }}
     >
       <aside
-        className={`flex flex-col border-r shrink-0 z-20 transition-all duration-200 ${isSidebarOpen ? 'w-[260px]' : 'w-[60px]'}`}
+        className={`app-sidebar ${isSidebarOpen ? 'app-sidebar--open' : 'app-sidebar--collapsed'}`}
         style={{
           background: themeColors.sidebarBg,
           borderColor: themeColors.border,
@@ -786,7 +785,7 @@ function App() {
         }}
       >
         <div
-          className={`flex items-center ${isSidebarOpen ? 'justify-between' : 'justify-center'} p-5 bg-transparent`}
+          className={`app-sidebar__header ${isSidebarOpen ? 'app-sidebar__header--open' : 'app-sidebar__header--collapsed'}`}
         >
           {isSidebarOpen && (
             <span
@@ -801,16 +800,13 @@ function App() {
 
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="bg-transparent border-none cursor-pointer p-1"
+            className="app-sidebar__menu-button"
           >
-            <img src={iconMenu} alt="Menu" className="w-5 h-5 opacity-80" />
+            <img src={iconMenu} alt="Menu" className="app-sidebar__menu-icon" />
           </button>
         </div>
 
-        <div
-          className="flex-1 p-2.5 flex flex-col overflow-y-auto rounded-xl"
-          style={{ background: themeColors.sidebarPanelBg }}
-        >
+        <div className="app-sidebar__nav" style={{ background: themeColors.sidebarPanelBg }}>
           <NavItem
             label={isSidebarOpen ? 'Dashboard' : ''}
             view="dashboard"
@@ -881,20 +877,18 @@ function App() {
 
         {isSidebarOpen && (
           <div
-            className="max-h-[40%] flex flex-col"
+            className="app-sidebar__servers"
             style={{
               borderTop: `1px solid ${themeColors.border}`,
               background: themeColors.sidebarPanelBg,
             }}
           >
-            <div className="px-2.5 py-1 text-xs text-text-secondary font-bold tracking-wider">
-              SERVERS
-            </div>
-            <div className="overflow-y-auto flex-1 p-2.5 shrink-0">
+            <div className="app-sidebar__servers-title">SERVERS</div>
+            <div className="app-sidebar__server-list">
               {servers.map((server) => (
                 <div
                   key={server.id}
-                  className={`px-3 py-2.5 mb-1.5 rounded-md flex items-center gap-3 transition-all cursor-pointer border border-transparent hover:bg-white/5 hover:translate-x-0.5 ${server.id === selectedServerId ? 'bg-accent/15 border-accent/30' : ''}`}
+                  className={`app-sidebar__server-item ${server.id === selectedServerId ? 'is-active' : ''}`}
                   onClick={() => setSelectedServerId(server.id)}
                   onContextMenu={(e) => handleContextMenu(e, server.id)}
                 >
@@ -906,7 +900,7 @@ function App() {
               ))}
             </div>
             <button
-              className="mt-1.5 w-full py-2.5 bg-white/3 border border-dashed border-border-color text-text-secondary rounded-md transition-all text-sm hover:bg-white/8 hover:border-text-primary hover:text-text-primary hover:border-solid"
+              className="app-sidebar__add-server-btn"
               onClick={() => setShowAddServerModal(true)}
             >
               + Add Server
@@ -916,11 +910,11 @@ function App() {
       </aside>
 
       <main
-        className="flex-1 flex flex-col overflow-hidden relative"
+        className="app-main"
         style={{ background: themeColors.mainBg, color: themeColors.text }}
       >
         <header
-          className="h-[60px] px-5 flex items-center justify-between border-b backdrop-blur-xl z-10 shrink-0"
+          className="app-main__header"
           style={{
             background: themeColors.headerBg,
             color: themeColors.text,
@@ -956,24 +950,21 @@ function App() {
             )}
           </div>
         </header>
-        <div
-          className="flex-1 p-0 overflow-hidden relative flex flex-col"
-          style={{ background: themeColors.panelBg }}
-        >
+        <div className="app-main__content" style={{ background: themeColors.panelBg }}>
           {renderContent()}
         </div>
       </main>
 
       {downloadStatus && (
-        <div className="fixed bottom-5 right-5 bg-[#2c2c30] p-4 rounded-lg shadow-[0_8px_30px_rgba(0,0,0,0.5)] z-10000 text-white min-w-[280px] border border-border-color">
-          <div className="font-bold mb-2 flex justify-between">
+        <div className="download-toast">
+          <div className="download-toast__header">
             <span>Downloading...</span>
             <span className="text-accent">{downloadStatus.progress}%</span>
           </div>
-          <div className="text-sm mb-2 text-zinc-300">{downloadStatus.msg}</div>
-          <div className="w-full h-1 bg-zinc-700 rounded-sm overflow-hidden">
+          <div className="download-toast__message">{downloadStatus.msg}</div>
+          <div className="download-toast__progress-track">
             <div
-              className="h-full bg-accent rounded-sm transition-all duration-200"
+              className="download-toast__progress-bar"
               style={{ width: `${downloadStatus.progress}%` }}
             ></div>
           </div>
@@ -983,16 +974,13 @@ function App() {
         <AddServerModal onClose={() => setShowAddServerModal(false)} onAdd={handleAddServer} />
       )}
       {contextMenu && (
-        <div
-          className="fixed bg-[#252526] border border-border-color rounded-md shadow-[0_4px_20px_rgba(0,0,0,0.4)] z-9999 p-1 min-w-[140px]"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-        >
+        <div className="app-context-menu" style={{ top: contextMenu.y, left: contextMenu.x }}>
           <div
             onClick={(e) => {
               e.stopPropagation();
               handleDeleteServer();
             }}
-            className="px-3 py-2 cursor-pointer text-red-400 text-sm rounded transition-colors flex items-center gap-2 hover:bg-red-500/10"
+            className="app-context-menu__danger-item"
           >
             🗑️ 削除
           </div>
@@ -1000,30 +988,28 @@ function App() {
       )}
 
       {updatePrompt && (
-        <div className="fixed inset-0 bg-black/70 z-10000 flex items-center justify-center p-4">
-          <div className="bg-[#252526] border border-zinc-700 rounded-lg shadow-2xl w-full max-w-[520px] p-6 text-white">
-            <h3 className="text-xl font-semibold mt-0 mb-2">アップデートが利用可能です</h3>
-            <p className="text-sm text-zinc-300 mb-4">
+        <div className="app-update-overlay">
+          <div className="app-update-modal">
+            <h3 className="app-update-modal__title">アップデートが利用可能です</h3>
+            <p className="app-update-modal__version">
               バージョン: {updatePrompt.version || '不明'}
             </p>
 
             {getReleaseNotesText() && (
               <div className="mb-4">
-                <div className="text-xs text-zinc-400 mb-1">リリースノート:</div>
-                <pre className="bg-[#1b1b1b] border border-zinc-800 rounded p-3 text-xs whitespace-pre-wrap max-h-48 overflow-y-auto">
-                  {getReleaseNotesText()}
-                </pre>
+                <div className="app-update-modal__notes-label">リリースノート:</div>
+                <pre className="app-update-modal__notes">{getReleaseNotesText()}</pre>
               </div>
             )}
 
             {updateProgress !== null && !updateReady && (
               <div className="mb-4">
-                <div className="text-sm text-zinc-300 mb-1">
+                <div className="app-update-modal__progress-label">
                   ダウンロード中... {Math.round(updateProgress)}%
                 </div>
-                <div className="h-2 bg-zinc-800 rounded">
+                <div className="app-update-modal__progress-track">
                   <div
-                    className="h-2 bg-accent rounded"
+                    className="app-update-modal__progress-bar"
                     style={{
                       width: `${Math.min(100, Math.round(updateProgress))}%`,
                     }}
@@ -1070,16 +1056,16 @@ function NavItem({ label, view, current, set, iconSrc }: NavItemProps) {
 
   return (
     <div
-      className={`flex items-center ${isOpen ? 'justify-start px-4 py-2.5' : 'justify-center py-2.5 px-0'} cursor-pointer w-full box-border transition-all text-sm text-text-secondary rounded-md mx-1 my-0.5 border-l-[3px] ${isActive ? 'bg-accent/10 text-accent border-l-accent' : 'border-l-transparent hover:bg-bg-hover hover:text-text-primary hover:translate-x-1'}`}
+      className={`app-nav-item ${isOpen ? 'app-nav-item--open' : 'app-nav-item--collapsed'} ${isActive ? 'is-active' : 'is-idle'}`}
       onClick={() => set(view)}
       title={isOpen ? '' : view}
     >
       <img
         src={iconSrc}
         alt={view}
-        className={`w-5 h-5 shrink-0 block ${isOpen ? 'mr-3' : 'mr-0'} ${isActive ? 'invert' : 'opacity-70'}`}
+        className={`app-nav-item__icon ${isOpen ? 'app-nav-item__icon--open' : 'app-nav-item__icon--collapsed'} ${isActive ? 'is-active' : 'is-idle'}`}
       />
-      {isOpen && <span className="whitespace-nowrap overflow-hidden text-ellipsis">{label}</span>}
+      {isOpen && <span className="app-nav-item__label">{label}</span>}
     </div>
   );
 }

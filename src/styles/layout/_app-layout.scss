@@ -1,0 +1,200 @@
+@layer components {
+  .app-shell {
+    @apply flex h-screen w-screen;
+  }
+
+  .app-sidebar {
+    @apply flex flex-col border-r shrink-0 z-20 transition-all duration-200;
+  }
+
+  .app-sidebar--open {
+    width: 260px;
+  }
+
+  .app-sidebar--collapsed {
+    width: 60px;
+  }
+
+  .app-sidebar__header {
+    @apply flex items-center p-5 bg-transparent;
+  }
+
+  .app-sidebar__header--open {
+    @apply justify-between;
+  }
+
+  .app-sidebar__header--collapsed {
+    @apply justify-center;
+  }
+
+  .app-sidebar__menu-button {
+    @apply bg-transparent border-none p-1;
+  }
+
+  .app-sidebar__menu-icon {
+    @apply w-5 h-5 opacity-80;
+  }
+
+  .app-sidebar__nav {
+    @apply flex-1 p-2.5 flex flex-col overflow-y-auto rounded-xl;
+  }
+
+  .app-sidebar__servers {
+    @apply max-h-[40%] flex flex-col;
+  }
+
+  .app-sidebar__servers-title {
+    @apply px-2.5 py-1 text-xs text-text-secondary font-bold tracking-wider;
+  }
+
+  .app-sidebar__server-list {
+    @apply overflow-y-auto flex-1 p-2.5 shrink-0;
+  }
+
+  .app-sidebar__server-item {
+    @apply px-3 py-2.5 mb-1.5 rounded-md flex items-center gap-3 transition-all border border-transparent;
+    @apply hover:bg-white/5 hover:translate-x-0.5;
+  }
+
+  .app-sidebar__server-item.is-active {
+    @apply bg-accent/15 border-accent/30;
+  }
+
+  .app-sidebar__add-server-btn {
+    @apply mt-1.5 w-full py-2.5 border border-dashed border-border-color text-text-secondary rounded-md transition-all text-sm;
+    @apply hover:border-text-primary hover:text-text-primary hover:border-solid;
+    background-color: rgb(255 255 255 / 0.03);
+  }
+
+  .app-sidebar__add-server-btn:hover {
+    background-color: rgb(255 255 255 / 0.08);
+  }
+
+  .app-main {
+    @apply flex-1 flex flex-col overflow-hidden relative;
+  }
+
+  .app-main__header {
+    @apply h-[60px] px-5 flex items-center justify-between border-b backdrop-blur-xl z-10 shrink-0;
+  }
+
+  .app-main__content {
+    @apply flex-1 p-0 overflow-hidden relative flex flex-col;
+  }
+
+  .app-nav-item {
+    @apply flex items-center w-full box-border transition-all text-sm text-text-secondary rounded-md mx-1 my-0.5 border-l-[3px];
+  }
+
+  .app-nav-item--open {
+    @apply justify-start px-4 py-2.5;
+  }
+
+  .app-nav-item--collapsed {
+    @apply justify-center py-2.5 px-0;
+  }
+
+  .app-nav-item.is-active {
+    @apply bg-accent/10 text-accent border-l-accent;
+  }
+
+  .app-nav-item.is-idle {
+    @apply border-l-transparent hover:bg-bg-hover hover:text-text-primary hover:translate-x-1;
+  }
+
+  .app-nav-item__icon {
+    @apply w-5 h-5 shrink-0 block;
+  }
+
+  .app-nav-item__icon--open {
+    @apply mr-3;
+  }
+
+  .app-nav-item__icon--collapsed {
+    @apply mr-0;
+  }
+
+  .app-nav-item__icon.is-active {
+    @apply invert;
+  }
+
+  .app-nav-item__icon.is-idle {
+    @apply opacity-70;
+  }
+
+  .app-nav-item__label {
+    @apply whitespace-nowrap overflow-hidden text-ellipsis;
+  }
+
+  .download-toast {
+    @apply fixed bottom-5 right-5 p-4 rounded-lg shadow-[0_8px_30px_rgba(0,0,0,0.5)] text-white min-w-[280px] border border-border-color;
+    z-index: 10000;
+    background-color: #2c2c30;
+  }
+
+  .download-toast__header {
+    @apply font-bold mb-2 flex justify-between;
+  }
+
+  .download-toast__message {
+    @apply text-sm mb-2 text-zinc-300;
+  }
+
+  .download-toast__progress-track {
+    @apply w-full h-1 bg-zinc-700 rounded-sm overflow-hidden;
+  }
+
+  .download-toast__progress-bar {
+    @apply h-full bg-accent rounded-sm transition-all duration-200;
+  }
+
+  .app-context-menu {
+    @apply fixed border border-border-color rounded-md shadow-[0_4px_20px_rgba(0,0,0,0.4)] p-1 min-w-[140px];
+    z-index: 9999;
+    background-color: #252526;
+  }
+
+  .app-context-menu__danger-item {
+    @apply px-3 py-2 text-red-400 text-sm rounded transition-colors flex items-center gap-2;
+    @apply hover:bg-red-500/10;
+  }
+
+  .app-update-overlay {
+    @apply fixed inset-0 bg-black/70 flex items-center justify-center p-4;
+    z-index: 10000;
+  }
+
+  .app-update-modal {
+    @apply border border-zinc-700 rounded-lg shadow-2xl w-full max-w-[520px] p-6 text-white;
+    background-color: #252526;
+  }
+
+  .app-update-modal__title {
+    @apply text-xl font-semibold mt-0 mb-2;
+  }
+
+  .app-update-modal__version {
+    @apply text-sm text-zinc-300 mb-4;
+  }
+
+  .app-update-modal__notes-label {
+    @apply text-xs text-zinc-400 mb-1;
+  }
+
+  .app-update-modal__notes {
+    @apply border border-zinc-800 rounded p-3 text-xs whitespace-pre-wrap max-h-48 overflow-y-auto;
+    background-color: #1b1b1b;
+  }
+
+  .app-update-modal__progress-label {
+    @apply text-sm text-zinc-300 mb-1;
+  }
+
+  .app-update-modal__progress-track {
+    @apply h-2 bg-zinc-800 rounded;
+  }
+
+  .app-update-modal__progress-bar {
+    @apply h-2 bg-accent rounded;
+  }
+}

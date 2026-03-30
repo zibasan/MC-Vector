@@ -40,33 +40,31 @@ const AddServerModal: FC<AddServerModalProps> = ({ onClose, onAdd }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-1000 modal-backdrop">
-      <div className="bg-[#2c2c2c] p-5 rounded-lg w-[450px] text-white border border-zinc-700 shadow-[0_4px_15px_rgba(0,0,0,0.5)] modal-panel">
-        <h3 className="mt-0 mb-5">新しいサーバーを追加</h3>
+    <div className="add-server-modal-backdrop modal-backdrop">
+      <div className="add-server-modal-panel modal-panel">
+        <h3 className="add-server-modal__title">新しいサーバーを追加</h3>
 
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block mb-1.5 text-sm text-zinc-300">サーバー名</label>
+          <div className="add-server-modal__section">
+            <label className="add-server-modal__label">サーバー名</label>
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="例: Survival Server"
-              className="w-full p-2.5 bg-zinc-700 border border-zinc-600 rounded text-white text-base"
+              className="add-server-modal__field add-server-modal__field--text"
             />
-            <div className="mt-1.5 text-xs font-mono text-zinc-500 bg-[#1a1a1a] px-2 py-1 rounded break-all">
-              保存先: {previewPath}
-            </div>
+            <div className="add-server-modal__path-preview">保存先: {previewPath}</div>
           </div>
 
-          <div className="flex gap-4 mb-4">
-            <div className="flex-1">
-              <label className="block mb-1.5 text-sm text-zinc-300">ソフトウェア</label>
+          <div className="add-server-modal__row">
+            <div className="add-server-modal__field-group">
+              <label className="add-server-modal__label">ソフトウェア</label>
               <select
                 value={software}
                 onChange={(e) => setSoftware(e.target.value)}
-                className="w-full p-2.5 bg-zinc-700 border border-zinc-600 rounded text-white"
+                className="add-server-modal__field"
               >
                 <optgroup label="Standard">
                   <option value="Vanilla">Vanilla (公式)</option>
@@ -86,12 +84,12 @@ const AddServerModal: FC<AddServerModalProps> = ({ onClose, onAdd }) => {
               </select>
             </div>
 
-            <div className="flex-1">
-              <label className="block mb-1.5 text-sm text-zinc-300">バージョン</label>
+            <div className="add-server-modal__field-group">
+              <label className="add-server-modal__label">バージョン</label>
               <select
                 value={version}
                 onChange={(e) => setVersion(e.target.value)}
-                className="w-full p-2.5 bg-zinc-700 border border-zinc-600 rounded text-white"
+                className="add-server-modal__field"
               >
                 {VERSION_OPTIONS.map((v) => (
                   <option key={v} value={v}>
@@ -102,41 +100,34 @@ const AddServerModal: FC<AddServerModalProps> = ({ onClose, onAdd }) => {
             </div>
           </div>
 
-          <div className="flex gap-4 mb-6">
-            <div className="flex-1">
-              <label className="block mb-1.5 text-sm text-zinc-300">ポート</label>
+          <div className="add-server-modal__row add-server-modal__row--spaced">
+            <div className="add-server-modal__field-group">
+              <label className="add-server-modal__label">ポート</label>
               <input
                 type="number"
                 required
                 value={port}
                 onChange={(e) => setPort(Number(e.target.value))}
-                className="w-full p-2.5 bg-zinc-700 border border-zinc-600 rounded text-white"
+                className="add-server-modal__field"
               />
             </div>
-            <div className="flex-1">
-              <label className="block mb-1.5 text-sm text-zinc-300">メモリ(GB)</label>
+            <div className="add-server-modal__field-group">
+              <label className="add-server-modal__label">メモリ(GB)</label>
               <input
                 type="number"
                 required
                 value={memory}
                 onChange={(e) => setMemory(Number(e.target.value))}
-                className="w-full p-2.5 bg-zinc-700 border border-zinc-600 rounded text-white"
+                className="add-server-modal__field"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-2.5 border-t border-zinc-700 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 bg-transparent border border-zinc-600 text-zinc-300 rounded cursor-pointer hover:bg-white/5"
-            >
+          <div className="add-server-modal__footer">
+            <button type="button" onClick={onClose} className="add-server-modal__cancel-btn">
               キャンセル
             </button>
-            <button
-              type="submit"
-              className="px-5 py-2.5 bg-accent border-none text-white rounded cursor-pointer font-bold hover:bg-accent-hover"
-            >
+            <button type="submit" className="add-server-modal__submit-btn">
               作成
             </button>
           </div>

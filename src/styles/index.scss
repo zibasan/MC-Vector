@@ -1,0 +1,18 @@
+@use './base/base';
+@use './components/ui-components';
+@use './components/animations';
+@use './components/modal-primitives';
+@use './components/toast';
+@use './layout/app-layout';
+@use './modals/add-server-modal';
+@use './views/console-view';
+@use './views/backups-view';
+@use './views/files-view';
+@use './views/dashboard-view';
+@use './views/java-manager-modal';
+@use './views/plugin-browser';
+@use './views/settings-window';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

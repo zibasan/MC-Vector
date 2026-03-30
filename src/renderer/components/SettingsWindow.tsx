@@ -83,12 +83,14 @@ const SettingsWindow = ({ onClose }: { onClose?: () => void }) => {
     const loadSettings = async () => {
       try {
         const settings = await getAppSettings();
-        if (settings?.theme) setTheme(normalizeTheme(settings.theme));
+        if (settings?.theme) {
+          setTheme(normalizeTheme(settings.theme));
+        }
       } catch (e) {
         console.error('Failed to load settings', e);
       }
     };
-    loadSettings();
+    void loadSettings();
   }, []);
 
   const handleCheck = async () => {
@@ -126,7 +128,6 @@ const SettingsWindow = ({ onClose }: { onClose?: () => void }) => {
   };
 
   const handleInstall = async () => {
-    // downloadAndInstallUpdate already relaunches
     await handleDownload();
   };
 
@@ -136,8 +137,8 @@ const SettingsWindow = ({ onClose }: { onClose?: () => void }) => {
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-[#1e1e1e] text-white p-8 box-border">
-      <div className="flex items-center gap-4 mb-6">
+    <div className="settings-window">
+      <div className="settings-window__header">
         {onClose && (
           <button className="btn-secondary text-sm" onClick={onClose}>
             ← 戻る
@@ -146,8 +147,8 @@ const SettingsWindow = ({ onClose }: { onClose?: () => void }) => {
         <h1 className="text-2xl font-semibold m-0">Application Preferences</h1>
       </div>
 
-      <section className="bg-[#252526] border border-zinc-700 rounded-lg p-5 mb-6">
-        <div className="flex justify-between items-center mb-3 gap-3 flex-wrap">
+      <section className="settings-window__section">
+        <div className="settings-window__section-head">
           <div>
             <h2 className="text-lg m-0">アップデート</h2>
             <p className="text-sm text-zinc-400 m-0">最新バージョンの確認と適用を行います。</p>
@@ -175,7 +176,7 @@ const SettingsWindow = ({ onClose }: { onClose?: () => void }) => {
           </div>
         </div>
 
-        <div className="text-sm text-zinc-300">
+        <div className="settings-window__status-body">
           {updateState.status === 'idle' && <div>まだ確認していません。</div>}
           {updateState.status === 'checking' && <div>更新を確認しています...</div>}
           {updateState.status === 'available' && (
@@ -187,12 +188,10 @@ const SettingsWindow = ({ onClose }: { onClose?: () => void }) => {
           {updateState.status === 'downloading' && (
             <div>
               ダウンロード中... {Math.round(updateState.progress || 0)}%
-              <div className="mt-2 h-2 bg-zinc-800 rounded">
+              <div className="settings-window__progress-track">
                 <div
-                  className="h-2 bg-accent rounded"
-                  style={{
-                    width: `${Math.min(100, Math.round(updateState.progress || 0))}%`,
-                  }}
+                  className="settings-window__progress-bar"
+                  style={{ width: `${Math.min(100, Math.round(updateState.progress || 0))}%` }}
                 />
               </div>
             </div>
@@ -206,17 +205,15 @@ const SettingsWindow = ({ onClose }: { onClose?: () => void }) => {
         </div>
 
         {releaseNotesText && (
-          <div className="mt-4">
-            <div className="text-sm text-zinc-400 mb-1">リリースノート:</div>
-            <pre className="bg-black/40 p-3 rounded border border-zinc-800 whitespace-pre-wrap text-sm max-h-64 overflow-y-auto">
-              {releaseNotesText}
-            </pre>
+          <div className="settings-window__release-notes">
+            <div className="settings-window__release-notes-label">リリースノート:</div>
+            <pre className="settings-window__release-notes-body">{releaseNotesText}</pre>
           </div>
         )}
       </section>
 
-      <section className="bg-[#252526] border border-zinc-700 rounded-lg p-5 mb-6">
-        <div className="flex justify-between items-center mb-3 gap-3 flex-wrap">
+      <section className="settings-window__section">
+        <div className="settings-window__section-head">
           <div>
             <h2 className="text-lg m-0">テーマ</h2>
             <p className="text-sm text-zinc-400 m-0">
@@ -230,7 +227,7 @@ const SettingsWindow = ({ onClose }: { onClose?: () => void }) => {
         </label>
         <select
           id="theme-select"
-          className="input-field bg-[#1c1c1c] border border-zinc-700 text-white"
+          className="settings-window__theme-select"
           value={theme}
           onChange={(e) => handleThemeChange(e.target.value as AppTheme)}
         >

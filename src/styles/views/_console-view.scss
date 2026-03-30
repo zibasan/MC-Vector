@@ -1,0 +1,91 @@
+@layer components {
+  .console-view {
+    @apply flex flex-col h-full;
+    background-color: #1e1e1e;
+  }
+
+  .console-view__status-bar {
+    @apply grid grid-cols-3 border-b py-3 shrink-0;
+    background-color: #252526;
+    border-color: #3e3e42;
+  }
+
+  .console-view__status-col {
+    @apply text-center;
+  }
+
+  .console-view__status-col--with-divider {
+    @apply border-r overflow-hidden;
+    border-color: #3e3e42;
+  }
+
+  .console-view__status-label {
+    @apply text-xs mb-1 font-bold tracking-wider;
+    color: #8b9bb4;
+  }
+
+  .console-view__address {
+    @apply font-bold cursor-pointer text-sm transition-all;
+  }
+
+  .console-view__address.is-public {
+    @apply text-accent;
+  }
+
+  .console-view__address.is-local {
+    color: #f0f0f0;
+  }
+
+  .console-view__status-value {
+    @apply font-bold text-sm text-yellow-500;
+  }
+
+  .console-view__status-value--online {
+    @apply text-green-500;
+  }
+
+  .console-view__status-value--offline {
+    @apply text-red-500;
+  }
+
+  .console-view__status-value--restarting {
+    @apply text-blue-500;
+  }
+
+  .console-view__memory-value {
+    @apply font-bold text-sm;
+    color: #f0f0f0;
+  }
+
+  .console-view__log-pane {
+    @apply flex-1 p-4 overflow-y-auto font-mono text-[13px] whitespace-pre-wrap leading-relaxed;
+    background-color: #121214;
+    color: #d4d4d4;
+  }
+
+  .console-view__empty-log {
+    @apply text-zinc-600 italic text-center mt-5;
+  }
+
+  .console-view__command-bar {
+    @apply h-[60px] border-t flex items-center px-5 shrink-0;
+    background-color: #252526;
+    border-color: #3e3e42;
+  }
+
+  .console-view__command-prefix {
+    @apply mr-3 font-bold;
+    color: #8b9bb4;
+  }
+
+  .console-view__command-input {
+    @apply flex-1 rounded-md text-white text-sm py-2.5 px-3 outline-none font-mono border;
+    background-color: #18181b;
+    border-color: #3f3f46;
+  }
+
+  .console-view__send-button {
+    @apply bg-accent text-white border-none py-2.5 px-5 rounded-md ml-3 font-bold text-sm transition-colors;
+    @apply hover:bg-accent-hover;
+  }
+}

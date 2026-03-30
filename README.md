@@ -156,10 +156,30 @@ MC-Vector/
 ├── src/                              # Frontend source code
 │   ├── App.tsx                       # Main application component
 │   ├── main.tsx                      # React entry point
-│   ├── index.scss                    # Global styles
 │   ├── vite-env.d.ts                 # Vite type definitions
 │   ├── assets/                       # Static assets
 │   │   └── icons/                    # Icon files
+│   ├── styles/                       # Global and component styles
+│   │   ├── index.scss                # Style entry point
+│   │   ├── base/
+│   │   │   └── _base.scss            # Global base layer
+│   │   ├── components/
+│   │   │   ├── _ui-components.scss   # Shared UI classes
+│   │   │   ├── _animations.scss      # Shared animations
+│   │   │   ├── _modal-primitives.scss# Shared modal primitives
+│   │   │   └── _toast.scss           # Toast component styles
+│   │   ├── layout/
+│   │   │   └── _app-layout.scss      # App shell and navigation layout
+│   │   ├── modals/
+│   │   │   └── _add-server-modal.scss# Add server modal styles
+│   │   └── views/
+│   │       ├── _console-view.scss    # Console view styles
+│   │       ├── _backups-view.scss    # Backups view styles
+│   │       ├── _files-view.scss      # Files view styles
+│   │       ├── _dashboard-view.scss  # Dashboard view styles
+│   │       ├── _java-manager-modal.scss # Java manager modal styles
+│   │       ├── _plugin-browser.scss  # Plugin browser styles
+│   │       └── _settings-window.scss # App settings styles
 │   ├── lib/                          # Frontend API layer
 │   │   ├── backup-commands.ts        # Backup operations
 │   │   ├── config-commands.ts        # Configuration management

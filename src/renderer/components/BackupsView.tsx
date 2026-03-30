@@ -180,8 +180,8 @@ export default function BackupsView({ server }: Props) {
   };
 
   return (
-    <div className="h-full flex flex-col p-5">
-      <div className="flex justify-between items-center mb-5">
+    <div className="backups-view">
+      <div className="backups-view__header">
         <h3>バックアップ管理</h3>
         <button
           className="btn-primary disabled:opacity-70"
@@ -192,19 +192,16 @@ export default function BackupsView({ server }: Props) {
         </button>
       </div>
 
-      <div className="flex-1 bg-bg-secondary rounded-lg border border-border-color overflow-y-auto">
+      <div className="backups-view__list-panel">
         {loading && <div className="p-5 text-center">読み込み中...</div>}
 
         {!loading && backups.length === 0 && (
-          <div className="p-10 text-center text-text-secondary">バックアップはまだありません</div>
+          <div className="backups-view__empty">バックアップはまだありません</div>
         )}
 
         {!loading &&
           backups.map((backup) => (
-            <div
-              key={backup.name}
-              className="px-5 py-4 border-b border-white/5 flex items-center gap-5"
-            >
+            <div key={backup.name} className="backups-view__item-row">
               <div className="text-2xl">📦</div>
 
               <div className="flex-1">
@@ -236,43 +233,43 @@ export default function BackupsView({ server }: Props) {
           ))}
       </div>
 
-      <div className="mt-4 text-xs text-text-secondary">
+      <div className="backups-view__note">
         ※ バックアップは <code className="font-mono">{server.path}/backups</code> に保存されます。
       </div>
 
       {showCreateModal && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4"
+          className="backups-view__create-overlay modal-backdrop"
           onClick={() => setShowCreateModal(false)}
         >
           <div
-            className="bg-bg-secondary border border-border-color rounded-xl shadow-2xl w-[900px] max-h-[90vh] overflow-hidden"
+            className="backups-view__create-panel modal-panel"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-6 py-4 border-b border-border-color flex items-center justify-between">
+            <div className="backups-view__create-header">
               <div className="text-lg font-bold">バックアップを作成</div>
               <button className="btn-secondary" onClick={() => setShowCreateModal(false)}>
                 閉じる
               </button>
             </div>
 
-            <div className="p-6 space-y-5 overflow-y-auto" style={{ maxHeight: '70vh' }}>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm text-text-secondary">ZIPファイル名（省略可）</label>
+            <div className="backups-view__create-body">
+              <div className="backups-view__form-grid">
+                <div className="backups-view__form-group">
+                  <label className="backups-view__form-label">ZIPファイル名（省略可）</label>
                   <input
                     className="input-field"
                     placeholder={defaultName()}
                     value={customName}
                     onChange={(e) => setCustomName(e.target.value)}
                   />
-                  <div className="text-xs text-text-secondary">
+                  <div className="backups-view__form-help">
                     未指定の場合は「{defaultName()}」が使われます
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm text-text-secondary">圧縮レベル (1-9)</label>
+                <div className="backups-view__form-group">
+                  <label className="backups-view__form-label">圧縮レベル (1-9)</label>
                   <select
                     className="input-field w-[120px]"
                     value={compressionLevel}
@@ -284,11 +281,11 @@ export default function BackupsView({ server }: Props) {
                       </option>
                     ))}
                   </select>
-                  <div className="text-xs text-text-secondary">1: 低圧縮 / 9: 高圧縮</div>
+                  <div className="backups-view__form-help">1: 低圧縮 / 9: 高圧縮</div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="backups-view__selection-header">
                 <div className="font-semibold">バックアップ対象を選択</div>
                 <div className="flex gap-2">
                   <button className="btn-secondary text-sm" onClick={selectAll}>
@@ -300,15 +297,15 @@ export default function BackupsView({ server }: Props) {
                 </div>
               </div>
 
-              <div className="bg-bg-tertiary border border-border-color rounded-lg p-3 max-h-[40vh] overflow-y-auto">
+              <div className="backups-view__tree-panel">
                 {tree.length === 0 ? (
-                  <div className="text-text-secondary text-sm">読み込み中...</div>
+                  <div className="backups-view__tree-loading">読み込み中...</div>
                 ) : (
                   <FileTree nodes={tree} selected={selectedPaths} onToggle={togglePath} />
                 )}
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="backups-view__create-actions">
                 <button
                   className="btn-secondary"
                   onClick={() => setShowCreateModal(false)}
@@ -342,7 +339,7 @@ function FileTree({
   onToggle: (node: FileNode, checked: boolean) => void;
 }) {
   return (
-    <div className="space-y-1">
+    <div className="backups-view__tree">
       {nodes.map((node) => (
         <TreeNode key={node.path} node={node} selected={selected} onToggle={onToggle} depth={0} />
       ))}
@@ -363,22 +360,17 @@ function TreeNode({
 }) {
   const isChecked = selected.has(node.path);
   return (
-    <div
-      className={`flex flex-col border border-transparent rounded ${isChecked ? 'bg-white/5 border-accent/40' : ''}`}
-    >
-      <label
-        className="flex items-center gap-2 px-2 py-1 cursor-pointer"
-        style={{ paddingLeft: `${depth * 16 + 8}px` }}
-      >
+    <div className={`backups-view__tree-node ${isChecked ? 'is-selected' : ''}`}>
+      <label className="backups-view__tree-label" style={{ paddingLeft: `${depth * 16 + 8}px` }}>
         <input
           type="checkbox"
           checked={isChecked}
           onChange={(e) => onToggle(node, e.target.checked)}
         />
-        <span className="text-sm text-text-primary">{node.name || '(root)'}</span>
+        <span className="backups-view__tree-name">{node.name || '(root)'}</span>
       </label>
       {node.children && node.children.length > 0 && (
-        <div className="pl-4">
+        <div className="backups-view__tree-children">
           {node.children.map((child) => (
             <TreeNode
               key={child.path}

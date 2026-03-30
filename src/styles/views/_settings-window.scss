@@ -1,0 +1,49 @@
+@layer components {
+  .settings-window {
+    @apply h-full overflow-y-auto text-white p-8 box-border;
+    background-color: #1e1e1e;
+  }
+
+  .settings-window__header {
+    @apply flex items-center gap-4 mb-6;
+  }
+
+  .settings-window__section {
+    @apply border border-zinc-700 rounded-lg p-5 mb-6;
+    background-color: #252526;
+  }
+
+  .settings-window__section-head {
+    @apply flex justify-between items-center mb-3 gap-3 flex-wrap;
+  }
+
+  .settings-window__status-body {
+    @apply text-sm text-zinc-300;
+  }
+
+  .settings-window__progress-track {
+    @apply mt-2 h-2 bg-zinc-800 rounded;
+  }
+
+  .settings-window__progress-bar {
+    @apply h-2 bg-accent rounded;
+  }
+
+  .settings-window__release-notes {
+    @apply mt-4;
+  }
+
+  .settings-window__release-notes-label {
+    @apply text-sm text-zinc-400 mb-1;
+  }
+
+  .settings-window__release-notes-body {
+    @apply p-3 rounded border border-zinc-800 whitespace-pre-wrap text-sm max-h-64 overflow-y-auto;
+    background-color: rgb(0 0 0 / 0.4);
+  }
+
+  .settings-window__theme-select {
+    @apply input-field border border-zinc-700 text-white;
+    background-color: #1c1c1c;
+  }
+}

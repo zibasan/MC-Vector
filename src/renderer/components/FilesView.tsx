@@ -100,9 +100,9 @@ export default function FilesView({ server }: Props) {
     const segments = relativePath.split('/').filter(Boolean);
 
     return (
-      <div className="flex items-center font-mono text-zinc-300">
+      <div className="files-view__breadcrumbs">
         <span
-          className="cursor-pointer px-1 py-0.5 rounded hover:bg-zinc-800 hover:text-white hover:underline"
+          className="files-view__breadcrumb-link"
           onClick={() => setCurrentPath(normalizedRoot)}
         >
           servers
@@ -115,9 +115,9 @@ export default function FilesView({ server }: Props) {
 
           return (
             <span key={index} className="flex items-center">
-              <span className="mx-1.5 text-zinc-600">/</span>
+              <span className="files-view__breadcrumb-separator">/</span>
               <span
-                className={`cursor-pointer px-1 py-0.5 rounded hover:bg-zinc-800 hover:text-white hover:underline ${!isWithinServerPath ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`files-view__breadcrumb-link ${!isWithinServerPath ? 'files-view__breadcrumb-link--disabled' : ''}`}
                 onClick={() => {
                   if (isWithinServerPath) {
                     setCurrentPath(pathUpToHere);
@@ -423,11 +423,11 @@ export default function FilesView({ server }: Props) {
   };
 
   return (
-    <div className="h-full flex flex-col text-zinc-300" onClick={() => setContextMenu(null)}>
+    <div className="files-view" onClick={() => setContextMenu(null)}>
       {/* ツールバー */}
-      <div className="py-2.5 px-5 border-b border-zinc-800 flex items-center gap-2.5 bg-[#252526]">
+      <div className="files-view__toolbar">
         <button
-          className="bg-transparent border-none cursor-pointer text-zinc-400 p-1.5 rounded hover:bg-zinc-800 hover:text-white disabled:opacity-50"
+          className="files-view__toolbar-btn"
           onClick={handleGoUp}
           disabled={currentPath === server.path}
           title="上の階層へ"
@@ -436,19 +436,17 @@ export default function FilesView({ server }: Props) {
         </button>
 
         {/* パンくずリスト */}
-        <div className="flex-1 bg-[#1e1e1e] px-2.5 py-1.5 rounded overflow-x-auto whitespace-nowrap">
-          {renderBreadcrumbs()}
-        </div>
+        <div className="files-view__breadcrumb-shell">{renderBreadcrumbs()}</div>
 
         <button
-          className="bg-transparent border-none cursor-pointer text-zinc-400 p-1.5 rounded hover:bg-zinc-800 hover:text-white"
+          className="files-view__toolbar-btn"
           onClick={() => setModalType('create')}
           title="新規作成 / インポート"
         >
           +
         </button>
         <button
-          className="bg-transparent border-none cursor-pointer text-zinc-400 p-1.5 rounded hover:bg-zinc-800 hover:text-white"
+          className="files-view__toolbar-btn"
           onClick={handleOpenExplorer}
           title="エクスプローラーで開く"
         >
@@ -456,30 +454,22 @@ export default function FilesView({ server }: Props) {
         </button>
         {selectedFiles.length > 0 && (
           <>
-            <div className="w-px h-5 bg-zinc-700 mx-1.5"></div>
+            <div className="files-view__toolbar-divider"></div>
             <button
-              className="bg-transparent border-none cursor-pointer text-zinc-400 p-1.5 rounded hover:bg-zinc-800 hover:text-white"
+              className="files-view__toolbar-btn"
               onClick={() => openMoveModal(false)}
               title="移動"
             >
               <img src={iconMove} className="w-4" alt="Move" />
             </button>
-            <button
-              className="bg-transparent border-none cursor-pointer text-zinc-400 p-1.5 rounded hover:bg-zinc-800 hover:text-white"
-              onClick={handleZip}
-              title="圧縮"
-            >
+            <button className="files-view__toolbar-btn" onClick={handleZip} title="圧縮">
               <img src={iconZip} className="w-4" alt="Zip" />
             </button>
-            <button
-              className="bg-transparent border-none cursor-pointer text-zinc-400 p-1.5 rounded hover:bg-zinc-800 hover:text-white"
-              onClick={handleUnzip}
-              title="解凍"
-            >
+            <button className="files-view__toolbar-btn" onClick={handleUnzip} title="解凍">
               <img src={iconUnzip} className="w-4" alt="Unzip" />
             </button>
             <button
-              className="bg-transparent border-none cursor-pointer text-zinc-400 p-1.5 rounded hover:bg-red-500/20 hover:text-red-400"
+              className="files-view__toolbar-btn files-view__toolbar-btn--danger"
               onClick={handleDelete}
               title="削除"
             >
@@ -490,15 +480,12 @@ export default function FilesView({ server }: Props) {
       </div>
 
       {/* ファイルリスト表示エリア */}
-      <div
-        className="flex-1 overflow-y-auto p-0 bg-[#1e1e1e]"
-        onContextMenu={(e) => handleContextMenu(e, null)}
-      >
+      <div className="files-view__list-pane" onContextMenu={(e) => handleContextMenu(e, null)}>
         <div className="flex flex-col gap-0">
           {files.map((file) => (
             <div
               key={file.name}
-              className={`flex items-center p-2.5 bg-transparent border-b border-zinc-800 cursor-pointer user-select-none last:border-b-0 hover:bg-zinc-800/50 ${selectedFiles.includes(file.name) ? 'bg-zinc-900/50' : ''}`}
+              className={`files-view__row ${selectedFiles.includes(file.name) ? 'is-selected' : ''}`}
               onContextMenu={(e) => {
                 e.stopPropagation();
                 handleContextMenu(e, file);
@@ -529,7 +516,7 @@ export default function FilesView({ server }: Props) {
                 className="w-5 h-5 object-contain mr-2.5"
               />
               <span
-                className={`flex-1 ${file.isDirectory ? 'font-bold text-accent' : 'font-normal text-text-primary'} whitespace-nowrap overflow-hidden text-ellipsis`}
+                className={`files-view__name ${file.isDirectory ? 'files-view__name--dir' : 'files-view__name--file'}`}
               >
                 {file.name}
               </span>
@@ -542,18 +529,16 @@ export default function FilesView({ server }: Props) {
               </span>
             </div>
           ))}
-          {files.length === 0 && (
-            <div className="p-5 text-center text-text-secondary">フォルダは空です</div>
-          )}
+          {files.length === 0 && <div className="files-view__empty">フォルダは空です</div>}
         </div>
       </div>
 
       {/* Editor Modal */}
       {isEditorOpen && (
-        <div className="fixed inset-0 bg-[#1e1e1e] z-2000 flex flex-col">
-          <div className="p-2.5 bg-[#252526] flex justify-between items-center">
+        <div className="files-view__editor-overlay">
+          <div className="files-view__editor-header">
             <span>{editingFile}</span>
-            <div>
+            <div className="files-view__editor-actions">
               <button className="btn-secondary mr-2.5" onClick={() => setIsEditorOpen(false)}>
                 閉じる
               </button>
@@ -586,67 +571,64 @@ export default function FilesView({ server }: Props) {
 
       {/* New Create / Import Modal */}
       {modalType === 'create' && (
-        <div className="fixed inset-0 bg-black/60 z-1000 flex justify-center items-center">
-          <div className="bg-[#252526] p-6 rounded-xl w-[450px] border border-[#3e3e42] text-white shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
-            <h3 className="mt-0 mb-5 text-xl border-b border-zinc-700 pb-2.5">
-              新規作成 / インポート
-            </h3>
+        <div className="mc-modal-overlay modal-backdrop">
+          <div className="mc-modal-panel modal-panel files-view__modal-panel">
+            <h3 className="mc-modal-title">新規作成 / インポート</h3>
 
-            <div className="grid grid-cols-3 gap-2.5 mb-2.5">
+            <div className="files-view__create-grid">
               <div
-                className={`flex flex-col items-center justify-center gap-2 p-5 rounded-lg cursor-pointer transition-all ${createMode === 'folder' ? 'border-2 border-accent bg-accent/15 text-white' : 'border-2 border-transparent bg-zinc-800 text-zinc-400'}`}
+                className={`files-view__create-option ${createMode === 'folder' ? 'is-active' : ''}`}
                 onClick={() => setCreateMode('folder')}
               >
                 <img src={iconFiles} alt="Folder" className="w-8 h-8 object-contain" />
                 <span
-                  className={`text-sm ${createMode === 'folder' ? 'font-bold' : 'font-normal'}`}
+                  className={`files-view__create-option-label ${createMode === 'folder' ? 'is-active' : 'is-idle'}`}
                 >
                   フォルダ
                 </span>
               </div>
 
               <div
-                className={`flex flex-col items-center justify-center gap-2 p-5 rounded-lg cursor-pointer transition-all ${createMode === 'file' ? 'border-2 border-accent bg-accent/15 text-white' : 'border-2 border-transparent bg-zinc-800 text-zinc-400'}`}
+                className={`files-view__create-option ${createMode === 'file' ? 'is-active' : ''}`}
                 onClick={() => setCreateMode('file')}
               >
                 <img src={iconFile} alt="File" className="w-8 h-8 object-contain" />
-                <span className={`text-sm ${createMode === 'file' ? 'font-bold' : 'font-normal'}`}>
+                <span
+                  className={`files-view__create-option-label ${createMode === 'file' ? 'is-active' : 'is-idle'}`}
+                >
                   ファイル
                 </span>
               </div>
 
               <div
-                className="flex flex-col items-center justify-center gap-2 p-5 rounded-lg cursor-pointer transition-all border-2 border-transparent bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                className="files-view__create-option files-view__create-option--import"
                 onClick={handleImport}
               >
                 <img src={iconImport} alt="Import" className="w-8 h-8 object-contain" />
-                <span className="text-sm">インポート</span>
+                <span className="files-view__create-option-label is-idle">インポート</span>
               </div>
             </div>
 
-            <label className="block text-zinc-400 text-sm">名前:</label>
+            <label className="files-view__modal-label">名前:</label>
             <input
               type="text"
               value={newFileName}
               onChange={(e) => setNewFileName(e.target.value)}
               placeholder={createMode === 'folder' ? '新しいフォルダ名' : '新しいファイル名.txt'}
-              className="w-full p-2.5 mt-4 mb-5 bg-[#1e1e1e] border border-zinc-700 text-white rounded-md text-base box-border"
+              className="mc-modal-input"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleCreate();
               }}
             />
 
-            <div className="flex justify-end gap-2.5 mt-2.5">
-              <button
-                onClick={() => setModalType(null)}
-                className="px-4 py-2 rounded-lg border border-zinc-700 bg-transparent text-zinc-300 cursor-pointer text-sm font-bold hover:bg-zinc-800"
-              >
+            <div className="mc-modal-footer">
+              <button onClick={() => setModalType(null)} className="mc-modal-btn-secondary">
                 キャンセル
               </button>
               <button
                 onClick={handleCreate}
-                className="px-4 py-2 rounded-lg border-none bg-accent text-white cursor-pointer text-sm font-bold hover:bg-accent-hover disabled:opacity-50"
+                className="mc-modal-btn-primary"
                 disabled={!newFileName}
               >
                 作成
@@ -658,9 +640,9 @@ export default function FilesView({ server }: Props) {
 
       {/* Move Modal */}
       {(modalType === 'move' || modalType === 'moveCurrent') && (
-        <div className="fixed inset-0 bg-black/60 z-1000 flex justify-center items-center">
-          <div className="bg-[#252526] p-6 rounded-xl w-[450px] border border-[#3e3e42] text-white shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
-            <h3 className="mt-0 mb-5 text-xl border-b border-zinc-700 pb-2.5">
+        <div className="mc-modal-overlay modal-backdrop">
+          <div className="mc-modal-panel modal-panel files-view__modal-panel">
+            <h3 className="mc-modal-title">
               {modalType === 'moveCurrent' ? 'ディレクトリの移動' : '移動'}
             </h3>
             <p className="text-zinc-400 text-sm mb-2.5">
@@ -673,19 +655,13 @@ export default function FilesView({ server }: Props) {
               value={moveDestPath}
               onChange={(e) => setMoveDestPath(e.target.value)}
               placeholder="移動先のパス (例: servers/myserver/plugins)"
-              className="w-full p-2.5 mt-4 mb-5 bg-[#1e1e1e] border border-zinc-700 text-white rounded-md text-base box-border"
+              className="mc-modal-input"
             />
-            <div className="flex justify-end gap-2.5 mt-2.5">
-              <button
-                onClick={() => setModalType(null)}
-                className="px-4 py-2 rounded-lg border border-zinc-700 bg-transparent text-zinc-300 cursor-pointer text-sm font-bold hover:bg-zinc-800"
-              >
+            <div className="mc-modal-footer">
+              <button onClick={() => setModalType(null)} className="mc-modal-btn-secondary">
                 キャンセル
               </button>
-              <button
-                onClick={handleMove}
-                className="px-4 py-2 rounded-lg border-none bg-accent text-white cursor-pointer text-sm font-bold hover:bg-accent-hover"
-              >
+              <button onClick={handleMove} className="mc-modal-btn-primary">
                 移動
               </button>
             </div>
@@ -695,27 +671,21 @@ export default function FilesView({ server }: Props) {
 
       {/* Rename Modal */}
       {modalType === 'rename' && (
-        <div className="fixed inset-0 bg-black/60 z-1000 flex justify-center items-center">
-          <div className="bg-[#252526] p-6 rounded-xl w-[450px] border border-[#3e3e42] text-white shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
-            <h3 className="mt-0 mb-5 text-xl border-b border-zinc-700 pb-2.5">名前の変更</h3>
+        <div className="mc-modal-overlay modal-backdrop">
+          <div className="mc-modal-panel modal-panel files-view__modal-panel">
+            <h3 className="mc-modal-title">名前の変更</h3>
             <input
               type="text"
               value={renameFileName}
               onChange={(e) => setRenameFileName(e.target.value)}
-              className="w-full p-2.5 mt-4 mb-5 bg-[#1e1e1e] border border-zinc-700 text-white rounded-md text-base box-border"
+              className="mc-modal-input"
               autoFocus
             />
-            <div className="flex justify-end gap-2.5 mt-2.5">
-              <button
-                onClick={() => setModalType(null)}
-                className="px-4 py-2 rounded-lg border border-zinc-700 bg-transparent text-zinc-300 cursor-pointer text-sm font-bold hover:bg-zinc-800"
-              >
+            <div className="mc-modal-footer">
+              <button onClick={() => setModalType(null)} className="mc-modal-btn-secondary">
                 キャンセル
               </button>
-              <button
-                onClick={handleRename}
-                className="px-4 py-2 rounded-lg border-none bg-accent text-white cursor-pointer text-sm font-bold hover:bg-accent-hover"
-              >
+              <button onClick={handleRename} className="mc-modal-btn-primary">
                 変更
               </button>
             </div>
@@ -726,99 +696,99 @@ export default function FilesView({ server }: Props) {
       {/* Context Menu (機能追加・画像付き) */}
       {contextMenu && (
         <div
-          className="fixed bg-[#252526] border border-zinc-700 rounded-md shadow-[0_4px_10px_rgba(0,0,0,0.5)] z-3000 min-w-[180px] p-1"
+          className="files-view__context-menu"
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >
           {contextMenu.file ? (
             <>
               {/* 1. 名前の変更 (画像なしのため透明なスペースで位置合わせ) */}
               <div
-                className="flex items-center gap-2.5 px-3 py-2 cursor-pointer text-sm rounded hover:bg-accent hover:text-white transition-colors"
+                className="files-view__context-item"
                 onClick={() => {
                   setRenameFileName(contextMenu.file!.name);
                   setModalType('rename');
                   setContextMenu(null);
                 }}
               >
-                <div className="w-4 h-4 inline-block"></div>
+                <div className="files-view__context-spacer"></div>
                 名前の変更
               </div>
 
               {/* 2. アイテムを移動 */}
               <div
-                className="flex items-center gap-2.5 px-3 py-2 cursor-pointer text-sm rounded hover:bg-accent hover:text-white transition-colors"
+                className="files-view__context-item"
                 onClick={() => {
                   openMoveModal(false);
                   setContextMenu(null);
                 }}
               >
-                <img src={iconMove} className="w-4 h-4 object-contain" alt="" />
+                <img src={iconMove} className="files-view__context-icon" alt="" />
                 アイテムを移動...
               </div>
 
               {/* 3. アイテムを圧縮 */}
               <div
-                className="flex items-center gap-2.5 px-3 py-2 cursor-pointer text-sm rounded hover:bg-accent hover:text-white transition-colors"
+                className="files-view__context-item"
                 onClick={() => {
                   handleZip();
                   setContextMenu(null);
                 }}
               >
-                <img src={iconZip} className="w-4 h-4 object-contain" alt="" />
+                <img src={iconZip} className="files-view__context-icon" alt="" />
                 アイテムを圧縮
               </div>
 
               {/* 4. アイテムを解凍 */}
               <div
-                className="flex items-center gap-2.5 px-3 py-2 cursor-pointer text-sm rounded hover:bg-accent hover:text-white transition-colors"
+                className="files-view__context-item"
                 onClick={() => {
                   handleUnzip();
                   setContextMenu(null);
                 }}
               >
-                <img src={iconUnzip} className="w-4 h-4 object-contain" alt="" />
+                <img src={iconUnzip} className="files-view__context-icon" alt="" />
                 アイテムを解凍
               </div>
 
               {/* 5. アイテムを削除 */}
               <div
-                className="flex items-center gap-2.5 px-3 py-2 cursor-pointer text-sm rounded hover:bg-red-500 hover:text-white transition-colors"
+                className="files-view__context-item files-view__context-item--danger"
                 onClick={handleDelete}
               >
-                <img src={iconTrash} className="w-4 h-4 object-contain" alt="" />
+                <img src={iconTrash} className="files-view__context-icon" alt="" />
                 アイテムを削除
               </div>
             </>
           ) : (
             <>
               <div
-                className="flex items-center gap-2.5 px-3 py-2 cursor-pointer text-sm rounded hover:bg-accent hover:text-white transition-colors"
+                className="files-view__context-item"
                 onClick={() => {
                   setModalType('create');
                   setContextMenu(null);
                 }}
               >
-                <div className="w-4 h-4 inline-block"></div>
+                <div className="files-view__context-spacer"></div>
                 新規作成...
               </div>
               <div
-                className="flex items-center gap-2.5 px-3 py-2 cursor-pointer text-sm rounded hover:bg-accent hover:text-white transition-colors"
+                className="files-view__context-item"
                 onClick={() => {
                   handleImport();
                   setContextMenu(null);
                 }}
               >
-                <div className="w-4 h-4 inline-block"></div>
+                <div className="files-view__context-spacer"></div>
                 インポート...
               </div>
               <div
-                className="flex items-center gap-2.5 px-3 py-2 cursor-pointer text-sm rounded hover:bg-accent hover:text-white transition-colors"
+                className="files-view__context-item"
                 onClick={() => {
                   openMoveModal(true);
                   setContextMenu(null);
                 }}
               >
-                <img src={iconMove} className="w-4 h-4 object-contain" alt="" />
+                <img src={iconMove} className="files-view__context-icon" alt="" />
                 移動...
               </div>
             </>

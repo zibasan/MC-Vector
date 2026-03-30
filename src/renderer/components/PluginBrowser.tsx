@@ -251,7 +251,7 @@ export default function PluginBrowser({ server }: Props) {
   };
 
   return (
-    <div className="h-full flex flex-col p-5">
+    <div className="plugin-browser">
       <div className="flex justify-between items-center mb-5">
         <h2 className="m-0">{isModServer ? 'Mod' : 'Plugin'} Browser</h2>
 
@@ -287,7 +287,7 @@ export default function PluginBrowser({ server }: Props) {
           </button>
         </div>
       ) : (
-        <div className="p-10 text-center bg-[#252526] rounded-lg">
+        <div className="plugin-browser__unsupported-panel">
           <p>このプラットフォームはアプリ内検索に対応していません。</p>
           <button
             className="btn-primary mt-2"
@@ -311,12 +311,9 @@ export default function PluginBrowser({ server }: Props) {
         <>
           <div className="flex-1 overflow-y-auto grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-4 pr-1">
             {results.map((item) => (
-              <div
-                key={item.id}
-                className="p-4 flex gap-4 bg-[#252526] border border-zinc-800 rounded-lg"
-              >
+              <div key={item.id} className="plugin-browser__result-card">
                 <div
-                  className="w-16 h-16 rounded-lg shrink-0 bg-zinc-800"
+                  className="plugin-browser__result-icon"
                   style={{
                     backgroundImage: item.icon_url ? `url(${item.icon_url})` : 'none',
                     backgroundSize: 'cover',
@@ -336,7 +333,7 @@ export default function PluginBrowser({ server }: Props) {
                       <button
                         onClick={() => handleInstall(item)}
                         disabled={installingId === item.id}
-                        className="py-1.5 px-3.5 text-xs h-8 border-none rounded bg-gradient-to-br from-blue-500 to-cyan-500 text-white font-bold cursor-pointer shadow-[0_2px_8px_rgba(6,182,212,0.3)] disabled:opacity-70"
+                        className="plugin-browser__install-btn"
                       >
                         {installingId === item.id ? '...' : 'Install'}
                       </button>
@@ -387,31 +384,29 @@ export default function PluginBrowser({ server }: Props) {
       )}
 
       {dupDialog && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1200] flex items-center justify-center px-4 modal-backdrop">
-          <div className="bg-[#1f1f22] text-white w-full max-w-md rounded-xl border border-zinc-700 shadow-2xl p-6 modal-panel">
-            <h3 className="text-lg font-bold mb-2">既にインストール済みです</h3>
-            <p className="text-sm text-zinc-300 mb-4 leading-relaxed">
+        <div className="plugin-browser__dup-overlay modal-backdrop">
+          <div className="plugin-browser__dup-panel modal-panel">
+            <h3 className="plugin-browser__dup-title">既にインストール済みです</h3>
+            <p className="plugin-browser__dup-description">
               {dupDialog.item.title} は既に {folderName} フォルダに存在します。どうしますか？
             </p>
 
-            <div className="bg-[#26262a] border border-zinc-700 rounded-lg p-3 mb-4 text-xs text-zinc-400 font-mono break-all">
-              既存ファイル: {dupDialog.installedFile}
-            </div>
+            <div className="plugin-browser__dup-file">既存ファイル: {dupDialog.installedFile}</div>
 
-            <div className="flex flex-col gap-2 mb-4 text-xs text-zinc-400">
+            <div className="plugin-browser__dup-notes">
               <div>・上書き: そのまま置き換えます。</div>
               <div>・アップデート: サーバーバージョンに合う最新ビルドを入れ直します。</div>
             </div>
 
-            <div className="flex justify-end gap-3">
+            <div className="plugin-browser__dup-actions">
               <button
-                className="px-4 py-2 text-sm rounded border border-zinc-700 text-zinc-300 hover:bg-white/5"
+                className="plugin-browser__dup-btn plugin-browser__dup-btn--cancel"
                 onClick={() => setDupDialog(null)}
               >
                 キャンセル
               </button>
               <button
-                className="px-4 py-2 text-sm rounded bg-amber-500 hover:bg-amber-600 text-white font-semibold"
+                className="plugin-browser__dup-btn plugin-browser__dup-btn--overwrite"
                 onClick={() => {
                   const target = dupDialog;
                   setDupDialog(null);
@@ -421,7 +416,7 @@ export default function PluginBrowser({ server }: Props) {
                 上書き
               </button>
               <button
-                className="px-4 py-2 text-sm rounded bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold"
+                className="plugin-browser__dup-btn plugin-browser__dup-btn--update"
                 onClick={() => {
                   const target = dupDialog;
                   setDupDialog(null);

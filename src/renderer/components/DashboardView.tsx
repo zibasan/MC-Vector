@@ -66,35 +66,38 @@ export default function DashboardView({ server }: Props) {
   };
 
   return (
-    <div className="h-full p-5 overflow-y-auto">
-      <h2 className="mt-0 mb-5 border-b border-zinc-700 pb-2.5">Dashboard: {server.name}</h2>
+    <div className="dashboard-view">
+      <h2 className="dashboard-view__title">Dashboard: {server.name}</h2>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-5 mb-8">
-        <div className="p-5 text-center bg-[#252526] rounded-lg border border-border-color">
-          <div className="text-sm text-zinc-400 mb-1.5">Status</div>
-          <div className="text-2xl font-bold" style={{ color: getStatusColor(server.status) }}>
+      <div className="dashboard-view__stats-grid">
+        <div className="dashboard-view__stat-card">
+          <div className="dashboard-view__stat-label">Status</div>
+          <div
+            className="dashboard-view__stat-value"
+            style={{ color: getStatusColor(server.status) }}
+          >
             {server.status.toUpperCase()}
           </div>
         </div>
-        <div className="p-5 text-center bg-[#252526] rounded-lg border border-border-color">
-          <div className="text-sm text-zinc-400 mb-1.5">Software</div>
-          <div className="text-2xl font-bold">{server.software}</div>
-          <div className="text-xs text-zinc-600">{server.version}</div>
+        <div className="dashboard-view__stat-card">
+          <div className="dashboard-view__stat-label">Software</div>
+          <div className="dashboard-view__stat-value">{server.software}</div>
+          <div className="dashboard-view__stat-sub">{server.version}</div>
         </div>
-        <div className="p-5 text-center bg-[#252526] rounded-lg border border-border-color">
-          <div className="text-sm text-zinc-400 mb-1.5">Current CPU</div>
-          <div className="text-2xl font-bold text-blue-500">{currentCpu}%</div>
+        <div className="dashboard-view__stat-card">
+          <div className="dashboard-view__stat-label">Current CPU</div>
+          <div className="dashboard-view__stat-value text-blue-500">{currentCpu}%</div>
         </div>
-        <div className="p-5 text-center bg-[#252526] rounded-lg border border-border-color">
-          <div className="text-sm text-zinc-400 mb-1.5">Current Memory</div>
-          <div className="text-2xl font-bold text-purple-500">{currentMem} MB</div>
+        <div className="dashboard-view__stat-card">
+          <div className="dashboard-view__stat-label">Current Memory</div>
+          <div className="dashboard-view__stat-value text-purple-500">{currentMem} MB</div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-5 h-[300px]">
-        <div className="p-4 bg-[#1e1e24] rounded-lg border border-border-color flex flex-col">
-          <h3 className="m-0 mb-2.5 text-base text-zinc-400">CPU Usage (%)</h3>
-          <div className="flex-1">
+      <div className="dashboard-view__chart-grid">
+        <div className="dashboard-view__chart-card">
+          <h3 className="dashboard-view__chart-title">CPU Usage (%)</h3>
+          <div className="dashboard-view__chart-body">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={stats}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
@@ -113,9 +116,9 @@ export default function DashboardView({ server }: Props) {
           </div>
         </div>
 
-        <div className="p-4 bg-[#1e1e24] rounded-lg border border-border-color flex flex-col">
-          <h3 className="m-0 mb-2.5 text-base text-zinc-400">Memory Usage (MB)</h3>
-          <div className="flex-1">
+        <div className="dashboard-view__chart-card">
+          <h3 className="dashboard-view__chart-title">Memory Usage (MB)</h3>
+          <div className="dashboard-view__chart-body">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={stats}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />

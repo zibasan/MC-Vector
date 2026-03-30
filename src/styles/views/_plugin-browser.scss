@@ -1,0 +1,74 @@
+@layer components {
+  .plugin-browser {
+    @apply h-full flex flex-col p-5;
+  }
+
+  .plugin-browser__unsupported-panel {
+    @apply p-10 text-center rounded-lg;
+    background-color: #252526;
+  }
+
+  .plugin-browser__result-card {
+    @apply p-4 flex gap-4 border border-zinc-800 rounded-lg;
+    background-color: #252526;
+  }
+
+  .plugin-browser__result-icon {
+    @apply w-16 h-16 rounded-lg shrink-0 bg-zinc-800;
+  }
+
+  .plugin-browser__install-btn {
+    @apply py-1.5 px-3.5 text-xs h-8 border-none rounded text-white font-bold;
+    @apply bg-gradient-to-br from-blue-500 to-cyan-500 shadow-[0_2px_8px_rgba(6,182,212,0.3)];
+    @apply disabled:opacity-70;
+  }
+
+  .plugin-browser__dup-overlay {
+    @apply fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4;
+    z-index: 1200;
+  }
+
+  .plugin-browser__dup-panel {
+    @apply text-white w-full max-w-md rounded-xl border border-zinc-700 shadow-2xl p-6;
+    background-color: #1f1f22;
+  }
+
+  .plugin-browser__dup-title {
+    @apply text-lg font-bold mb-2;
+  }
+
+  .plugin-browser__dup-description {
+    @apply text-sm text-zinc-300 mb-4 leading-relaxed;
+  }
+
+  .plugin-browser__dup-file {
+    @apply border border-zinc-700 rounded-lg p-3 mb-4 text-xs text-zinc-400 font-mono break-all;
+    background-color: #26262a;
+  }
+
+  .plugin-browser__dup-notes {
+    @apply flex flex-col gap-2 mb-4 text-xs text-zinc-400;
+  }
+
+  .plugin-browser__dup-actions {
+    @apply flex justify-end gap-3;
+  }
+
+  .plugin-browser__dup-btn {
+    @apply px-4 py-2 text-sm rounded text-white font-semibold;
+  }
+
+  .plugin-browser__dup-btn--cancel {
+    @apply border border-zinc-700 text-zinc-300 bg-transparent;
+    @apply hover:bg-white/5;
+  }
+
+  .plugin-browser__dup-btn--overwrite {
+    @apply bg-amber-500 hover:bg-amber-600;
+  }
+
+  .plugin-browser__dup-btn--update {
+    @apply bg-gradient-to-r from-emerald-500 to-cyan-500;
+    @apply hover:from-emerald-600 hover:to-cyan-600;
+  }
+}

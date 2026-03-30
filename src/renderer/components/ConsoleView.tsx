@@ -193,38 +193,32 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, logs, ngrokUrl }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#1e1e1e]">
-      <div className="grid grid-cols-3 bg-[#252526] border-b border-[#3e3e42] py-3 shrink-0">
-        <div className="text-center border-r border-[#3e3e42] overflow-hidden">
-          <div className="text-xs text-[#8b9bb4] mb-1 font-bold tracking-wider">ADDRESS</div>
+    <div className="console-view">
+      <div className="console-view__status-bar">
+        <div className="console-view__status-col console-view__status-col--with-divider">
+          <div className="console-view__status-label">ADDRESS</div>
           <div
             key={currentAddressIndex}
             onClick={handleCopyAddress}
             title="Click to Copy"
-            className={`font-bold cursor-pointer text-sm transition-all ${ngrokUrl && currentAddressIndex === 1 ? 'text-accent' : 'text-[#f0f0f0]'}`}
+            className={`console-view__address ${ngrokUrl && currentAddressIndex === 1 ? 'is-public' : 'is-local'}`}
           >
             {displayAddress}
           </div>
         </div>
 
-        <div className="text-center border-r border-[#3e3e42]">
-          <div className="text-xs text-[#8b9bb4] mb-1 font-bold tracking-wider">STATUS</div>
+        <div className="console-view__status-col console-view__status-col--with-divider">
+          <div className="console-view__status-label">STATUS</div>
           <div
-            className={`font-bold text-sm ${
-              server.status === 'online'
-                ? 'text-green-500'
-                : server.status === 'offline'
-                  ? 'text-red-500'
-                  : 'text-yellow-500'
-            }`}
+            className={`console-view__status-value console-view__status-value--${server.status}`}
           >
             {server.status.toUpperCase()}
           </div>
         </div>
 
-        <div className="text-center">
-          <div className="text-xs text-[#8b9bb4] mb-1 font-bold tracking-wider">MEMORY</div>
-          <div className="font-bold text-[#f0f0f0] text-sm">
+        <div className="console-view__status-col">
+          <div className="console-view__status-label">MEMORY</div>
+          <div className="console-view__memory-value">
             {server.status === 'online'
               ? formatMemoryDetailed(memoryUsage, server.memory)
               : '- / - MB'}
@@ -234,7 +228,7 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, logs, ngrokUrl }) => {
 
       <div
         ref={logContainerRef}
-        className="flex-1 bg-[#121214] p-4 overflow-y-auto font-mono text-[13px] text-[#d4d4d4] whitespace-pre-wrap leading-relaxed"
+        className="console-view__log-pane"
         onScroll={() => {
           const el = logContainerRef.current;
           if (!el) return;
@@ -266,25 +260,20 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, logs, ngrokUrl }) => {
 
         <div ref={logEndRef} />
 
-        {logs.length === 0 && (
-          <div className="text-zinc-600 italic text-center mt-5">Waiting for logs...</div>
-        )}
+        {logs.length === 0 && <div className="console-view__empty-log">Waiting for logs...</div>}
       </div>
 
-      <div className="h-[60px] bg-[#252526] border-t border-[#3e3e42] flex items-center px-5 shrink-0">
-        <span className="mr-3 text-[#8b9bb4] font-bold">&gt;</span>
+      <div className="console-view__command-bar">
+        <span className="console-view__command-prefix">&gt;</span>
         <input
           type="text"
           value={command}
           onChange={(e) => setCommand(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a command..."
-          className="flex-1 bg-[#18181b] border border-[#3f3f46] rounded-md text-white text-sm py-2.5 px-3 outline-none font-mono"
+          className="console-view__command-input"
         />
-        <button
-          onClick={handleSend}
-          className="bg-accent text-white border-none py-2.5 px-5 rounded-md cursor-pointer ml-3 font-bold text-sm transition-colors hover:bg-accent-hover"
-        >
+        <button onClick={handleSend} className="console-view__send-button">
           Send
         </button>
       </div>
