@@ -12,6 +12,7 @@ import iconProperties from './assets/icons/properties.svg';
 import iconProxy from './assets/icons/proxy.svg';
 import iconSettings from './assets/icons/settings.svg';
 import iconUsers from './assets/icons/users.svg';
+import { createBackup } from './lib/backup-commands';
 import { getAppSettings, onConfigChange } from './lib/config-commands';
 import { readFileContent, saveFileContent } from './lib/file-commands';
 import { onNgrokStatusChange } from './lib/ngrok-commands';
@@ -199,6 +200,8 @@ function App() {
   const expectedOfflineEventsRef = useRef<Record<string, number>>({});
   const autoRestartAttemptsRef = useRef<Record<string, number>>({});
   const autoRestartTimerRef = useRef<Record<string, ReturnType<typeof window.setTimeout>>>({});
+  const autoBackupIntervalRef = useRef<Record<string, ReturnType<typeof window.setInterval>>>({});
+  const autoBackupRunningRef = useRef<Record<string, boolean>>({});
 
   const clearAutoRestartTimer = (serverId: string) => {
     const timerId = autoRestartTimerRef.current[serverId];
@@ -235,6 +238,48 @@ function App() {
     delete expectedOfflineEventsRef.current[serverId];
   };
 
+  const clearAutoBackupInterval = (serverId: string) => {
+    const intervalId = autoBackupIntervalRef.current[serverId];
+    if (intervalId) {
+      window.clearInterval(intervalId);
+      delete autoBackupIntervalRef.current[serverId];
+    }
+    delete autoBackupRunningRef.current[serverId];
+  };
+
+  const buildAutoBackupName = (server: MinecraftServer): string => {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const sec = String(now.getSeconds()).padStart(2, '0');
+    return `AutoBackup ${server.name} ${yyyy}-${mm}-${dd}-${hh}-${min}-${sec}.zip`;
+  };
+
+  const runAutoBackup = async (serverId: string) => {
+    if (autoBackupRunningRef.current[serverId]) {
+      return;
+    }
+
+    const targetServer = serversRef.current.find((server) => server.id === serverId);
+    if (!targetServer?.autoBackupEnabled || targetServer.status !== 'online') {
+      return;
+    }
+
+    autoBackupRunningRef.current[serverId] = true;
+    try {
+      await createBackup(targetServer.path, buildAutoBackupName(targetServer));
+      showToast(`${targetServer.name} の自動バックアップを作成しました`, 'success');
+    } catch (error) {
+      console.error('Auto backup failed:', error);
+      showToast(`${targetServer.name} の自動バックアップに失敗しました`, 'error');
+    } finally {
+      autoBackupRunningRef.current[serverId] = false;
+    }
+  };
+
   useEffect(() => {
     selectedServerIdRef.current = selectedServerId;
   }, [selectedServerId]);
@@ -258,6 +303,30 @@ function App() {
         delete expectedOfflineEventsRef.current[serverId];
       }
     }
+
+    for (const serverId of Object.keys(autoBackupIntervalRef.current)) {
+      if (!activeServerIds.has(serverId)) {
+        clearAutoBackupInterval(serverId);
+      }
+    }
+
+    for (const server of servers) {
+      clearAutoBackupInterval(server.id);
+      if (!server.autoBackupEnabled) {
+        continue;
+      }
+
+      const intervalMinutes = Math.min(
+        1440,
+        Math.max(1, Math.floor(server.autoBackupIntervalMin ?? 60))
+      );
+      autoBackupIntervalRef.current[server.id] = window.setInterval(
+        () => {
+          void runAutoBackup(server.id);
+        },
+        intervalMinutes * 60 * 1000
+      );
+    }
   }, [servers]);
 
   useEffect(() => {
@@ -266,6 +335,12 @@ function App() {
         window.clearTimeout(timerId);
       }
       autoRestartTimerRef.current = {};
+
+      for (const intervalId of Object.values(autoBackupIntervalRef.current)) {
+        window.clearInterval(intervalId);
+      }
+      autoBackupIntervalRef.current = {};
+      autoBackupRunningRef.current = {};
     };
   }, []);
 
@@ -570,6 +645,8 @@ function App() {
         path: serverPath,
         status: 'offline',
         javaPath: (sd.javaPath as string) || undefined,
+        autoBackupEnabled: false,
+        autoBackupIntervalMin: 60,
         createdDate: new Date().toISOString(),
       };
       await addServerApi(newServer);

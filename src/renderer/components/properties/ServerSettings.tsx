@@ -32,6 +32,10 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
   const [autoRestartOnCrash, setAutoRestartOnCrash] = useState(Boolean(server.autoRestartOnCrash));
   const [maxAutoRestarts, setMaxAutoRestarts] = useState(server.maxAutoRestarts ?? 3);
   const [autoRestartDelaySec, setAutoRestartDelaySec] = useState(server.autoRestartDelaySec ?? 5);
+  const [autoBackupEnabled, setAutoBackupEnabled] = useState(Boolean(server.autoBackupEnabled));
+  const [autoBackupIntervalMin, setAutoBackupIntervalMin] = useState(
+    server.autoBackupIntervalMin ?? 60
+  );
 
   const [showJavaManager, setShowJavaManager] = useState(false);
   const [installedJava, setInstalledJava] = useState<JavaVersion[]>([]);
@@ -64,6 +68,8 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
     setAutoRestartOnCrash(Boolean(server.autoRestartOnCrash));
     setMaxAutoRestarts(server.maxAutoRestarts ?? 3);
     setAutoRestartDelaySec(server.autoRestartDelaySec ?? 5);
+    setAutoBackupEnabled(Boolean(server.autoBackupEnabled));
+    setAutoBackupIntervalMin(server.autoBackupIntervalMin ?? 60);
 
     loadJavaList();
 
@@ -110,6 +116,10 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
   const handleSubmit = () => {
     const normalizedRestartLimit = Math.min(20, Math.max(0, Math.floor(maxAutoRestarts || 0)));
     const normalizedRestartDelay = Math.min(300, Math.max(1, Math.floor(autoRestartDelaySec || 1)));
+    const normalizedBackupInterval = Math.min(
+      1440,
+      Math.max(1, Math.floor(autoBackupIntervalMin || 1))
+    );
 
     onSave({
       ...server,
@@ -123,6 +133,8 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
       autoRestartOnCrash,
       maxAutoRestarts: normalizedRestartLimit,
       autoRestartDelaySec: normalizedRestartDelay,
+      autoBackupEnabled,
+      autoBackupIntervalMin: normalizedBackupInterval,
     });
   };
 
@@ -332,6 +344,33 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave }) => {
                   value={autoRestartDelaySec}
                   disabled={!autoRestartOnCrash}
                   onChange={(event) => setAutoRestartDelaySec(Number(event.target.value))}
+                  className="input-field"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="server-settings__field-block">
+            <label className="server-settings__label">自動バックアップ</label>
+            <label className="server-settings__java-row">
+              <input
+                type="checkbox"
+                checked={autoBackupEnabled}
+                onChange={(event) => setAutoBackupEnabled(event.target.checked)}
+              />
+              <span>定期的にバックアップを作成する</span>
+            </label>
+
+            <div className="server-settings__row">
+              <div className="server-settings__col">
+                <label className="server-settings__label">実行間隔（分）</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={1440}
+                  value={autoBackupIntervalMin}
+                  disabled={!autoBackupEnabled}
+                  onChange={(event) => setAutoBackupIntervalMin(Number(event.target.value))}
                   className="input-field"
                 />
               </div>

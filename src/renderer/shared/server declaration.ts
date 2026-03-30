@@ -13,6 +13,8 @@ export interface MinecraftServer {
   autoRestartOnCrash?: boolean;
   maxAutoRestarts?: number;
   autoRestartDelaySec?: number;
+  autoBackupEnabled?: boolean;
+  autoBackupIntervalMin?: number;
   createdDate?: string;
 }
 
