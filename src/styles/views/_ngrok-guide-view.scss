@@ -22,6 +22,44 @@
     @apply leading-relaxed text-zinc-300;
   }
 
+  .ngrok-guide-view__summary-grid {
+    @apply grid gap-3 mb-4;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .ngrok-guide-view__summary-card {
+    @apply rounded-xl border px-4 py-3;
+    border-color: rgba(63, 63, 70, 0.78);
+    background: linear-gradient(140deg, rgba(17, 24, 39, 0.92), rgba(24, 24, 27, 0.88));
+    box-shadow: 0 10px 24px rgba(2, 6, 23, 0.2);
+  }
+
+  .ngrok-guide-view__summary-label {
+    @apply text-[0.7rem] uppercase tracking-[0.12em] text-zinc-400;
+  }
+
+  .ngrok-guide-view__summary-value {
+    @apply text-lg font-semibold text-cyan-200 mt-1;
+  }
+
+  .ngrok-guide-view__summary-note {
+    @apply text-xs text-zinc-400 mt-1.5 leading-relaxed;
+  }
+
+  .ngrok-guide-view__checklist-panel {
+    @apply rounded-xl border px-4 py-3 mb-4;
+    border-color: rgba(34, 211, 238, 0.28);
+    background: rgba(8, 47, 73, 0.26);
+  }
+
+  .ngrok-guide-view__checklist-title {
+    @apply text-sm uppercase tracking-[0.1em] text-cyan-200 m-0 mb-2;
+  }
+
+  .ngrok-guide-view__checklist {
+    @apply m-0 pl-5 text-sm text-zinc-300 leading-relaxed;
+  }
+
   .ngrok-guide-view__step {
     @apply rounded-xl p-5 mb-4 border relative;
     border-color: var(--mv-border-soft);
@@ -50,10 +88,24 @@
   .ngrok-guide-view__note {
     @apply text-sm text-zinc-400 mt-2;
   }
+
+  .ngrok-guide-view__note--warning {
+    @apply text-amber-200;
+  }
+
+  .ngrok-guide-view__tip-box {
+    @apply mt-3 rounded-lg border px-3 py-2 text-sm text-zinc-300 leading-relaxed;
+    border-color: rgba(34, 211, 238, 0.28);
+    background: rgba(15, 23, 42, 0.64);
+  }
 }
 
 @media (max-width: 900px) {
   .ngrok-guide-view {
     @apply p-4;
+  }
+
+  .ngrok-guide-view__title {
+    @apply text-[1.1rem];
   }
 }

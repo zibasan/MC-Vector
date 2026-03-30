@@ -22,6 +22,44 @@
     @apply leading-relaxed text-zinc-300;
   }
 
+  .proxy-help-view__summary-grid {
+    @apply grid gap-3 mb-4;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .proxy-help-view__summary-card {
+    @apply rounded-xl border px-4 py-3;
+    border-color: rgba(63, 63, 70, 0.78);
+    background: linear-gradient(140deg, rgba(17, 24, 39, 0.92), rgba(24, 24, 27, 0.88));
+    box-shadow: 0 10px 24px rgba(2, 6, 23, 0.2);
+  }
+
+  .proxy-help-view__summary-label {
+    @apply text-[0.7rem] uppercase tracking-[0.12em] text-zinc-400;
+  }
+
+  .proxy-help-view__summary-value {
+    @apply text-lg font-semibold text-cyan-200 mt-1;
+  }
+
+  .proxy-help-view__summary-note {
+    @apply text-xs text-zinc-400 mt-1.5 leading-relaxed;
+  }
+
+  .proxy-help-view__checklist-panel {
+    @apply rounded-xl border px-4 py-3 mb-4;
+    border-color: rgba(34, 211, 238, 0.28);
+    background: rgba(8, 47, 73, 0.26);
+  }
+
+  .proxy-help-view__checklist-title {
+    @apply text-sm uppercase tracking-[0.1em] text-cyan-200 m-0 mb-2;
+  }
+
+  .proxy-help-view__checklist {
+    @apply m-0 pl-5 text-sm text-zinc-300 leading-relaxed;
+  }
+
   .proxy-help-view__step {
     @apply rounded-xl px-5 pt-6 pb-5 mb-4 border relative;
     border-color: var(--mv-border-soft);
@@ -54,13 +92,23 @@
   }
 
   .proxy-help-view__cta-row {
-    @apply mt-2.5;
+    @apply mt-2.5 flex flex-wrap gap-2;
   }
 
   .proxy-help-view__cta-btn {
-    @apply text-sm py-1.5 px-4 mr-2.5;
+    @apply text-sm py-1.5 px-4;
     background: linear-gradient(125deg, rgba(14, 165, 233, 0.95), rgba(6, 182, 212, 0.9));
     box-shadow: 0 8px 20px rgba(14, 165, 233, 0.22);
+  }
+
+  .proxy-help-view__cta-btn-secondary {
+    @apply text-sm py-1.5 px-4;
+  }
+
+  .proxy-help-view__tip-box {
+    @apply mt-3 rounded-lg border px-3 py-2 text-sm text-zinc-300 leading-relaxed;
+    border-color: rgba(34, 211, 238, 0.28);
+    background: rgba(15, 23, 42, 0.64);
   }
 
   .proxy-help-view__done {
@@ -73,5 +121,9 @@
 @media (max-width: 900px) {
   .proxy-help-view {
     @apply p-4;
+  }
+
+  .proxy-help-view__title {
+    @apply text-[1.1rem];
   }
 }

@@ -17,6 +17,39 @@ const ProxyHelpView: FC = () => {
         </p>
       </div>
 
+      <div className="proxy-help-view__summary-grid">
+        <div className="proxy-help-view__summary-card">
+          <div className="proxy-help-view__summary-label">推奨ソフト</div>
+          <div className="proxy-help-view__summary-value">Velocity</div>
+          <div className="proxy-help-view__summary-note">
+            初学者でも扱いやすく、情報量も豊富です。
+          </div>
+        </div>
+        <div className="proxy-help-view__summary-card">
+          <div className="proxy-help-view__summary-label">推奨ポート例</div>
+          <div className="proxy-help-view__summary-value">25577</div>
+          <div className="proxy-help-view__summary-note">
+            既存のサーバー用ポートと重複しない値を選んでください。
+          </div>
+        </div>
+        <div className="proxy-help-view__summary-card">
+          <div className="proxy-help-view__summary-label">最小構成</div>
+          <div className="proxy-help-view__summary-value">Proxy + Backend x2</div>
+          <div className="proxy-help-view__summary-note">
+            移動体験を作るなら2台以上の接続を推奨します。
+          </div>
+        </div>
+      </div>
+
+      <div className="proxy-help-view__checklist-panel">
+        <h2 className="proxy-help-view__checklist-title">開始前チェック</h2>
+        <ul className="proxy-help-view__checklist">
+          <li>接続するバックエンドサーバーを2台以上作成済み</li>
+          <li>各サーバーが異なるポートで動作している</li>
+          <li>サーバー設定を更新しても問題ないタイミングである</li>
+        </ul>
+      </div>
+
       {/* --- Step 1 --- */}
       <div className="proxy-help-view__step">
         <div className="proxy-help-view__step-badge">Step 1</div>
@@ -53,6 +86,10 @@ const ProxyHelpView: FC = () => {
           設定ができたら<strong>「ネットワーク構築を実行」</strong>
           ボタンを押してください。
         </p>
+        <div className="proxy-help-view__tip-box">
+          ポイント:
+          接続先が1台のみだとProxyを導入するメリットが小さいため、用途を明確にしてから進めると管理しやすくなります。
+        </div>
       </div>
 
       {/* --- Step 2 --- */}
@@ -86,6 +123,12 @@ const ProxyHelpView: FC = () => {
             >
               Paper公式 (Velocity) を開く
             </button>
+            <button
+              className="btn-secondary proxy-help-view__cta-btn-secondary"
+              onClick={() => openLink('https://docs.papermc.io/velocity/')}
+            >
+              Velocity Docs を開く
+            </button>
           </div>
         </div>
       </div>
@@ -116,6 +159,11 @@ const ProxyHelpView: FC = () => {
             <br />
             これでProxyネットワークの構築は完了です！
           </span>
+        </div>
+
+        <div className="proxy-help-view__tip-box">
+          運用ヒント:
+          Proxy導入後はバックエンドサーバーの参加先制御やロビー導線を調整すると、ユーザー体験が大きく向上します。
         </div>
       </div>
 
