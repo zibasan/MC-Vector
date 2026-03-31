@@ -153,6 +153,8 @@ export default function PluginBrowser({ server }: Props) {
   const [results, setResults] = useState<ProjectItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasNextPage, setHasNextPage] = useState(false);
+  const [totalPages, setTotalPages] = useState<number | null>(null);
+  const [pageInput, setPageInput] = useState('1');
   const [logoLoadFailed, setLogoLoadFailed] = useState<Record<string, boolean>>({});
   const [installingId, setInstallingId] = useState<string | null>(null);
   const [installedFiles, setInstalledFiles] = useState<string[]>([]);
@@ -249,8 +251,13 @@ export default function PluginBrowser({ server }: Props) {
 
     setLoading(false);
     setHasNextPage(false);
+    setTotalPages(null);
     setResults([]);
   }, [page, platform, isInAppSearch]);
+
+  useEffect(() => {
+    setPageInput(String(page + 1));
+  }, [page]);
 
   useEffect(() => {
     void refreshInstalled();
@@ -450,6 +457,7 @@ export default function PluginBrowser({ server }: Props) {
           .filter((item) => Boolean(item.id));
 
         setHasNextPage(result.total_hits > offset + items.length);
+        setTotalPages(Math.max(1, Math.ceil(result.total_hits / LIMIT)));
       } else if (platform === 'Hangar') {
         const data = await searchHangar(query, offset);
 
@@ -469,16 +477,19 @@ export default function PluginBrowser({ server }: Props) {
         }));
 
         setHasNextPage(items.length === LIMIT);
+        setTotalPages(null);
       } else if (platform === 'Spigot') {
         const resources = await searchSpigot(query, page + 1, LIMIT);
         items = resources.map(mapSpigotResource);
         setHasNextPage(items.length === LIMIT);
+        setTotalPages(null);
       }
 
       setResults(items);
     } catch (error) {
       console.error(error);
       setHasNextPage(false);
+      setTotalPages(null);
       const message = toErrorMessage(error);
       if (platform === 'Hangar') {
         showToast(`Hangarの取得に失敗しました: ${message}`, 'error');
@@ -766,6 +777,18 @@ export default function PluginBrowser({ server }: Props) {
     return requiresBrowser ? 'Open' : 'Install';
   };
 
+  const jumpToPage = () => {
+    const parsed = Number.parseInt(pageInput, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      showToast('ページ番号は 1 以上で入力してください', 'info');
+      return;
+    }
+
+    const targetZeroBased = parsed - 1;
+    const clamped = totalPages ? Math.min(totalPages - 1, targetZeroBased) : targetZeroBased;
+    setPage(clamped);
+  };
+
   return (
     <div className="plugin-browser">
       <div className="plugin-browser__platform-grid">
@@ -1012,7 +1035,35 @@ export default function PluginBrowser({ server }: Props) {
               <span>Prev</span>
             </button>
 
-            <span className="plugin-browser__pager-label">Page {page + 1}</span>
+            <span className="plugin-browser__pager-label">
+              Page {page + 1}
+              {totalPages ? ` / ${totalPages}` : ''}
+            </span>
+
+            <div className="plugin-browser__pager-jump">
+              <input
+                type="number"
+                min={1}
+                max={totalPages ?? undefined}
+                value={pageInput}
+                onChange={(event) => setPageInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    jumpToPage();
+                  }
+                }}
+                className="plugin-browser__pager-input"
+                aria-label="page number"
+              />
+              <button
+                type="button"
+                className="plugin-browser__pager-go"
+                onClick={jumpToPage}
+                disabled={loading}
+              >
+                Go
+              </button>
+            </div>
 
             <button
               type="button"

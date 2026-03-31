@@ -241,6 +241,26 @@
     @apply text-zinc-400 text-sm;
   }
 
+  .plugin-browser__pager-jump {
+    @apply inline-flex items-center gap-1.5 rounded-lg border border-zinc-700/85 px-1.5 py-1;
+    background: rgba(24, 24, 27, 0.78);
+  }
+
+  .plugin-browser__pager-input {
+    @apply w-14 rounded-md border border-zinc-700/80 px-2 py-1 text-xs text-zinc-100 outline-none;
+    background: rgba(15, 23, 42, 0.8);
+  }
+
+  .plugin-browser__pager-go {
+    @apply rounded-md px-2.5 py-1 text-xs font-semibold text-zinc-100 border border-zinc-600/85;
+    background: rgba(51, 65, 85, 0.72);
+  }
+
+  .plugin-browser__pager-go:hover {
+    @apply border-zinc-400;
+    background: rgba(71, 85, 105, 0.8);
+  }
+
   .plugin-browser__dup-overlay {
     @apply fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4;
     z-index: 1200;
