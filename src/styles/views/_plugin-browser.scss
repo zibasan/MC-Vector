@@ -336,9 +336,62 @@
     @apply text-rose-300;
   }
 
-  .plugin-browser__detail-readme-content {
-    @apply m-0 whitespace-pre-wrap p-4 text-sm text-zinc-200 leading-relaxed;
+  .plugin-browser__detail-readme-markdown {
+    @apply p-4 text-sm text-zinc-200 leading-relaxed;
+  }
+
+  .plugin-browser__detail-readme-markdown > * {
+    @apply mt-0 mb-3;
+  }
+
+  .plugin-browser__detail-readme-markdown h1,
+  .plugin-browser__detail-readme-markdown h2,
+  .plugin-browser__detail-readme-markdown h3,
+  .plugin-browser__detail-readme-markdown h4 {
+    @apply text-zinc-50 font-semibold mb-2;
+  }
+
+  .plugin-browser__detail-readme-markdown p,
+  .plugin-browser__detail-readme-markdown li,
+  .plugin-browser__detail-readme-markdown blockquote {
+    @apply text-zinc-200;
+  }
+
+  .plugin-browser__detail-readme-markdown ul,
+  .plugin-browser__detail-readme-markdown ol {
+    @apply pl-5 mb-3;
+  }
+
+  .plugin-browser__detail-readme-markdown code {
+    @apply px-1 py-0.5 rounded text-cyan-200;
+    background: rgba(8, 47, 73, 0.65);
     font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', ui-monospace, monospace;
+  }
+
+  .plugin-browser__detail-readme-markdown pre {
+    @apply p-3 rounded-lg overflow-x-auto border border-zinc-700/70;
+    background: rgba(15, 23, 42, 0.92);
+  }
+
+  .plugin-browser__detail-readme-markdown pre code {
+    @apply p-0 bg-transparent;
+  }
+
+  .plugin-browser__detail-readme-markdown a {
+    @apply text-cyan-300 underline;
+  }
+
+  .plugin-browser__detail-readme-markdown table {
+    @apply w-full text-xs border-collapse mb-3;
+  }
+
+  .plugin-browser__detail-readme-markdown th,
+  .plugin-browser__detail-readme-markdown td {
+    @apply border border-zinc-700/70 px-2 py-1.5;
+  }
+
+  .plugin-browser__detail-readme-markdown hr {
+    @apply border-zinc-700/70 my-3;
   }
 
   .plugin-browser__result-meta {

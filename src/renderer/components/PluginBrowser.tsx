@@ -16,6 +16,8 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { deleteItem, listFiles, moveItem } from '../../lib/file-commands';
 import {
   checkHangarCompatibility,
@@ -1465,7 +1467,9 @@ export default function PluginBrowser({ server }: Props) {
                 ) : detailError ? (
                   <div className="plugin-browser__detail-readme-empty is-error">{detailError}</div>
                 ) : detailReadme ? (
-                  <pre className="plugin-browser__detail-readme-content">{detailReadme}</pre>
+                  <div className="plugin-browser__detail-readme-markdown">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{detailReadme}</ReactMarkdown>
+                  </div>
                 ) : (
                   <div className="plugin-browser__detail-readme-empty">
                     このプロジェクトにはREADME本文が公開されていません。
