@@ -184,10 +184,10 @@ pub async fn start_server(
                 if s.success() {
                     "offline"
                 } else {
-                    "offline"
+                    "crashed"
                 }
             }
-            Err(_) => "offline",
+            Err(_) => "crashed",
         };
         let _ = app_exit.emit(
             "server-status-change",

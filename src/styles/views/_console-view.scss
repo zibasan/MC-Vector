@@ -55,6 +55,10 @@
     color: #38bdf8;
   }
 
+  .console-view__status-value--crashed {
+    color: #f43f5e;
+  }
+
   .console-view__memory-value {
     @apply font-bold text-sm;
     color: #e5e7eb;

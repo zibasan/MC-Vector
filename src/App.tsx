@@ -539,12 +539,12 @@ function App() {
           return;
         }
 
-        if (status !== 'offline') {
+        if (status === 'offline' && consumeExpectedOffline(data.serverId)) {
+          resetAutoRestartState(data.serverId);
           return;
         }
 
-        if (consumeExpectedOffline(data.serverId)) {
-          resetAutoRestartState(data.serverId);
+        if (status !== 'crashed' && status !== 'offline') {
           return;
         }
 
@@ -577,6 +577,11 @@ function App() {
         autoRestartAttemptsRef.current[data.serverId] = nextAttempt;
 
         clearAutoRestartTimer(data.serverId);
+        setServers((prev) =>
+          prev.map((server) =>
+            server.id === data.serverId ? { ...server, status: 'restarting' } : server
+          )
+        );
         showToast(
           `${targetServer.name} が異常終了しました。${restartDelaySec}秒後に自動再起動します (${nextAttempt}/${maxAutoRestarts})`,
           'info'
@@ -1604,17 +1609,31 @@ function App() {
           <div className="flex items-center gap-2.5 ml-auto">
             {currentView !== 'proxy' && (
               <>
-                <button className="btn-start" onClick={handleStart} title="Start Server">
+                <button
+                  className="btn-start"
+                  onClick={handleStart}
+                  title="Start Server"
+                  disabled={
+                    !activeServer ||
+                    (activeServer.status !== 'offline' && activeServer.status !== 'crashed')
+                  }
+                >
                   ▶ Start
                 </button>
                 <button
                   className="btn-restart btn-secondary"
                   onClick={handleRestart}
                   title="Restart Server"
+                  disabled={!activeServer || activeServer.status !== 'online'}
                 >
                   ↻ Restart
                 </button>
-                <button className="btn-stop" onClick={handleStop} title="Stop Server">
+                <button
+                  className="btn-stop"
+                  onClick={handleStop}
+                  title="Stop Server"
+                  disabled={!activeServer || activeServer.status !== 'online'}
+                >
                   ■ Stop
                 </button>
               </>

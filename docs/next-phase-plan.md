@@ -20,13 +20,14 @@
 | #32 バージョン互換チェック | Implemented | Compatibility判定バッジと互換情報表示あり | 判定理由の詳細表示が不足 |
 | #28 更新通知 | Implemented (v1) | 導入済みModrinth/Hangarに対して更新バッジと候補サマリを表示 | Spigot対応と履歴保存は未対応 |
 | ログ描画の50msバッファ | Implemented | `consoleStore`でログを50ms単位にまとめて反映 | flush統計や可視化メトリクスは未実装 |
+| 状態機械の厳密化 | Implemented (v1) | Rust異常終了を`crashed`通知し、UIで`crashed`/`restarting`遷移を処理 | `running/stopped`命名への完全移行は未完 |
 
 ### 1.2 未実装または不足(次フェーズ対象)
 
 | 項目 | 状態 | 不足点 |
 | --- | --- | --- |
 | #17 コマンド履歴 | Partial | セッション内履歴のみで永続化・サーバー別履歴・履歴UIがない |
-| サーバー状態機械(Stopped/Starting/Running/Stopping/Crashed/Restarting) | Partial | 実体はonline/offline中心で`crashed`状態を明示していない |
+| サーバー状態機械(Stopped/Starting/Running/Stopping/Crashed/Restarting) | Partial (v2) | `crashed`追加済みだが、`running/stopped`への語彙統一とバックエンド遷移イベントが不足 |
 | Plugin Adapter層分離 | Partial | `src/lib/plugin-commands.ts`に実装が集中し`src/lib/adapters/plugin`未整備 |
 | Guard層分離 | Partial | 型ガードは存在するが`src/lib/guards`へ分離されていない |
 
@@ -55,14 +56,16 @@
 ### 2.3 Phase C (運用信頼性)
 
 1. サーバー状態機械の厳密化
-- 目的: UI操作可否と実行状態を一致させる
+- 状況: v1完了 (crashed検知とrestarting遷移を導入)
+- 残目的: UI操作可否と実行状態をさらに厳密一致させる
 - 変更:
-  - Rustイベントを`starting/running/stopping/stopped/crashed/restarting`へ拡張
-  - フロントの`ServerStatus`と制御ロジックを同期
-  - 手動停止と異常停止の判定を明確化
+  - Rustイベント語彙を`running/stopped`へ統一
+  - `online/offline`依存の既存分岐を段階移行
+  - 手動停止/異常停止/再起動失敗の監査ログを追加
 - 受け入れ条件:
   - 意図停止時に`crashed`へ遷移しない
   - 異常終了時は`crashed -> restarting -> starting`が確認できる
+  - 遷移ログから原因追跡ができる
 
 2. 自動再起動のバックオフ戦略
 - 目的: 連続クラッシュ時の再試行スパイクを抑える
@@ -119,12 +122,12 @@
 1. Phase A-1: #28 更新通知
 2. Phase A-2: ログ50msバッファ
 3. Phase B-1: #17 コマンド履歴の永続化
-4. Phase C-1: 状態機械の厳密化
+4. Phase C-2: 状態語彙統一 + 監査ログ
 5. Phase D-1: Adapter/Guard分離
 6. 新規タブはOps Timelineから着手
 
 ## 5. 直近タスク(最小着手セット)
 
 1. #17向けに履歴保存ストア仕様を定義する
-2. Rustの`server-status-change`イベント拡張案を設計する
+2. 状態語彙(`online/offline` -> `running/stopped`)移行案を設計する
 3. Adapter/Guard移設対象関数の一覧を作る

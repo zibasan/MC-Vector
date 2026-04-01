@@ -144,4 +144,8 @@
   .status-indicator.restarting {
     @apply bg-info animate-spin;
   }
+
+  .status-indicator.crashed {
+    @apply bg-rose-500 animate-pulse;
+  }
 }

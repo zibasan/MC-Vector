@@ -200,6 +200,8 @@ export default function DashboardView({ server }: Props) {
         return '#f97316';
       case 'restarting':
         return '#3b82f6';
+      case 'crashed':
+        return '#f43f5e';
       default:
         return '#aaa';
     }

@@ -1,4 +1,10 @@
-export type ServerStatus = 'online' | 'offline' | 'starting' | 'stopping' | 'restarting';
+export type ServerStatus =
+  | 'online'
+  | 'offline'
+  | 'starting'
+  | 'stopping'
+  | 'restarting'
+  | 'crashed';
 
 export interface MinecraftServer {
   id: string;
