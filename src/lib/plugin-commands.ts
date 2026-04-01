@@ -1,7 +1,9 @@
 import { fetch } from '@tauri-apps/plugin-http';
+import { searchHangarProjects } from './adapters/plugin/hangar-adapter';
+import { searchModrinthProjects } from './adapters/plugin/modrinth-adapter';
+import { searchSpigotResources } from './adapters/plugin/spigot-adapter';
+import { asString, isRecord } from './guards/json-guards';
 import { tauriInvoke } from './tauri-api';
-
-type JsonRecord = Record<string, unknown>;
 
 export interface ModrinthProject {
   slug: string;
@@ -89,26 +91,9 @@ interface SpigotResourceDocument {
   description: string | null;
 }
 
-interface HangarSearchResponse {
-  result: unknown[];
-  pagination: unknown;
-}
-
 interface HangarVersionResponse {
   result: unknown[];
   pagination: unknown;
-}
-
-function isRecord(value: unknown): value is JsonRecord {
-  return typeof value === 'object' && value !== null;
-}
-
-function asString(value: unknown, fallback = ''): string {
-  return typeof value === 'string' ? value : fallback;
-}
-
-function asNumber(value: unknown, fallback = 0): number {
-  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -129,37 +114,6 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
     throw new Error(`API error ${response.status} ${response.statusText}: ${url}`);
   }
   return response.json() as Promise<T>;
-}
-
-function parseHangarProject(project: unknown): HangarProject | null {
-  if (!isRecord(project)) {
-    return null;
-  }
-
-  const namespaceRaw = isRecord(project.namespace) ? project.namespace : null;
-  const statsRaw = isRecord(project.stats) ? project.stats : null;
-
-  const owner = asString(namespaceRaw?.owner);
-  const slug = asString(namespaceRaw?.slug);
-  const name = asString(project.name);
-
-  if (!owner || !slug || !name) {
-    return null;
-  }
-
-  return {
-    name,
-    namespace: {
-      owner,
-      slug,
-    },
-    stats: {
-      downloads: asNumber(statsRaw?.downloads),
-      stars: asNumber(statsRaw?.stars),
-    },
-    description: asString(project.description),
-    avatarUrl: asString(project.avatarUrl),
-  };
 }
 
 function parseModrinthDependency(value: unknown): ModrinthDependency | null {
@@ -367,48 +321,6 @@ function parseHangarVersion(version: unknown): HangarVersion | null {
   };
 }
 
-function toSpigotIconUrl(iconPath: string): string {
-  if (!iconPath) {
-    return '';
-  }
-  if (/^https?:\/\//i.test(iconPath)) {
-    return iconPath;
-  }
-  return `https://www.spigotmc.org/${iconPath.replace(/^\/+/, '')}`;
-}
-
-function parseSpigetResource(resource: unknown): SpigetResource | null {
-  if (!isRecord(resource)) {
-    return null;
-  }
-
-  const id = asNumber(resource.id, -1);
-  const name = asString(resource.name);
-  if (id < 0 || !name) {
-    return null;
-  }
-
-  const iconRaw = isRecord(resource.icon) ? resource.icon : null;
-  const authorRaw = isRecord(resource.author) ? resource.author : null;
-  const fileRaw = isRecord(resource.file) ? resource.file : null;
-  const fileUrl = fileRaw ? asString(fileRaw.url) : '';
-  const versionMatch = fileUrl.match(/[?&]version=(\d+)/);
-  const latestVersionId = versionMatch ? Number(versionMatch[1]) : undefined;
-
-  return {
-    id,
-    name,
-    tag: asString(resource.tag),
-    downloads: asNumber(resource.downloads),
-    premium: Boolean(resource.premium),
-    external: Boolean(resource.external),
-    iconUrl: iconRaw ? toSpigotIconUrl(asString(iconRaw.url)) || undefined : undefined,
-    authorName: authorRaw ? asString(authorRaw.name) || undefined : undefined,
-    fileType: fileRaw ? asString(fileRaw.type) || undefined : undefined,
-    latestVersionId,
-  };
-}
-
 function sanitizeFileName(value: string): string {
   return value
     .toLowerCase()
@@ -466,13 +378,17 @@ export async function searchModrinth(
   offset: number = 0,
   limit: number = 20
 ): Promise<{ hits: ModrinthProject[]; total_hits: number }> {
-  const url = new URL('https://api.modrinth.com/v2/search');
-  url.searchParams.set('query', query);
-  url.searchParams.set('offset', String(offset));
-  url.searchParams.set('limit', String(limit));
-  if (facets) url.searchParams.set('facets', facets);
+  const result = await searchModrinthProjects({
+    query,
+    facets,
+    offset,
+    limit,
+  });
 
-  return fetchJson<{ hits: ModrinthProject[]; total_hits: number }>(url.toString());
+  return {
+    hits: result.hits.map((hit) => ({ ...hit })),
+    total_hits: result.total_hits,
+  };
 }
 
 export async function getModrinthVersions(projectId: string): Promise<unknown[]> {
@@ -525,17 +441,24 @@ export async function searchHangar(
   query: string,
   offset: number = 0
 ): Promise<{ result: HangarProject[]; pagination: unknown }> {
-  const url = new URL('https://hangar.papermc.io/api/v1/projects');
-  url.searchParams.set('query', query);
-  url.searchParams.set('offset', String(offset));
-  url.searchParams.set('limit', '25');
-
-  const payload = await fetchJson<HangarSearchResponse>(url.toString());
-  const result = Array.isArray(payload.result)
-    ? payload.result
-        .map(parseHangarProject)
-        .filter((project): project is HangarProject => project !== null)
-    : [];
+  const payload = await searchHangarProjects({
+    query,
+    offset,
+    limit: 25,
+  });
+  const result: HangarProject[] = payload.result.map((project) => ({
+    name: project.name,
+    namespace: {
+      owner: project.namespace.owner,
+      slug: project.namespace.slug,
+    },
+    stats: {
+      downloads: project.stats.downloads,
+      stars: project.stats.stars,
+    },
+    description: project.description,
+    avatarUrl: project.avatarUrl,
+  }));
 
   return {
     result,
@@ -672,25 +595,13 @@ export async function searchSpigot(
   page: number = 1,
   size: number = 25
 ): Promise<SpigetResource[]> {
-  const trimmed = query.trim();
-  const url = new URL(
-    trimmed
-      ? `https://api.spiget.org/v2/search/resources/${encodeURIComponent(trimmed)}`
-      : 'https://api.spiget.org/v2/resources/free'
-  );
-  url.searchParams.set('size', String(size));
-  url.searchParams.set('page', String(Math.max(1, page)));
-  url.searchParams.set('sort', '-downloads');
-
-  const resources = await fetchJson<unknown[]>(url.toString(), {
-    headers: {
-      'User-Agent': 'MC-Vector/2.0',
-    },
+  const resources = await searchSpigotResources({
+    query,
+    page,
+    size,
   });
 
-  return resources
-    .map(parseSpigetResource)
-    .filter((resource): resource is SpigetResource => resource !== null);
+  return resources.map((resource) => ({ ...resource }));
 }
 
 export async function getSpigotResourceBody(resourceId: number): Promise<string | null> {

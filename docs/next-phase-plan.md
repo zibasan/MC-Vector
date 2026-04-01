@@ -21,6 +21,7 @@
 | #28 更新通知 | Implemented (v1) | 導入済みModrinth/Hangarに対して更新バッジと候補サマリを表示 | Spigot対応と履歴保存は未対応 |
 | ログ描画の50msバッファ | Implemented | `consoleStore`でログを50ms単位にまとめて反映 | flush統計や可視化メトリクスは未実装 |
 | 状態機械の厳密化 | Implemented (v1) | Rust異常終了を`crashed`通知し、UIで`crashed`/`restarting`遷移を処理 | `running/stopped`命名への完全移行は未完 |
+| Adapter/Guard分離 | Implemented (v1) | `src/lib/adapters/plugin` と `src/lib/guards` を新設し、検索処理をアダプタ委譲へ移行 | 互換判定・README・導入処理は未移行 |
 
 ### 1.2 未実装または不足(次フェーズ対象)
 
@@ -28,8 +29,8 @@
 | --- | --- | --- |
 | #17 コマンド履歴 | Partial | セッション内履歴のみで永続化・サーバー別履歴・履歴UIがない |
 | サーバー状態機械(Stopped/Starting/Running/Stopping/Crashed/Restarting) | Partial (v2) | `crashed`追加済みだが、`running/stopped`への語彙統一とバックエンド遷移イベントが不足 |
-| Plugin Adapter層分離 | Partial | `src/lib/plugin-commands.ts`に実装が集中し`src/lib/adapters/plugin`未整備 |
-| Guard層分離 | Partial | 型ガードは存在するが`src/lib/guards`へ分離されていない |
+| Plugin Adapter層分離 | Partial (v1) | 検索処理は委譲済みだが、互換判定・README・導入処理が未分離 |
+| Guard層分離 | Partial (v1) | 共通JSONガードは分離済みだが、プラグイン全パーサーへ適用しきれていない |
 
 ## 2. 次フェーズ実装計画(未実装/不足のみ)
 
@@ -79,19 +80,21 @@
 ### 2.4 Phase D (構造改善)
 
 1. Plugin Adapter分離
-- 目的: ソース差異吸収をUIから切り離す
+- 状況: v1完了 (検索処理のアダプタ委譲を実装)
+- 残目的: ソース差異吸収をUIからさらに切り離す
 - 変更:
-  - `src/lib/adapters/plugin`配下にModrinth/Hangar/Spigotアダプタ実装
-  - `plugin-commands.ts`は公開APIの薄いファサードに縮小
+  - 互換判定・README取得・導入処理も段階的にAdapterへ移設
+  - `plugin-commands.ts`を公開APIファサードへさらに縮小
 - 受け入れ条件:
   - UI側が生レスポンス型を参照しない
   - 既存機能(検索、導入、README、互換判定)が回帰しない
 
 2. Guard層分離
-- 目的: 型ガードを共通化し保守性を上げる
+- 状況: v1完了 (json-guards導入)
+- 残目的: 型ガードを共通化し保守性を上げる
 - 変更:
-  - `src/lib/guards`へ判定関数を移設
-  - Adapter層でのみ外部payloadをパース
+  - 既存パーサー群を`src/lib/guards`へ段階移設
+  - Adapter層でのみ外部payloadをパースする構造へ統一
 - 受け入れ条件:
   - unknown入力のガード漏れがない
   - `any`追加なし
@@ -123,11 +126,11 @@
 2. Phase A-2: ログ50msバッファ
 3. Phase B-1: #17 コマンド履歴の永続化
 4. Phase C-2: 状態語彙統一 + 監査ログ
-5. Phase D-1: Adapter/Guard分離
+5. Phase D-2: Adapter/Guardの残処理移行
 6. 新規タブはOps Timelineから着手
 
 ## 5. 直近タスク(最小着手セット)
 
 1. #17向けに履歴保存ストア仕様を定義する
 2. 状態語彙(`online/offline` -> `running/stopped`)移行案を設計する
-3. Adapter/Guard移設対象関数の一覧を作る
+3. Adapter/Guard移設対象関数の一覧を更新する
