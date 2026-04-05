@@ -1,7 +1,6 @@
 /node_modules
 /dist
 /release
-docs/*.md
 /dist-electron
 .DS_Store
 # Logs
@@ -56,7 +55,7 @@ web_modules/
 # Optional npm cache directory
 .npm
 
-# Optional eslint cache
+# Optional vite+ cache
 .eslintcache
 
 # Optional stylelint cache
@@ -151,3 +150,9 @@ vite.config.ts.timestamp-*
 # update-version
 update-output.json
 skills-lock.json
+
+# Nix
+.direnv/
+.envrc.local
+result
+result-*
