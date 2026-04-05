@@ -59,7 +59,7 @@ check:
 	pnpm check
 
 yamllint:
-	pnpm yamllint
+	yamllint .
 
 rustfmt:
 	pnpm rustfmt

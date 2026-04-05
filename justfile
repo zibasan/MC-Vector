@@ -39,7 +39,7 @@ check:
 
 # Lint YAML files
 yamllint:
-    pnpm yamllint
+    yamllint .
 
 # Format Rust code
 rustfmt:
