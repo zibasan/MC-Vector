@@ -8,13 +8,13 @@
 - Tauri
 - Node.js
 - React 19
-- Vite
+- Vite+
 
 ## Languages
 
 - Typescript
 - Rust
-- CSS
+- SCSS
 
 # Tutorial - How to create a server
 
