@@ -49,4 +49,4 @@ jobs:
         with:
           workspaces: ./src-tauri -> target
       - run: vp install --frozen-lockfile
-      - run: vp pm tauri build --debug --no-bundle
+      - run: vp exec tauri build --debug --no-bundle
