@@ -276,14 +276,14 @@ Built artifacts will be in `src-tauri/target/release/bundle/`.
 
 ### Quality
 
-| Command     | justfile         | Makefile        | Description               |
-| ----------- | ---------------- | --------------- | ------------------------- |
-| Lint        | `just lint`      | `make lint`     | Run ESLint                |
-| Format      | `just format`    | `make format`   | Format code with Prettier |
-| Check       | `just check`     | `make check`    | Run lint & format checks  |
-| YAML lint   | `just yamllint`  | `make yamllint` | Lint YAML files           |
-| Rust format | `just rustfmt`   | `make rustfmt`  | Format Rust code          |
-| All checks  | `just check-all` | N/A             | Run all quality checks    |
+| Command     | justfile         | Makefile        | Description                             |
+| ----------- | ---------------- | --------------- | --------------------------------------- |
+| Lint        | `just lint`      | `make lint`     | Run oxlint (via vite+)                  |
+| Format      | `just format`    | `make format`   | Format with oxfmt and biome (via vite+) |
+| Check       | `just check`     | `make check`    | Run lint & format checks                |
+| YAML lint   | `just yamllint`  | `make yamllint` | Lint YAML files                         |
+| Rust format | `just rustfmt`   | `make rustfmt`  | Format Rust code                        |
+| All checks  | `just check-all` | N/A             | Run all quality checks                  |
 
 ### Utilities
 

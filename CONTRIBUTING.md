@@ -234,13 +234,25 @@ function parseProject(value: unknown): { id: string; title: string } | null {
 - Handle errors properly with `Result<T, E>`
 - Document public APIs with doc comments
 
-### Code Formatting
+### Code Formatting & Linting
 
-Run formatters before committing:
+This project uses **vite+** which provides:
+
+- **oxlint** - Fast linter for JavaScript/TypeScript
+- **oxfmt** - Fast formatter for code
+- **biome** - Additional tooling for code quality
+
+Run formatters and linters before committing:
 
 ```bash
-# Format TypeScript/JavaScript/CSS
+# Lint TypeScript/JavaScript/CSS (runs vp lint)
+just lint
+
+# Format TypeScript/JavaScript/CSS (runs vp fmt)
 just format
+
+# Run both lint and format checks (runs vp check)
+pnpm check
 
 # Format Rust
 just rustfmt

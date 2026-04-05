@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 /**
  * scripts/update-versions.js
  * - Fetches Mojang manifest

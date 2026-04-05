@@ -89,11 +89,19 @@
             echo ""
             echo "Available commands:"
             echo "  make help     - Show all Makefile targets"
-            echo "  just --list   - Show all justfile recipes"
+            echo "  just          - Show all justfile recipes"
             echo ""
             echo "Quick start:"
             echo "  make install     - Install dependencies"
+            echo "  make setup       - Full setup with quality checks"
             echo "  make tauri-dev   - Start development server"
+            echo ""
+            echo "Testing:"
+            echo "  make test        - Run Rust unit tests"
+            echo "  make test-watch  - Run tests in watch mode"
+            echo ""
+            echo "Quality checks:"
+            echo "  make check-all   - Run all quality checks"
             echo ""
           '';
 
@@ -136,10 +144,82 @@
 
         # Apps for `nix run`
         apps = {
+          # Development server
           dev = {
             type = "app";
             program = "${pkgs.writeShellScript "mc-vector-dev" ''
+              cd ${self}
               ${pkgs.nodePackages.pnpm}/bin/pnpm tauri:dev
+            ''}";
+          };
+
+          # Build application
+          build = {
+            type = "app";
+            program = "${pkgs.writeShellScript "mc-vector-build" ''
+              cd ${self}
+              ${pkgs.nodePackages.pnpm}/bin/pnpm tauri:build
+            ''}";
+          };
+
+          # Run all tests
+          test = {
+            type = "app";
+            program = "${pkgs.writeShellScript "mc-vector-test" ''
+              cd ${self}/src-tauri
+              ${rustToolchain}/bin/cargo test
+            ''}";
+          };
+
+          # Run quality checks
+          check = {
+            type = "app";
+            program = "${pkgs.writeShellScript "mc-vector-check" ''
+              cd ${self}
+              ${pkgs.nodePackages.pnpm}/bin/pnpm check
+              ${pkgs.python311Packages.yamllint}/bin/yamllint .
+              ${rustToolchain}/bin/cargo fmt --check --all
+            ''}";
+          };
+
+          # Generate documentation
+          docs = {
+            type = "app";
+            program = "${pkgs.writeShellScript "mc-vector-docs" ''
+              cd ${self}/src-tauri
+              ${rustToolchain}/bin/cargo doc --no-deps --open
+            ''}";
+          };
+
+          # Security audit
+          audit = {
+            type = "app";
+            program = "${pkgs.writeShellScript "mc-vector-audit" ''
+              cd ${self}
+              echo "Running pnpm security audit..."
+              ${pkgs.nodePackages.pnpm}/bin/pnpm audit || true
+              echo ""
+              echo "Running Rust security audit..."
+              cd src-tauri
+              if command -v cargo-audit &> /dev/null; then
+                cargo audit
+              else
+                echo "Note: Install cargo-audit with 'cargo install cargo-audit'"
+              fi
+            ''}";
+          };
+
+          # Update dependencies
+          update-deps = {
+            type = "app";
+            program = "${pkgs.writeShellScript "mc-vector-update-deps" ''
+              cd ${self}
+              echo "Updating JavaScript dependencies..."
+              ${pkgs.nodePackages.pnpm}/bin/pnpm update --interactive --latest
+              echo ""
+              echo "Updating Rust dependencies..."
+              cd src-tauri
+              ${rustToolchain}/bin/cargo update
             ''}";
           };
         };
