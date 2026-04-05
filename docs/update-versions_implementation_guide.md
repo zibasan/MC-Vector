@@ -13,6 +13,7 @@
 詳細な手順は [Discord_webhook_setup.md](Discord_webhook_setup.md) を参照してください。
 
 簡潔な流れ：
+
 1. Discord サーバー内の通知チャンネルで、「チャンネル編集」→「連携」→「ウェブフック」から新規作成
 2. Webhook URL をコピー
 3. GitHub リポジトリの **Settings** → **Secrets and variables** → **Actions** で `DISCORD_WEBHOOK_URL` という名前で保存
@@ -28,15 +29,15 @@
 
 ### 2.2 取得・記録される情報
 
-| 情報 | 説明 | 取得方法 |
-|------|------|---------|
-| **実行日時** | ワークフロー開始時刻（UTC） | `Record start time` ステップ |
-| **実行時間** | ワークフロー全体の実行時間（分秒） | 開始と終了のエポック時間から計算 |
-| **検知バージョン** | 新規に検知された Minecraft バージョン（複数可） | `update-output.json` の `.detected` 配列 |
-| **コミット ID** | ワークフロー実行時の HEAD コミット（短形式 7 文字） | `git rev-parse HEAD` |
-| **PR リンク** | 作成された Pull Request へのハイパーリンク | `peter-evans/create-pull-request` アクション出力 |
-| **PR 番号** | Pull Request の番号 | 上記同様 |
-| **ワークフロー実行 ID** | 各ワークフロー実行の一意 ID へのリンク | GitHub Actions のビルトイン変数 |
+| 情報                    | 説明                                                | 取得方法                                         |
+| ----------------------- | --------------------------------------------------- | ------------------------------------------------ |
+| **実行日時**            | ワークフロー開始時刻（UTC）                         | `Record start time` ステップ                     |
+| **実行時間**            | ワークフロー全体の実行時間（分秒）                  | 開始と終了のエポック時間から計算                 |
+| **検知バージョン**      | 新規に検知された Minecraft バージョン（複数可）     | `update-output.json` の `.detected` 配列         |
+| **コミット ID**         | ワークフロー実行時の HEAD コミット（短形式 7 文字） | `git rev-parse HEAD`                             |
+| **PR リンク**           | 作成された Pull Request へのハイパーリンク          | `peter-evans/create-pull-request` アクション出力 |
+| **PR 番号**             | Pull Request の番号                                 | 上記同様                                         |
+| **ワークフロー実行 ID** | 各ワークフロー実行の一意 ID へのリンク              | GitHub Actions のビルトイン変数                  |
 
 ### 2.3 Discord 埋め込みメッセージの フォーマット
 
@@ -67,6 +68,7 @@
 ```
 
 **更新がない場合の表示:**
+
 - 色: グレー（9807270）
 - タイトル: `ℹ️ 更新なし`
 - PR: `なし`
@@ -76,12 +78,14 @@
 ## ワークフロー実行ログの見方
 
 GitHub リポジトリ内：
+
 1. **Actions** タブをクリック
 2. **Update Minecraft versions** をクリック
 3. 実行履歴から目的の実行を選択
 4. 各ステップの出力を確認可能
 
 重要なステップ：
+
 - `Run update script`: `update-output.json` の内容が表示
 - `Send Discord notification`: cURL 実行ログ＆ HTTP レスポンス確認
 
@@ -96,6 +100,7 @@ GitHub リポジトリ内：
 **確認事項**:
 
 1. **Webhook URL が正しく登録されているか**
+
    ```bash
    # ローカルでテスト（シェルから）
    curl -X POST \
@@ -123,7 +128,8 @@ GitHub リポジトリ内：
 
 **原因**: `update-output.json` の形式が想定外
 
-**確認方法**: 
+**確認方法**:
+
 - ワークフロー内 `Run update script` ステップで出力を確認
 - `scripts/update-versions.js` の出力形式が以下を満たしているか確認：
   ```json
@@ -152,6 +158,7 @@ GitHub リポジトリ内：
 ### 埋め込みメッセージの色を変更
 
 Embed フィールド内の `"color"` を 10 進整数に変更：
+
 - `3066993`: 緑（成功）
 - `16711680`: 赤（失敗）
 - `16776960`: 黄色（注意）
@@ -176,4 +183,3 @@ Embed フィールド内の `"color"` を 10 進整数に変更：
 - [GitHub Actions 環境変数](https://docs.github.com/en/actions/learn-github-actions/environment-variables)
 - [Discord Webhook Documentation](https://discord.com/developers/docs/resources/webhook)
 - [GitHub Secrets 管理](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
-

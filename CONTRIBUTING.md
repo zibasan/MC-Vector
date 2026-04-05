@@ -22,12 +22,14 @@ Thank you for your interest in contributing to MC-Vector! This document provides
 By participating in this project, you agree to maintain a respectful and inclusive environment for all contributors.
 
 **Expected Behavior:**
+
 - Be respectful and considerate
 - Welcome newcomers and help them get started
 - Provide constructive feedback
 - Focus on what is best for the project and community
 
 **Unacceptable Behavior:**
+
 - Harassment, discrimination, or offensive comments
 - Trolling or insulting/derogatory remarks
 - Publishing others' private information without permission
@@ -40,6 +42,7 @@ By participating in this project, you agree to maintain a respectful and inclusi
 ### Prerequisites
 
 Before contributing, ensure you have:
+
 - A GitHub account
 - Git installed on your local machine
 - Development environment set up (see [Development Environment](#development-environment))
@@ -183,11 +186,13 @@ For detailed setup instructions, see [Development Guide](docs/development-guide.
 ### Frontend (TypeScript/React)
 
 #### Type Safety
+
 - **Never use `any`** in production code. Use `unknown` and narrow with type guards.
 - All API payloads must be validated with runtime type guards.
 - Use explicit interfaces for component props and shared data structures.
 
 **Example Type Guard:**
+
 ```typescript
 type JsonRecord = Record<string, unknown>;
 
@@ -205,17 +210,20 @@ function parseProject(value: unknown): { id: string; title: string } | null {
 ```
 
 #### Component Structure
+
 - Keep components focused and single-purpose
 - Extract repeated UI patterns into reusable components
 - Use semantic class names over anonymous utility chains
 
 #### Styling
+
 - Short utility usage in TSX for one-off styles
 - Long/repeated class chains go in SCSS classes under `src/styles/`
 - Group styles by responsibility (base, components, layout, modals, views)
 - Import styles only through `src/styles/index.scss` from `src/main.tsx`
 
 #### Async Operations
+
 - Keep file/system operations in `src/lib` wrappers
 - UI components should call wrappers, not raw APIs
 
@@ -319,6 +327,7 @@ Before submitting a PR, test the following:
 ### Future Testing Plans
 
 We plan to add:
+
 - Unit tests for critical business logic
 - Integration tests for Tauri commands
 - E2E tests for user workflows
@@ -332,6 +341,7 @@ Contributions to testing infrastructure are highly welcome!
 ### When to Update Documentation
 
 Update documentation when:
+
 - Adding a new feature
 - Changing existing behavior
 - Fixing a bug that affects usage
@@ -373,6 +383,7 @@ Update documentation when:
 ## Recognition
 
 Contributors will be recognized in:
+
 - Pull Request acknowledgments
 - Release notes
 - Future CONTRIBUTORS.md file (planned)

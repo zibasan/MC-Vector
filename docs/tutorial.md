@@ -81,12 +81,14 @@ Once your server is created, you can manage it using the following features:
 The Dashboard provides an at-a-glance view of your server's status.
 
 **What You'll See:**
+
 - **Server Status:** Running / Stopped
 - **Software in Use:** (e.g., Paper 1.20.1)
 - **CPU Usage:** Real-time CPU utilization
 - **Memory Usage:** RAM usage graph
 
 **How to Use:**
+
 - Select your server from the list to view its dashboard
 - Monitor performance metrics in real-time
 - Check if your server is running properly
@@ -98,6 +100,7 @@ The Dashboard provides an at-a-glance view of your server's status.
 The Console is the command center for your server.
 
 **Features:**
+
 - **Server Address:** View the server IP and port
 - **Status Indicator:** See if the server is online/offline
 - **Memory Usage:** Current RAM usage
@@ -105,6 +108,7 @@ The Console is the command center for your server.
 - **Command Input:** Execute commands with administrator privileges
 
 **How to Use:**
+
 1. Select your server from the list
 2. Navigate to the **Console** tab
 3. View server logs as they stream in
@@ -112,6 +116,7 @@ The Console is the command center for your server.
 5. Click **"Send"** to execute the command
 
 **Example Commands:**
+
 ```
 /say Hello, world!
 /op PlayerName
@@ -126,6 +131,7 @@ The Console is the command center for your server.
 The Users tab allows you to manage player permissions and access.
 
 **Features:**
+
 - **Whitelist Management:** Add/remove players from the whitelist
 - **Operator Privileges:** Grant/revoke admin permissions
 - **Ban Management:** Ban/unban players
@@ -134,23 +140,27 @@ The Users tab allows you to manage player permissions and access.
 **How to Use:**
 
 #### Add to Whitelist
+
 1. Navigate to the **Users** tab
 2. Select **"Whitelist"**
 3. Enter the player's username
 4. Click **"Add"**
 
 #### Grant Operator Privileges
+
 1. Select **"Operators"**
 2. Enter the player's username
 3. Click **"Add"**
 
 #### Ban a Player
+
 1. Select **"Banned Players"**
 2. Enter the player's username
 3. Enter a reason (optional)
 4. Click **"Ban"**
 
 #### Ban an IP Address
+
 1. Select **"Banned IPs"**
 2. Enter the IP address
 3. Click **"Ban"**
@@ -162,6 +172,7 @@ The Users tab allows you to manage player permissions and access.
 The Files tab provides a built-in file manager for your server files.
 
 **Features:**
+
 - Browse server directories
 - Create new files and folders
 - Edit files (e.g., `server.properties`, plugin configs)
@@ -171,6 +182,7 @@ The Files tab provides a built-in file manager for your server files.
 **How to Use:**
 
 #### Create a New Folder
+
 1. Navigate to the **Files** tab
 2. Click the **"+"** button in the upper-left corner
 3. Select **"New Folder"**
@@ -178,17 +190,20 @@ The Files tab provides a built-in file manager for your server files.
 5. Click **"Create"**
 
 #### Create a New File
+
 1. Click the **"+"** button
 2. Select **"New File"**
 3. Enter a file name
 4. Click **"Create"**
 
 #### Edit a File
+
 1. Click on a file to open it
 2. Edit the content in the built-in editor
 3. Click **"Save"** to save changes
 
 #### Delete a File or Folder
+
 1. Right-click on the file or folder
 2. Select **"Delete"**
 3. Confirm the deletion
@@ -200,6 +215,7 @@ The Files tab provides a built-in file manager for your server files.
 The Plugins / Mods tab allows you to easily install plugins (for Bukkit/Spigot/Paper) or mods (for Fabric/Forge).
 
 **Features:**
+
 - Browse available plugins/mods from popular sources (Modrinth, Hangar, SpigotMC)
 - Search by name or filter by category
 - Install plugins/mods with one click
@@ -209,6 +225,7 @@ The Plugins / Mods tab allows you to easily install plugins (for Bukkit/Spigot/P
 **How to Use:**
 
 #### Install a Plugin/Mod
+
 1. Navigate to the **Plugins / Mods** tab
 2. Use the search bar to find a plugin/mod (e.g., "EssentialsX")
 3. Click on the plugin/mod to view details
@@ -218,6 +235,7 @@ The Plugins / Mods tab allows you to easily install plugins (for Bukkit/Spigot/P
 ⚠️ **Note:** If you have multiple servers, **only the currently selected server** will receive the installation.
 
 #### Remove a Plugin/Mod
+
 1. Navigate to the **"Installed"** section
 2. Find the plugin/mod you want to remove
 3. Click **"Remove"**
@@ -230,24 +248,28 @@ The Plugins / Mods tab allows you to easily install plugins (for Bukkit/Spigot/P
 The Backups tab allows you to create, manage, and restore server backups.
 
 **Features:**
+
 - Create full server backups
 - View all backups with timestamps
 - Restore server from a backup
 - Delete old backups
 
 **Backup Location:**
+
 - **macOS:** `/Users/<username>/Library/Application Support/MC-Vector/servers/<servername>/backups`
 - **Windows:** `C:\Users\<username>\AppData\Roaming\MC-Vector\servers\<servername>\backups`
 
 **How to Use:**
 
 #### Create a Backup
+
 1. Navigate to the **Backups** tab
 2. Click **"Create Backup"**
 3. Wait for the backup process to complete
 4. The new backup will appear in the list
 
 #### Restore from Backup
+
 1. Select a backup from the list
 2. Click **"Restore"**
 3. Confirm the restoration
@@ -256,6 +278,7 @@ The Backups tab allows you to create, manage, and restore server backups.
 ⚠️ **Warning:** Restoring a backup will overwrite your current server files.
 
 #### Delete a Backup
+
 1. Select a backup from the list
 2. Click **"Delete"**
 3. Confirm the deletion
@@ -267,11 +290,13 @@ The Backups tab allows you to create, manage, and restore server backups.
 The Properties tab allows you to edit basic Minecraft server settings.
 
 **Features:**
+
 - Edit common `server.properties` settings
 - Toggle settings with convenient switches
 - Save changes with one click
 
 **Common Settings:**
+
 - **Difficulty:** Peaceful, Easy, Normal, Hard
 - **Gamemode:** Survival, Creative, Adventure, Spectator
 - **Max Players:** Maximum number of players allowed
@@ -282,6 +307,7 @@ The Properties tab allows you to edit basic Minecraft server settings.
 - **And many more...**
 
 **How to Use:**
+
 1. Navigate to the **Properties** tab
 2. Modify settings as needed
 3. Click **"Save"** to apply changes
@@ -294,6 +320,7 @@ The Properties tab allows you to edit basic Minecraft server settings.
 The General Settings tab allows you to change server configuration after creation.
 
 **Configurable Settings:**
+
 - **Server Name:** Rename your server
 - **Software:** Change server software (e.g., from Vanilla to Paper)
 - **Version:** Update Minecraft version
@@ -303,6 +330,7 @@ The General Settings tab allows you to change server configuration after creatio
 - **Port Forwarding Elimination Feature:** Enable/disable Ngrok tunnel
 
 **How to Use:**
+
 1. Navigate to the **General Settings** tab
 2. Modify settings as needed
 3. Click **"Save"** to apply changes
@@ -323,11 +351,13 @@ MC-Vector can automatically create a public tunnel using Ngrok, eliminating the 
 The Proxy Network tab allows you to easily set up a proxy server (e.g., BungeeCord, Velocity).
 
 **Features:**
+
 - Create a proxy server
 - Connect multiple backend servers
 - Manage proxy configuration
 
 **How to Use:**
+
 1. Navigate to the **Proxy Network** tab
 2. Click **"See Detailed Setup Guide"**
 3. Follow the step-by-step instructions
@@ -340,6 +370,7 @@ The Proxy Network tab allows you to easily set up a proxy server (e.g., BungeeCo
 ### Keep Your Server Updated
 
 Regularly check for updates to:
+
 - MC-Vector application
 - Minecraft server software
 - Plugins/mods
@@ -347,12 +378,14 @@ Regularly check for updates to:
 ### Monitor Performance
 
 Use the Dashboard to monitor:
+
 - CPU usage (if consistently high, consider optimizing or upgrading hardware)
 - Memory usage (if maxed out, increase RAM allocation)
 
 ### Regular Backups
 
 Create backups before:
+
 - Updating Minecraft version
 - Installing new plugins/mods
 - Making major configuration changes

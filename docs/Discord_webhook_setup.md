@@ -71,4 +71,3 @@ curl -X POST \
 - **Webhook URL は秘密裏に管理** — GitHub Secrets で保管し、ログ出力しないこと
 - **レート制限** — Discord の API には使用制限あり（通常は問題なし）
 - **チャンネル削除時** — Webhook URL は無効になるため、再度設定が必要
-

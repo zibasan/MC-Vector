@@ -59,6 +59,7 @@ MC-Vector is a powerful cross-platform desktop application for managing Minecraf
 - **yamllint** v1.35.1
 
 Optional:
+
 - **just** - Modern task runner
 - **Nix** - Reproducible development environment
 - **direnv** - Auto-load development shell
@@ -83,6 +84,7 @@ For detailed usage instructions, see the [User Guide](docs/tutorial.md).
 ### For Developers
 
 **Using Nix (Recommended):**
+
 ```bash
 git clone https://github.com/tukuyomil032/MC-Vector.git
 cd MC-Vector
@@ -92,6 +94,7 @@ just tauri-dev
 ```
 
 **Manual Setup:**
+
 ```bash
 git clone https://github.com/tukuyomil032/MC-Vector.git
 cd MC-Vector
@@ -122,18 +125,21 @@ For detailed development instructions, see the [Development Guide](docs/developm
 ### Linux
 
 **AppImage:**
+
 ```bash
 chmod +x MC-Vector.AppImage
 ./MC-Vector.AppImage
 ```
 
 **Debian/Ubuntu (.deb):**
+
 ```bash
 sudo dpkg -i MC-Vector.deb
 mc-vector
 ```
 
 **Fedora/RHEL (.rpm):**
+
 ```bash
 sudo rpm -i MC-Vector.rpm
 mc-vector
@@ -205,16 +211,19 @@ For more details, see the [Development Guide](docs/development-guide.md).
 ### Build for Production
 
 **Using justfile:**
+
 ```bash
 just tauri-build
 ```
 
 **Using Makefile:**
+
 ```bash
 make tauri-build
 ```
 
 Build artifacts will be in `src-tauri/target/release/bundle/`:
+
 - **macOS:** `.dmg` and `.app`
 - **Windows:** `.exe` and `.msi`
 - **Linux:** `.AppImage`, `.deb`, `.rpm`
@@ -310,38 +319,38 @@ For a detailed architecture overview, see [Architecture Documentation](docs/arch
 
 ### Development Tasks
 
-| Task | justfile | Makefile | Description |
-|------|----------|----------|-------------|
-| Install dependencies | `just install` | `make install` | Install all dependencies |
-| Start frontend dev | `just dev` | `make dev` | Start Vite dev server |
-| Start Tauri dev | `just tauri-dev` | `make tauri-dev` | Start Tauri app in dev mode |
+| Task                 | justfile         | Makefile         | Description                 |
+| -------------------- | ---------------- | ---------------- | --------------------------- |
+| Install dependencies | `just install`   | `make install`   | Install all dependencies    |
+| Start frontend dev   | `just dev`       | `make dev`       | Start Vite dev server       |
+| Start Tauri dev      | `just tauri-dev` | `make tauri-dev` | Start Tauri app in dev mode |
 
 ### Build Tasks
 
-| Task | justfile | Makefile | Description |
-|------|----------|----------|-------------|
-| Build frontend | `just build` | `make build` | Build frontend for production |
-| Build Tauri app | `just tauri-build` | `make tauri-build` | Build Tauri application |
+| Task            | justfile           | Makefile           | Description                   |
+| --------------- | ------------------ | ------------------ | ----------------------------- |
+| Build frontend  | `just build`       | `make build`       | Build frontend for production |
+| Build Tauri app | `just tauri-build` | `make tauri-build` | Build Tauri application       |
 
 ### Quality Checks
 
-| Task | justfile | Makefile | Description |
-|------|----------|----------|-------------|
-| Lint code | `just lint` | `make lint` | Run ESLint |
-| Format code | `just format` | `make format` | Format with Prettier |
-| Check all | `just check` | `make check` | Run lint & format checks |
-| Lint YAML | `just yamllint` | `make yamllint` | Lint YAML files |
-| Format Rust | `just rustfmt` | `make rustfmt` | Format Rust code |
-| All checks | `just check-all` | N/A | Run all quality checks |
+| Task        | justfile         | Makefile        | Description              |
+| ----------- | ---------------- | --------------- | ------------------------ |
+| Lint code   | `just lint`      | `make lint`     | Run ESLint               |
+| Format code | `just format`    | `make format`   | Format with Prettier     |
+| Check all   | `just check`     | `make check`    | Run lint & format checks |
+| Lint YAML   | `just yamllint`  | `make yamllint` | Lint YAML files          |
+| Format Rust | `just rustfmt`   | `make rustfmt`  | Format Rust code         |
+| All checks  | `just check-all` | N/A             | Run all quality checks   |
 
 ### Utilities
 
-| Task | justfile | Makefile | Description |
-|------|----------|----------|-------------|
-| Full setup | `just setup` | N/A | Install deps + run all checks |
-| Clean builds | `just clean` | `make clean` | Clean build artifacts |
-| Install extensions | `just install-extensions` | `make install-extensions` | Install VS Code extensions |
-| Update versions | `just update-versions` | `make update-versions` | Update version numbers |
+| Task               | justfile                  | Makefile                  | Description                   |
+| ------------------ | ------------------------- | ------------------------- | ----------------------------- |
+| Full setup         | `just setup`              | N/A                       | Install deps + run all checks |
+| Clean builds       | `just clean`              | `make clean`              | Clean build artifacts         |
+| Install extensions | `just install-extensions` | `make install-extensions` | Install VS Code extensions    |
+| Update versions    | `just update-versions`    | `make update-versions`    | Update version numbers        |
 
 For detailed command usage, see the [Development Guide](docs/development-guide.md).
 

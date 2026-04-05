@@ -98,6 +98,7 @@ src/
 MC-Vector uses **Zustand** for state management, providing a simple and performant solution for global state.
 
 **Key State Stores:**
+
 - Server list
 - Selected server
 - Server status
@@ -154,12 +155,14 @@ src-tauri/src/
 ### Command Categories
 
 #### 1. Server Management (`server.rs`)
+
 - `start_server` - Start a Minecraft server process
 - `stop_server` - Stop a running server
 - `get_server_status` - Check if server is running
 - `send_command` - Execute console command
 
 #### 2. File System (`file_utils.rs`)
+
 - `read_file` - Read file contents
 - `write_file` - Write to file
 - `list_directory` - List files/folders
@@ -167,23 +170,28 @@ src-tauri/src/
 - `delete_file` - Delete file/folder
 
 #### 3. Downloads (`download.rs`)
+
 - `download_server_software` - Download server JAR
 - `download_plugin` - Download plugin/mod
 
 #### 4. System Monitoring (`process_stats.rs`)
+
 - `get_cpu_usage` - Get CPU usage percentage
 - `get_memory_usage` - Get RAM usage
 
 #### 5. Backup (`backup.rs`)
+
 - `create_backup` - Create server backup (ZIP)
 - `restore_backup` - Restore from backup
 - `list_backups` - List available backups
 
 #### 6. Java Management (`java.rs`)
+
 - `detect_java_versions` - Find installed Java versions
 - `get_java_path` - Get path to specific Java version
 
 #### 7. Ngrok Integration (`ngrok.rs`)
+
 - `start_ngrok_tunnel` - Create public tunnel
 - `stop_ngrok_tunnel` - Stop tunnel
 
@@ -197,7 +205,7 @@ use std::process::Stdio;
 
 pub async fn start_server(server_id: &str) -> Result<(), String> {
     let server_path = get_server_path(server_id)?;
-    
+
     Command::new("java")
         .arg("-jar")
         .arg("server.jar")
@@ -206,7 +214,7 @@ pub async fn start_server(server_id: &str) -> Result<(), String> {
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| e.to_string())?;
-    
+
     Ok(())
 }
 ```

@@ -48,11 +48,13 @@ Nix provides a completely reproducible development environment with all dependen
 #### 1. Install Nix
 
 **macOS/Linux:**
+
 ```bash
 sh <(curl -L https://nixos.org/nix/install) --daemon
 ```
 
 **Enable Nix Flakes** (add to `~/.config/nix/nix.conf` or `/etc/nix/nix.conf`):
+
 ```
 experimental-features = nix-command flakes
 ```
@@ -60,11 +62,13 @@ experimental-features = nix-command flakes
 #### 2. Enter Development Shell
 
 **Using Nix Flakes:**
+
 ```bash
 nix develop
 ```
 
 **Using shell.nix (without Flakes):**
+
 ```bash
 nix-shell
 ```
@@ -72,6 +76,7 @@ nix-shell
 #### 3. (Optional) Auto-load with direnv
 
 Install direnv:
+
 ```bash
 # macOS
 brew install direnv
@@ -81,6 +86,7 @@ eval "$(direnv hook bash)"  # or zsh, fish
 ```
 
 Allow direnv for this project:
+
 ```bash
 direnv allow
 ```
@@ -96,11 +102,13 @@ If you prefer not to use Nix, install dependencies manually:
 #### 1. Install Node.js and pnpm
 
 **macOS:**
+
 ```bash
 brew install node@22 pnpm
 ```
 
 **Linux (using nvm):**
+
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 nvm install 22
@@ -108,6 +116,7 @@ npm install -g pnpm@10.26.2
 ```
 
 **Windows:**
+
 - Download Node.js from [nodejs.org](https://nodejs.org/)
 - Install pnpm: `npm install -g pnpm@10.26.2`
 
@@ -127,16 +136,19 @@ pip install 'yamllint==1.35.1'
 #### 4. (Optional) Install just
 
 **macOS:**
+
 ```bash
 brew install just
 ```
 
 **Linux:**
+
 ```bash
 cargo install just
 ```
 
 **Windows:**
+
 ```powershell
 choco install just
 ```
@@ -156,11 +168,13 @@ We provide two task runners: **justfile** (modern, recommended) and **Makefile**
 ### Using justfile
 
 **List all available tasks:**
+
 ```bash
 just --list
 ```
 
 **Common tasks:**
+
 ```bash
 just install           # Install dependencies
 just dev               # Start frontend dev server
@@ -175,11 +189,13 @@ just setup             # Full setup (install + check-all)
 ### Using Makefile
 
 **List all available tasks:**
+
 ```bash
 make help
 ```
 
 **Common tasks:**
+
 ```bash
 make install           # Install dependencies
 make dev               # Start frontend dev server
@@ -196,12 +212,14 @@ make check             # Run lint & format checks
 ### 1. First-Time Setup
 
 **With Nix:**
+
 ```bash
 nix develop
 just setup
 ```
 
 **Without Nix:**
+
 ```bash
 pnpm install
 make check
@@ -243,38 +261,38 @@ Built artifacts will be in `src-tauri/target/release/bundle/`.
 
 ### Development
 
-| Command | justfile | Makefile | Description |
-|---------|----------|----------|-------------|
-| Install deps | `just install` | `make install` | Install all dependencies |
-| Dev server | `just dev` | `make dev` | Start frontend dev server |
-| Tauri dev | `just tauri-dev` | `make tauri-dev` | Start Tauri app in dev mode |
+| Command      | justfile         | Makefile         | Description                 |
+| ------------ | ---------------- | ---------------- | --------------------------- |
+| Install deps | `just install`   | `make install`   | Install all dependencies    |
+| Dev server   | `just dev`       | `make dev`       | Start frontend dev server   |
+| Tauri dev    | `just tauri-dev` | `make tauri-dev` | Start Tauri app in dev mode |
 
 ### Build
 
-| Command | justfile | Makefile | Description |
-|---------|----------|----------|-------------|
-| Build frontend | `just build` | `make build` | Build frontend for production |
-| Build app | `just tauri-build` | `make tauri-build` | Build Tauri application |
+| Command        | justfile           | Makefile           | Description                   |
+| -------------- | ------------------ | ------------------ | ----------------------------- |
+| Build frontend | `just build`       | `make build`       | Build frontend for production |
+| Build app      | `just tauri-build` | `make tauri-build` | Build Tauri application       |
 
 ### Quality
 
-| Command | justfile | Makefile | Description |
-|---------|----------|----------|-------------|
-| Lint | `just lint` | `make lint` | Run ESLint |
-| Format | `just format` | `make format` | Format code with Prettier |
-| Check | `just check` | `make check` | Run lint & format checks |
-| YAML lint | `just yamllint` | `make yamllint` | Lint YAML files |
-| Rust format | `just rustfmt` | `make rustfmt` | Format Rust code |
-| All checks | `just check-all` | N/A | Run all quality checks |
+| Command     | justfile         | Makefile        | Description               |
+| ----------- | ---------------- | --------------- | ------------------------- |
+| Lint        | `just lint`      | `make lint`     | Run ESLint                |
+| Format      | `just format`    | `make format`   | Format code with Prettier |
+| Check       | `just check`     | `make check`    | Run lint & format checks  |
+| YAML lint   | `just yamllint`  | `make yamllint` | Lint YAML files           |
+| Rust format | `just rustfmt`   | `make rustfmt`  | Format Rust code          |
+| All checks  | `just check-all` | N/A             | Run all quality checks    |
 
 ### Utilities
 
-| Command | justfile | Makefile | Description |
-|---------|----------|----------|-------------|
-| Install extensions | `just install-extensions` | `make install-extensions` | Install VS Code extensions |
-| Update versions | `just update-versions` | `make update-versions` | Update version numbers |
-| Clean | `just clean` | `make clean` | Clean build artifacts |
-| Setup | `just setup` | N/A | Full setup (install + checks) |
+| Command            | justfile                  | Makefile                  | Description                   |
+| ------------------ | ------------------------- | ------------------------- | ----------------------------- |
+| Install extensions | `just install-extensions` | `make install-extensions` | Install VS Code extensions    |
+| Update versions    | `just update-versions`    | `make update-versions`    | Update version numbers        |
+| Clean              | `just clean`              | `make clean`              | Clean build artifacts         |
+| Setup              | `just setup`              | N/A                       | Full setup (install + checks) |
 
 ---
 
@@ -337,6 +355,7 @@ See the main [README.md](../README.md#project-structure) for the detailed projec
 Currently, there are no automated tests. Testing is done manually during development.
 
 **Future Testing Plans:**
+
 - Unit tests for critical business logic
 - Integration tests for Tauri commands
 - E2E tests for user workflows
@@ -348,21 +367,27 @@ Currently, there are no automated tests. Testing is done manually during develop
 ### Common Issues
 
 **Issue: `pnpm install` fails**
+
 - **Solution:** Ensure you're using pnpm v10.26.2 or later. Run `pnpm --version` to check.
 
 **Issue: Tauri build fails on macOS**
+
 - **Solution:** Ensure Xcode Command Line Tools are installed: `xcode-select --install`
 
 **Issue: yamllint not found**
+
 - **Solution:** Install yamllint: `pip install 'yamllint==1.35.1'`
 
 **Issue: Nix commands not found**
+
 - **Solution:** Ensure Nix is installed and Flakes are enabled in your Nix config.
 
 **Issue: direnv not auto-loading**
+
 - **Solution:** Run `direnv allow` in the project directory.
 
 **Issue: Build errors after pulling latest changes**
+
 - **Solution:** Clean and reinstall dependencies:
   ```bash
   just clean

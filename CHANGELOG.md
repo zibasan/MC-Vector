@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Makefile for traditional task runner support
 - justfile for modern task runner support
 - Nix development environment (flake.nix + shell.nix)
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - This changelog
 
 ### Changed
+
 - GitHub Actions CI now uses task runner commands (just/make)
 - README structure improved with badges and table of contents
 - Documentation reorganized into docs/ directory
@@ -27,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Current stable release.
 
 ### Features
+
 - Multi-platform desktop app (macOS, Windows, Linux)
 - Multiple Minecraft server management
 - Real-time server monitoring (CPU, memory usage)
@@ -42,6 +45,7 @@ Current stable release.
 - Auto-updater
 
 ### Technology Stack
+
 - Frontend: React 19, TypeScript, Vite, TailwindCSS, SCSS
 - Desktop: Tauri v2
 - Backend: Rust
@@ -68,6 +72,7 @@ Earlier versions of MC-Vector (if any) are no longer supported.
 MC-Vector includes an auto-updater. When a new version is available, you'll be prompted to update automatically.
 
 **Manual Installation:**
+
 1. Download the latest release from [GitHub Releases](https://github.com/tukuyomil032/MC-Vector/releases)
 2. Install the new version
 3. Your server data and settings will be preserved
@@ -93,9 +98,11 @@ When contributing, please update this changelog according to these guidelines:
 ## [Version] - YYYY-MM-DD
 
 ### Added
+
 - New feature description
 
 ### Fixed
+
 - Bug fix description (#issue-number)
 ```
 
