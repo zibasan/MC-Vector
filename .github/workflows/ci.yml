@@ -28,7 +28,7 @@ jobs:
       - name: Install yamllint
         run: pip install 'yamllint==1.35.1'
       - name: YAML Lint
-        run: pnpm yamllint
+        run: vp exec yamllint .
       - name: Vite+ Check (lint & format)
         run: vp check
 
@@ -49,4 +49,4 @@ jobs:
         with:
           workspaces: ./src-tauri -> target
       - run: vp install --frozen-lockfile
-      - run: pnpm tauri build --debug --no-bundle
+      - run: vp pm tauri build --debug --no-bundle
