@@ -147,3 +147,4 @@ vite.config.ts.timestamp-*
 
 # update-version
 update-output.json
+skills-lock.json

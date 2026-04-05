@@ -144,7 +144,7 @@ $ pnpm tauri build
 3. **Check formatting and linting**
 
    ```bash
-   $ pnpm biome:check
+   $ pnpm check
    ```
 
 4. **Format Rust**
