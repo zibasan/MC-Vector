@@ -1,13 +1,13 @@
 # GitHub Linguist Configuration
 # Make build/dev environment files visible in language statistics
 
-# Nix configuration files - mark as detectable
-*.nix linguist-detectable=true
-flake.lock linguist-detectable=true
+# Nix configuration files
+*.nix linguist-language=Nix
+flake.lock linguist-language=Nix
 
-# Build automation files - mark as detectable
-Makefile linguist-detectable=true
-justfile linguist-detectable=true
+# Build automation files
+Makefile linguist-language=Makefile
+justfile linguist-language=Just
 
 # Exclude documentation from language statistics
 docs/** linguist-documentation=true
