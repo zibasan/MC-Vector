@@ -2,7 +2,8 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite-plus';
 
 const tauriDevHost = process.env.TAURI_DEV_HOST;
-const portlessPort = process.env.PORT ? Number(process.env.PORT) : undefined;
+const parsedPort = process.env.PORT ? Number(process.env.PORT) : undefined;
+const portlessPort = parsedPort !== undefined && Number.isFinite(parsedPort) ? parsedPort : undefined;
 const devHost = tauriDevHost ?? process.env.HOST;
 
 export default defineConfig({
