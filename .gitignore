@@ -160,7 +160,7 @@ result-*
 
 
 # agents
-.agents/*
-.claude
-.codex
-.cursor
+.agents/**
+.claude/**
+.codex/**
+.cursor/**
