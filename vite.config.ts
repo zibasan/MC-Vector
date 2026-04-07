@@ -86,7 +86,7 @@ export default defineConfig({
       '.vscode/**',
       '.github/workflows/**',
       'scripts/**',
-      '.agents/**'
+      '.agents/**/*',
     ],
   },
 
