@@ -27,12 +27,12 @@ setup: install check-all
 
 # Start frontend development server via portless
 dev:
-    portless run vp dev
+    pnpm dev
 
 # Start development server (alias for dev)
 watch:
     @echo "Starting development server with hot reload..."
-    portless run vp dev
+    pnpm dev
 
 # Start Tauri application in dev mode
 tauri-dev:
