@@ -5,8 +5,15 @@
 
   body,
   html {
-    @apply m-0 p-0 h-full font-sans bg-bg-primary text-text-primary overflow-hidden;
+    @apply m-0 p-0 h-full font-sans overflow-hidden;
+    background: var(--mv-surface-base);
+    color: var(--mv-surface-text-primary);
+    color-scheme: var(--mv-color-scheme);
     -webkit-font-smoothing: antialiased;
+  }
+
+  #root {
+    @apply h-full;
   }
 
   ::-webkit-scrollbar {
@@ -18,11 +25,12 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-zinc-700 rounded;
+    @apply rounded;
+    background-color: var(--mv-scrollbar-thumb);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-zinc-600;
+    background-color: var(--mv-scrollbar-thumb-hover);
   }
 
   button {

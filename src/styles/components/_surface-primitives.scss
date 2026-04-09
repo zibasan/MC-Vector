@@ -1,0 +1,66 @@
+@layer components {
+  .surface-card {
+    @apply rounded-2xl border;
+    border-color: var(--mv-surface-border);
+    background: var(--mv-surface-card-bg);
+    box-shadow: var(--mv-surface-shadow);
+  }
+
+  .section-title {
+    @apply m-0 text-[0.72rem] font-semibold uppercase tracking-[0.12em];
+    color: var(--mv-section-title-color);
+  }
+
+  .kpi-tile {
+    @apply rounded-xl border p-4 flex flex-col gap-1.5;
+    border-color: var(--mv-surface-border);
+    background: var(--mv-surface-card-alt-bg);
+    box-shadow: var(--mv-surface-shadow-soft);
+    transition:
+      transform 0.15s ease,
+      border-color 0.2s ease;
+  }
+
+  .kpi-tile:hover {
+    transform: translateY(-2px);
+    border-color: var(--mv-surface-border-strong);
+  }
+
+  .kpi-tile__label {
+    @apply text-[0.68rem] uppercase tracking-[0.1em] font-semibold;
+    color: var(--mv-kpi-label-color);
+  }
+
+  .kpi-tile__value {
+    @apply text-2xl font-bold;
+    color: var(--mv-kpi-value-color);
+  }
+
+  .kpi-tile__meta {
+    @apply text-xs;
+    color: var(--mv-kpi-meta-color);
+  }
+
+  .control-chip {
+    @apply inline-flex items-center justify-center rounded-md border px-2.5 py-1 text-xs font-semibold transition-all;
+    border-color: var(--mv-control-chip-border);
+    background: var(--mv-control-chip-bg);
+    color: var(--mv-control-chip-text);
+  }
+
+  .control-chip:hover {
+    background: var(--mv-control-chip-bg-hover);
+  }
+
+  .control-chip:focus-visible {
+    @apply outline-none;
+    box-shadow: 0 0 0 2px var(--mv-surface-border-strong);
+  }
+
+  .control-chip.is-active,
+  .control-chip[aria-pressed='true'] {
+    border-color: var(--mv-control-chip-active-border);
+    background: var(--mv-control-chip-active-bg);
+    color: var(--mv-control-chip-active-text);
+  }
+}
