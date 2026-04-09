@@ -6,6 +6,7 @@ import { useTranslation } from '../../i18n';
 import { sendCommand } from '../../lib/server-commands';
 import { tauriListen } from '../../lib/tauri-api';
 import { type MinecraftServer } from '../components/../shared/server declaration';
+import { useConsoleStore } from '../../store/consoleStore';
 import { useToast } from './ToastProvider';
 
 type AnsiStyle = {
@@ -169,13 +170,15 @@ const getSeverityStyle = (level: Exclude<LogLevelFilter, 'ALL'>): AnsiStyle => {
 
 interface ConsoleViewProps {
   server: MinecraftServer;
-  logs: string[];
   ngrokUrl: string | null;
 }
 
-const ConsoleView: FC<ConsoleViewProps> = ({ server, logs, ngrokUrl }) => {
+const EMPTY_LOGS: string[] = [];
+
+const ConsoleView: FC<ConsoleViewProps> = ({ server, ngrokUrl }) => {
   const { t } = useTranslation();
   const { showToast } = useToast();
+  const logs = useConsoleStore((state) => state.serverLogs[server.id] ?? EMPTY_LOGS);
   const [command, setCommand] = useState('');
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyCursor, setHistoryCursor] = useState(-1);
@@ -289,15 +292,21 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, logs, ngrokUrl }) => {
   }, [activeMatchIndex, totalMatches, isSearchOpen, normalizedSearchQuery, visibleLogs.length]);
 
   useEffect(() => {
+    let cancelled = false;
     let unlisten: (() => void) | undefined;
-    tauriListen<{ serverId: string; memory: number }>('server-stats', (data) => {
+    void tauriListen<{ serverId: string; memory: number }>('server-stats', (data) => {
       if (data.serverId === server.id) {
         setMemoryUsage(data.memory);
       }
     }).then((fn) => {
+      if (cancelled) {
+        fn();
+        return;
+      }
       unlisten = fn;
     });
     return () => {
+      cancelled = true;
       unlisten?.();
     };
   }, [server.id]);

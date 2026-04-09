@@ -1,6 +1,6 @@
 import { ask } from '@tauri-apps/plugin-dialog';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   ArrowLeft,
   ArrowRight,
@@ -226,6 +226,7 @@ function projectPageUrl(item: ProjectItem): string {
 
 export default function PluginBrowser({ server }: Props) {
   const { t } = useTranslation();
+  const prefersReducedMotion = useReducedMotion();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ProjectItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1234,8 +1235,8 @@ export default function PluginBrowser({ server }: Props) {
             <motion.button
               key={option.key}
               type="button"
-              whileTap={{ scale: 0.97 }}
-              whileHover={{ y: -1 }}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
+              whileHover={prefersReducedMotion ? undefined : { y: -1 }}
               className={`plugin-browser__platform-chip ${active ? 'is-active' : ''}`}
               onClick={() => {
                 setPlatform(option.key);
@@ -1372,11 +1373,21 @@ export default function PluginBrowser({ server }: Props) {
                 return (
                   <motion.div
                     key={`${item.platform}-${item.id}`}
-                    layout
-                    initial={{ opacity: 0, y: 14, scale: 0.98 }}
+                    layout={!prefersReducedMotion}
+                    initial={
+                      prefersReducedMotion
+                        ? { opacity: 1, y: 0, scale: 1 }
+                        : { opacity: 0, y: 14, scale: 0.98 }
+                    }
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.16) }}
+                    exit={
+                      prefersReducedMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -10 }
+                    }
+                    transition={
+                      prefersReducedMotion
+                        ? { duration: 0 }
+                        : { duration: 0.18, delay: Math.min(index * 0.02, 0.16) }
+                    }
                     className="plugin-browser__result-card"
                   >
                     <div
@@ -1504,8 +1515,9 @@ export default function PluginBrowser({ server }: Props) {
               {sortedResults.length === 0 && !loading && (
                 <motion.div
                   key="empty"
-                  initial={{ opacity: 0, y: 8 }}
+                  initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
+                  transition={prefersReducedMotion ? { duration: 0 } : undefined}
                   className="plugin-browser__result-empty"
                 >
                   {t('plugins.browser.noResults')}
