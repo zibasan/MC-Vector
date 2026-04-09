@@ -18,12 +18,12 @@
 
   .console-view__status-col--with-divider {
     @apply border-r;
-    border-color: rgba(82, 82, 91, 0.42);
+    border-color: var(--mv-console-status-divider);
   }
 
   .console-view__status-label {
     @apply mb-1 text-[0.64rem] font-bold uppercase tracking-[0.14em];
-    color: #9ca3af;
+    color: var(--mv-console-status-label);
   }
 
   .console-view__address {
@@ -44,7 +44,7 @@
   }
 
   .console-view__address.is-local {
-    color: #e5e7eb;
+    color: var(--mv-console-address-local);
   }
 
   .console-view__status-value {
@@ -70,7 +70,7 @@
 
   .console-view__memory-value {
     @apply text-sm font-bold;
-    color: #e5e7eb;
+    color: var(--mv-console-memory-value);
   }
 
   .console-view__search-strip {
@@ -86,24 +86,24 @@
 
   .console-view__search-label {
     @apply text-[0.64rem] font-semibold uppercase tracking-[0.13em];
-    color: #8b9bb4;
+    color: var(--mv-console-search-label);
   }
 
   .console-view__search-placeholder {
     @apply flex-1 truncate text-xs;
-    color: #94a3b8;
+    color: var(--mv-console-search-placeholder);
   }
 
   .console-view__search-input {
     @apply min-w-0 flex-1 rounded-md border px-2.5 py-1.5 text-[13px] outline-none;
-    background-color: rgba(17, 24, 39, 0.82);
-    border-color: rgba(82, 82, 91, 0.85);
-    color: #f3f4f6;
+    background-color: var(--mv-console-input-bg);
+    border-color: var(--mv-console-input-border);
+    color: var(--mv-console-input-text);
   }
 
   .console-view__search-count {
     @apply min-w-[72px] text-center text-xs font-semibold;
-    color: #9ca3af;
+    color: var(--mv-console-search-count);
   }
 
   .console-view__search-open-btn,
@@ -127,16 +127,14 @@
 
   .console-view__log-viewport {
     @apply relative min-h-0 flex-1 overflow-hidden p-0;
-    background:
-      linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(23, 23, 29, 0.9)),
-      radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.1), transparent 45%);
+    background: var(--mv-console-log-bg);
     border-color: var(--mv-border-soft);
-    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.24);
+    box-shadow: var(--mv-console-log-shadow);
   }
 
   .console-view__log-pane {
     @apply h-full overflow-y-auto px-4 py-4 font-mono text-[13px] leading-relaxed whitespace-pre-wrap;
-    color: #d4d4d8;
+    color: var(--mv-console-log-text);
   }
 
   .console-view__log-line {
@@ -180,13 +178,13 @@
   }
 
   .console-view__save-button {
-    border-color: rgba(16, 185, 129, 0.55);
-    background: rgba(6, 95, 70, 0.48);
-    color: #d1fae5;
+    border-color: var(--mv-console-save-button-border);
+    background: var(--mv-console-save-button-bg);
+    color: var(--mv-console-save-button-text);
   }
 
   .console-view__save-button:hover {
-    background: rgba(6, 120, 87, 0.56);
+    background: var(--mv-console-save-button-bg-hover);
   }
 
   .console-view__filter-wrap {
@@ -195,13 +193,13 @@
 
   .console-view__filter-label {
     @apply text-[11px] font-semibold uppercase tracking-wider;
-    color: #8b9bb4;
+    color: var(--mv-console-filter-label);
   }
 
   .console-view__filter-pills {
     @apply inline-flex items-center gap-1 rounded-lg border p-1;
-    border-color: rgba(82, 82, 91, 0.72);
-    background: rgba(17, 24, 39, 0.68);
+    border-color: var(--mv-console-filter-pills-border);
+    background: var(--mv-console-filter-pills-bg);
   }
 
   .console-view__filter-pill {
@@ -221,13 +219,14 @@
 
   .console-view__command-prefix {
     @apply font-bold;
-    color: #8b9bb4;
+    color: var(--mv-console-command-prefix);
   }
 
   .console-view__command-input {
     @apply min-w-0 flex-1 rounded-md border px-3 py-2.5 font-mono text-sm text-white outline-none;
-    background-color: rgba(17, 24, 39, 0.82);
-    border-color: rgba(82, 82, 91, 0.82);
+    background-color: var(--mv-console-input-bg);
+    border-color: var(--mv-console-input-border);
+    color: var(--mv-console-input-text);
   }
 
   .console-view__send-button {
@@ -243,7 +242,7 @@
 
   .console-view__history-hint {
     @apply text-right text-[11px] font-semibold;
-    color: #8b9bb4;
+    color: var(--mv-console-history-hint);
   }
 }
 

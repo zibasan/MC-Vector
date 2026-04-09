@@ -48,6 +48,31 @@
     --mv-control-chip-active-border: rgba(14, 165, 233, 0.4);
     --mv-control-chip-active-text: #ffffff;
 
+    --mv-console-status-divider: rgba(148, 163, 184, 0.5);
+    --mv-console-status-label: #475569;
+    --mv-console-address-local: var(--mv-surface-text-primary);
+    --mv-console-memory-value: var(--mv-surface-text-primary);
+    --mv-console-search-label: #475569;
+    --mv-console-search-placeholder: #475569;
+    --mv-console-search-count: #475569;
+    --mv-console-input-bg: rgba(248, 250, 252, 0.92);
+    --mv-console-input-border: rgba(148, 163, 184, 0.72);
+    --mv-console-input-text: var(--mv-surface-text-primary);
+    --mv-console-log-bg:
+      linear-gradient(145deg, rgba(248, 250, 252, 0.92), rgba(226, 232, 240, 0.88)),
+      radial-gradient(circle at 100% 0%, rgba(14, 165, 233, 0.08), transparent 45%);
+    --mv-console-log-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+    --mv-console-log-text: #334155;
+    --mv-console-save-button-border: rgba(16, 185, 129, 0.48);
+    --mv-console-save-button-bg: rgba(16, 185, 129, 0.14);
+    --mv-console-save-button-bg-hover: rgba(5, 150, 105, 0.2);
+    --mv-console-save-button-text: #065f46;
+    --mv-console-filter-label: #475569;
+    --mv-console-filter-pills-border: rgba(148, 163, 184, 0.72);
+    --mv-console-filter-pills-bg: rgba(241, 245, 249, 0.72);
+    --mv-console-command-prefix: #475569;
+    --mv-console-history-hint: #475569;
+
     --mv-scrollbar-thumb: rgba(100, 116, 139, 0.62);
     --mv-scrollbar-thumb-hover: rgba(71, 85, 105, 0.72);
   }
@@ -84,6 +109,31 @@
     --mv-control-chip-border: rgba(71, 85, 105, 0.82);
     --mv-control-chip-text: #e5e7eb;
     --mv-control-chip-active-border: rgba(56, 189, 248, 0.52);
+
+    --mv-console-status-divider: rgba(82, 82, 91, 0.42);
+    --mv-console-status-label: #9ca3af;
+    --mv-console-address-local: #e5e7eb;
+    --mv-console-memory-value: #e5e7eb;
+    --mv-console-search-label: #8b9bb4;
+    --mv-console-search-placeholder: #94a3b8;
+    --mv-console-search-count: #9ca3af;
+    --mv-console-input-bg: rgba(17, 24, 39, 0.82);
+    --mv-console-input-border: rgba(82, 82, 91, 0.85);
+    --mv-console-input-text: #f3f4f6;
+    --mv-console-log-bg:
+      linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(23, 23, 29, 0.9)),
+      radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.1), transparent 45%);
+    --mv-console-log-shadow: 0 18px 40px rgba(2, 6, 23, 0.24);
+    --mv-console-log-text: #d4d4d8;
+    --mv-console-save-button-border: rgba(16, 185, 129, 0.55);
+    --mv-console-save-button-bg: rgba(6, 95, 70, 0.48);
+    --mv-console-save-button-bg-hover: rgba(6, 120, 87, 0.56);
+    --mv-console-save-button-text: #d1fae5;
+    --mv-console-filter-label: #8b9bb4;
+    --mv-console-filter-pills-border: rgba(82, 82, 91, 0.72);
+    --mv-console-filter-pills-bg: rgba(17, 24, 39, 0.68);
+    --mv-console-command-prefix: #8b9bb4;
+    --mv-console-history-hint: #8b9bb4;
 
     --mv-scrollbar-thumb: rgba(82, 82, 91, 0.85);
     --mv-scrollbar-thumb-hover: rgba(113, 113, 122, 0.92);

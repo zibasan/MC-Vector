@@ -15,15 +15,15 @@ MC-VectorのUIを、運用系ダッシュボードとしての一貫性と高級
 
 ## ステータスマトリクス
 
-| Phase | 内容                                                       | 状態     | 依存    |
-| ----- | ---------------------------------------------------------- | -------- | ------- |
-| 0     | `audit/react-best-practices-plan` → `main` マージ待機/監視 | **Done** | なし    |
-| 1     | 最新`main`取込 + UI刷新用新規ブランチ作成                  | **Done** | Phase 0 |
-| 2     | ask_userで詳細要件確定（配色/密度/優先タブ）               | **Done** | Phase 1 |
-| 3     | デザインシステム定義（トークン/タイポ/コンポーネント規約） | **Done** | Phase 2 |
-| 4     | Appシェル（サイドバー/ヘッダー）を先行刷新                 | Pending  | Phase 3 |
-| 5     | 各タブを優先順で段階移行                                   | Pending  | Phase 4 |
-| 6     | 仕上げ（アクセシビリティ/動作品質/ドキュメント）           | Pending  | Phase 5 |
+| Phase | 内容                                                            | 状態     | 依存    |
+| ----- | --------------------------------------------------------------- | -------- | ------- |
+| 0     | `audit/react-best-practices-plan` の `main` 反映確認完了        | **Done** | なし    |
+| 1     | 最新`main`取込 + UI刷新用新規ブランチ作成                       | **Done** | Phase 0 |
+| 2     | ask_userで詳細要件確定（配色/密度/優先タブ）                    | **Done** | Phase 1 |
+| 3     | デザインシステム定義（トークン/タイポ/コンポーネント規約）      | **Done** | Phase 2 |
+| 4     | Appシェル（サイドバー/ヘッダー）を先行刷新                      | **Done** | Phase 3 |
+| 5     | 各タブを優先順で段階移行（本フェーズ対象: Dashboard / Console） | **Done** | Phase 4 |
+| 6     | 仕上げ（アクセシビリティ/動作品質/ドキュメント）                | **Done** | Phase 5 |
 
 ## ブランチ戦略（衝突回避）
 
@@ -32,17 +32,22 @@ MC-VectorのUIを、運用系ダッシュボードとしての一貫性と高級
 3. 影響範囲をUI関連ファイル（`src/App.tsx`, `src/styles/**`, `src/renderer/components/**`）へ集中させる
 4. 既存監査修正とUI刷新修正を同時に混在させない
 
-## 実装開始前にask_userで確定する項目
+## ask_userで確定した項目（Phase 2決定結果）
 
-- 先行するタブ（例: Dashboard/Console優先）
-- 情報密度（compact / comfortable）
-- テーマ運用（dark-only / light+dark）
-- 視覚演出の強さ（静的寄り / ほどよい動き）
-- KPIカードやグラフの主張度（控えめ / 強め）
+- 先行タブ: Dashboard / Console
+- 情報密度: comfortable
+- テーマ運用: light / dark / system（既定値: light）
+- 視覚演出の強さ: ほどよい動き
+- KPIカードやグラフの主張度: 強め
+- 本フェーズの対象範囲: App shell + Dashboard + Console
+- 基準ウィンドウサイズ: desktop 1280x720
 
 ## 現在の進行
 
 - Phase 1完了: 最新`main`取込とUI刷新用ブランチ作成を実施済み
-- Phase 2完了: 配色/密度/優先タブの詳細要件を確定済み
+- Phase 2完了: ask_userで優先タブ/密度/テーマ/演出の詳細要件を確定済み
 - Phase 3完了: デザインシステム（トークン/タイポ/コンポーネント規約）を定義済み
+- Phase 4完了: Appシェル（サイドバー/ヘッダー）刷新を反映済み
+- Phase 5完了: 優先対象タブ（Dashboard / Console）刷新を反映済み
+- Phase 6完了: 動作品質の調整とドキュメント更新を反映済み
 - `audit/react-best-practices-plan` は `origin/main` への反映済み（リモートブランチは削除済み）

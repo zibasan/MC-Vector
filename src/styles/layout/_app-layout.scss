@@ -56,8 +56,14 @@
   }
 
   .app-sidebar__brand {
-    @apply font-bold text-xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] cursor-pointer;
+    @apply font-bold text-xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] cursor-pointer rounded-sm;
+    @apply border-none bg-transparent p-0 text-left;
     color: var(--mv-shell-text, var(--mv-surface-text-primary));
+  }
+
+  .app-sidebar__brand:focus-visible {
+    @apply outline-none;
+    box-shadow: 0 0 0 2px var(--mv-surface-border-strong);
   }
 
   .app-sidebar__menu-button {

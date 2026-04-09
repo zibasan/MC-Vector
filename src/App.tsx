@@ -1385,13 +1385,15 @@ function App() {
           className={`app-sidebar__header ${isSidebarOpen ? 'app-sidebar__header--open' : 'app-sidebar__header--collapsed'}`}
         >
           {isSidebarOpen && (
-            <span
+            <button
+              type="button"
               className="app-sidebar__brand"
               onClick={handleOpenSettingsWindow}
+              aria-label={t('nav.openSettings')}
               title={t('nav.openSettings')}
             >
               MC-Vector
-            </span>
+            </button>
           )}
 
           <button
