@@ -173,6 +173,14 @@ interface ConsoleViewProps {
   ngrokUrl: string | null;
 }
 
+type ParsedLogEntry = {
+  line: string;
+  plainLine: string;
+  originalIndex: number;
+  level: Exclude<LogLevelFilter, 'ALL'>;
+  segments: AnsiSegment[];
+};
+
 const EMPTY_LOGS: string[] = [];
 
 const ConsoleView: FC<ConsoleViewProps> = ({ server, ngrokUrl }) => {
@@ -195,19 +203,26 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, ngrokUrl }) => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const matchRefs = useRef<Record<string, HTMLSpanElement | null>>({});
 
-  const visibleLogs = useMemo(() => {
-    const parsedLogs = logs.map((line, originalIndex) => ({
-      line,
-      originalIndex,
-      level: detectLogLevel(stripAnsiCodes(line)),
-    }));
+  const parsedLogs = useMemo<ParsedLogEntry[]>(() => {
+    return logs.map((line, originalIndex) => {
+      const plainLine = stripAnsiCodes(line);
+      return {
+        line,
+        plainLine,
+        originalIndex,
+        level: detectLogLevel(plainLine),
+        segments: ansiToSegments(line),
+      };
+    });
+  }, [logs]);
 
+  const visibleLogs = useMemo(() => {
     if (logFilter === 'ALL') {
       return parsedLogs;
     }
 
     return parsedLogs.filter((entry) => entry.level === logFilter);
-  }, [logs, logFilter]);
+  }, [parsedLogs, logFilter]);
 
   const normalizedSearchQuery = searchQuery.trim();
   const lowerSearchQuery = normalizedSearchQuery.toLowerCase();
@@ -217,7 +232,7 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, ngrokUrl }) => {
     }
 
     return visibleLogs.reduce((total, entry) => {
-      return total + countMatches(stripAnsiCodes(entry.line), normalizedSearchQuery);
+      return total + countMatches(entry.plainLine, normalizedSearchQuery);
     }, 0);
   }, [visibleLogs, normalizedSearchQuery]);
 
@@ -430,9 +445,7 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, ngrokUrl }) => {
         return;
       }
 
-      const output = visibleLogs
-        .map((entry) => stripAnsiCodes(entry.line).replace(/\r\n/g, '\n'))
-        .join('\n');
+      const output = visibleLogs.map((entry) => entry.plainLine.replace(/\r\n/g, '\n')).join('\n');
 
       await writeTextFile(targetPath, output);
       showToast(t('console.toast.logsSaved'), 'success');
@@ -547,15 +560,14 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, ngrokUrl }) => {
         {(() => {
           let renderedMatchIndex = -1;
 
-          return visibleLogs.map((entry, index: number) => (
+          return visibleLogs.map((entry) => (
             <div
-              key={`${entry.originalIndex}-${index}`}
+              key={entry.originalIndex}
               className={`console-view__log-line console-view__log-line--${entry.level.toLowerCase()} break-words`}
             >
               {(() => {
-                const log = entry.line;
                 const severityStyle = getSeverityStyle(entry.level);
-                return ansiToSegments(log).map((seg, i) => {
+                return entry.segments.map((seg, i) => {
                   const style = { ...seg.style } as AnsiStyle;
                   if (severityStyle) {
                     if (!style.color) {

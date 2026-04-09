@@ -4,7 +4,7 @@
 - Branch: `audit/react-best-practices-plan`
 - Scope: `src/**/*.tsx` (React frontend only)
 - Method: parallel sub-agent audit + manual evidence verification
-- Auditは完了し、現在は監査結果にもとづく段階的な remediation を実施中
+- Auditは完了し、監査起点の remediation は主要項目まで反映済み
 
 ## Executive Summary
 
@@ -19,8 +19,8 @@
 | P1       | Async effects                   | `tauriListen` / `on*Change` の購読解除が Promise 解決競合に依存するパターンが散在 | **Done** | `src/renderer/components/FilesView.tsx`, `BackupsView.tsx`, `ServerSettings.tsx`, `JavaManagerModal.tsx`, `BackupTargetSelectorWindow.tsx`, `DashboardView.tsx`, `ConsoleView.tsx` |
 | P1       | Accessibility / React semantics | `NavItem` が clickable `div` で、キーボード/ARIAセマンティクス不足                | **Done** | `src/App.tsx`, `src/styles/layout/_app-layout.scss`                                                                                                                                |
 | P1       | Motion accessibility            | `prefers-reduced-motion` 分岐なしで画面遷移/カードアニメーションを実行            | **Done** | `src/App.tsx`, `src/renderer/components/PluginBrowser.tsx`                                                                                                                         |
-| P2       | Rendering strategy              | コンソール描画が全件レンダリング + ANSIパースを描画時実行                         | Pending  | `src/renderer/components/ConsoleView.tsx`                                                                                                                                          |
-| P2       | Async waterfalls                | プラグイン互換/更新判定が結果配列単位の同時実行で、Abort制御なし                  | Pending  | `src/renderer/components/PluginBrowser.tsx`                                                                                                                                        |
+| P2       | Rendering strategy              | コンソール描画が全件レンダリング + ANSIパースを描画時実行                         | **Done** | `src/renderer/components/ConsoleView.tsx`                                                                                                                                          |
+| P2       | Async waterfalls                | プラグイン互換/更新判定が結果配列単位の同時実行で、Abort制御なし                  | **Done** | `src/renderer/components/PluginBrowser.tsx`                                                                                                                                        |
 | P2       | Error containment               | `lazy` + `Suspense` はあるが Error Boundary がない                                | **Done** | `src/renderer/components/ViewErrorBoundary.tsx`, `src/App.tsx`                                                                                                                     |
 | P3       | Code hygiene                    | 実処理のない空 `useEffect` が残存                                                 | **Done** | `src/App.tsx`                                                                                                                                                                      |
 
