@@ -87,6 +87,7 @@
 
   .app-shell {
     /* Contract: App.tsx sets the source shell vars that feed this token bridge. */
+    color-scheme: var(--mv-color-scheme);
     --mv-surface-elevated-start: var(--mv-panel-start);
     --mv-surface-elevated-end: var(--mv-panel-end);
     --mv-surface-alt-start: var(--mv-panel-alt-start);
