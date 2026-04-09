@@ -1,6 +1,33 @@
 @layer components {
   .app-shell {
     @apply flex h-screen w-screen;
+    background: var(--mv-shell-bg, var(--mv-surface-base));
+    color: var(--mv-shell-text, var(--mv-surface-text-primary));
+  }
+
+  .app-shell__surface {
+    color: inherit;
+    border-color: var(--mv-shell-border, var(--mv-surface-border));
+  }
+
+  .app-shell__surface--sidebar {
+    background: var(--mv-shell-sidebar-bg, var(--mv-surface-alt-start));
+  }
+
+  .app-shell__surface--sidebar-panel {
+    background: var(--mv-shell-sidebar-panel-bg, var(--mv-surface-card-alt-bg));
+  }
+
+  .app-shell__surface--main {
+    background: var(--mv-shell-main-bg, transparent);
+  }
+
+  .app-shell__surface--header {
+    background: var(--mv-shell-header-bg, var(--mv-surface-card-bg));
+  }
+
+  .app-shell__surface--content {
+    background: var(--mv-shell-content-bg, var(--mv-surface-card-bg));
   }
 
   .app-sidebar {
@@ -16,7 +43,8 @@
   }
 
   .app-sidebar__header {
-    @apply flex items-center p-5 bg-transparent;
+    @apply flex items-center p-5 bg-transparent border-b;
+    border-color: var(--mv-shell-border, var(--mv-surface-border));
   }
 
   .app-sidebar__header--open {
@@ -27,8 +55,22 @@
     @apply justify-center;
   }
 
+  .app-sidebar__brand {
+    @apply font-bold text-xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] cursor-pointer;
+    color: var(--mv-shell-text, var(--mv-surface-text-primary));
+  }
+
   .app-sidebar__menu-button {
-    @apply bg-transparent border-none p-1;
+    @apply bg-transparent border-none p-1 rounded-md transition-colors;
+  }
+
+  .app-sidebar__menu-button:hover {
+    background-color: rgb(255 255 255 / 0.07);
+  }
+
+  .app-sidebar__menu-button:focus-visible {
+    @apply outline-none;
+    box-shadow: 0 0 0 2px var(--mv-surface-border-strong);
   }
 
   .app-sidebar__menu-icon {
@@ -36,15 +78,27 @@
   }
 
   .app-sidebar__nav {
-    @apply flex-1 p-2.5 flex flex-col overflow-y-auto rounded-xl;
+    @apply flex-1 p-2.5 mt-2.5 flex flex-col overflow-y-auto rounded-xl border;
+    box-shadow: var(--mv-surface-shadow-soft);
   }
 
   .app-sidebar__servers {
-    @apply max-h-[40%] flex flex-col;
+    @apply max-h-[40%] mt-2.5 p-2.5 flex flex-col rounded-xl border;
+    box-shadow: var(--mv-surface-shadow-soft);
   }
 
   .app-sidebar__servers-title {
     @apply px-2.5 py-1 text-xs text-text-secondary font-bold tracking-wider;
+  }
+
+  .app-sidebar__group-title {
+    @apply px-2 py-1 text-[0.68rem] uppercase tracking-[0.12em];
+    color: var(--mv-surface-text-muted);
+  }
+
+  .app-sidebar__divider {
+    @apply w-[90%] my-2.5 mx-auto border-0 border-t;
+    border-color: var(--mv-shell-border, var(--mv-surface-border));
   }
 
   .app-sidebar__server-list {
@@ -71,19 +125,29 @@
   }
 
   .app-main {
-    @apply flex-1 flex flex-col overflow-hidden relative;
+    @apply flex-1 flex flex-col overflow-hidden relative min-w-0;
   }
 
   .app-main__header {
     @apply h-[60px] px-5 flex items-center justify-between border-b backdrop-blur-xl z-10 shrink-0;
+    border-color: var(--mv-shell-border, var(--mv-surface-border));
+  }
+
+  .app-main__title {
+    @apply text-xl font-bold;
+  }
+
+  .app-main__subtitle {
+    @apply text-sm opacity-70;
   }
 
   .app-main__content {
-    @apply flex-1 p-0 overflow-hidden relative flex flex-col;
+    @apply flex-1 p-0 overflow-hidden relative flex flex-col m-3 mt-2 min-h-0;
   }
 
   .app-nav-item {
-    @apply flex items-center w-full box-border transition-all text-sm text-text-secondary rounded-md mx-1 my-0.5 border-l-[3px];
+    @apply flex items-center w-full box-border transition-all text-sm rounded-md mx-1 my-0.5 border-l-[3px];
+    color: var(--mv-surface-text-secondary);
   }
 
   .app-nav-item--open {
@@ -99,11 +163,22 @@
   }
 
   .app-nav-item.is-idle {
-    @apply border-l-transparent hover:bg-bg-hover hover:text-text-primary hover:translate-x-1;
+    @apply border-l-transparent hover:translate-x-1;
+  }
+
+  .app-nav-item.is-idle:hover {
+    color: var(--mv-surface-text-primary);
+    background-color: rgb(255 255 255 / 0.08);
+  }
+
+  .app-shell.theme-light .app-nav-item.is-idle:hover,
+  .app-shell[data-theme='light'] .app-nav-item.is-idle:hover {
+    background-color: rgb(15 23 42 / 0.06);
   }
 
   .app-nav-item:focus-visible {
-    @apply outline-none ring-2 ring-accent/40;
+    @apply outline-none;
+    box-shadow: 0 0 0 2px var(--mv-surface-border-strong);
   }
 
   .app-nav-item__icon {

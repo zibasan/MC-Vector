@@ -1177,6 +1177,14 @@ function App() {
   const themeColors = themePalette[resolvedTheme];
 
   const appShellCssVars: Record<`--${string}`, string> = {
+    '--mv-shell-bg': themeColors.mainBg,
+    '--mv-shell-text': themeColors.text,
+    '--mv-shell-border': themeColors.border,
+    '--mv-shell-sidebar-bg': themeColors.sidebarBg,
+    '--mv-shell-sidebar-panel-bg': themeColors.sidebarPanelBg,
+    '--mv-shell-main-bg': 'transparent',
+    '--mv-shell-header-bg': themeColors.headerBg,
+    '--mv-shell-content-bg': themeColors.panelBg,
     '--mv-view-glow-a': themeColors.viewGlowA,
     '--mv-view-glow-b': themeColors.viewGlowB,
     '--mv-panel-start': themeColors.panelStart,
@@ -1194,8 +1202,6 @@ function App() {
   };
 
   const appShellStyle: CSSProperties = {
-    background: themeColors.mainBg,
-    color: themeColors.text,
     ...appShellCssVars,
   };
 
@@ -1373,22 +1379,16 @@ function App() {
       style={appShellStyle}
     >
       <aside
-        className={`app-sidebar ${isSidebarOpen ? 'app-sidebar--open' : 'app-sidebar--collapsed'}`}
-        style={{
-          background: themeColors.sidebarBg,
-          borderColor: themeColors.border,
-          color: themeColors.text,
-        }}
+        className={`app-sidebar app-shell__surface app-shell__surface--sidebar ${isSidebarOpen ? 'app-sidebar--open' : 'app-sidebar--collapsed'}`}
       >
         <div
           className={`app-sidebar__header ${isSidebarOpen ? 'app-sidebar__header--open' : 'app-sidebar__header--collapsed'}`}
         >
           {isSidebarOpen && (
             <span
-              className="font-bold text-xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] cursor-pointer"
+              className="app-sidebar__brand"
               onClick={handleOpenSettingsWindow}
               title={t('nav.openSettings')}
-              style={{ color: themeColors.text }}
             >
               MC-Vector
             </span>
@@ -1402,7 +1402,7 @@ function App() {
           </button>
         </div>
 
-        <div className="app-sidebar__nav" style={{ background: themeColors.sidebarPanelBg }}>
+        <div className="app-sidebar__nav app-shell__surface app-shell__surface--sidebar-panel surface-card">
           <NavItem
             label={isSidebarOpen ? t('nav.dashboard') : ''}
             tooltip={t('nav.dashboard')}
@@ -1468,7 +1468,7 @@ function App() {
             iconSrc={iconSettings}
           />
 
-          <hr className="w-[90%] border-white/10 my-2.5 mx-auto" />
+          <hr className="app-sidebar__divider" />
 
           <NavItem
             label={isSidebarOpen ? t('nav.proxyNetwork') : ''}
@@ -1481,20 +1481,12 @@ function App() {
         </div>
 
         {isSidebarOpen && (
-          <div
-            className="app-sidebar__servers"
-            style={{
-              borderTop: `1px solid ${themeColors.border}`,
-              background: themeColors.sidebarPanelBg,
-            }}
-          >
+          <div className="app-sidebar__servers app-shell__surface app-shell__surface--sidebar-panel surface-card">
             <div className="app-sidebar__servers-title">{t('nav.servers').toUpperCase()}</div>
             <div className="app-sidebar__server-list">
               {groupedServers.map((group) => (
                 <div key={group.groupName} className="mb-2.5">
-                  <div className="px-2 py-1 text-[0.68rem] uppercase tracking-[0.12em] text-zinc-400">
-                    {group.groupName}
-                  </div>
+                  <div className="app-sidebar__group-title">{group.groupName}</div>
 
                   {group.servers.map((server) => (
                     <div
@@ -1525,26 +1517,11 @@ function App() {
         )}
       </aside>
 
-      <main
-        className="app-main"
-        style={{ background: themeColors.mainBg, color: themeColors.text }}
-      >
-        <header
-          className="app-main__header"
-          style={{
-            background: themeColors.headerBg,
-            color: themeColors.text,
-            borderColor: themeColors.border,
-          }}
-        >
+      <main className="app-main app-shell__surface app-shell__surface--main">
+        <header className="app-main__header app-shell__surface app-shell__surface--header">
           <div className="flex items-center gap-2.5">
-            <h2 className="text-xl font-bold" style={{ color: themeColors.text }}>
-              {headerTitle}
-            </h2>
-            <span className="text-sm" style={{ color: themeColors.text, opacity: 0.7 }}>
-              {' '}
-              / {getViewLabel(currentView)}
-            </span>
+            <h2 className="app-main__title">{headerTitle}</h2>
+            <span className="app-main__subtitle"> / {getViewLabel(currentView)}</span>
           </div>
           <div className="flex items-center gap-2.5 ml-auto">
             {currentView !== 'proxy' && (
@@ -1580,7 +1557,7 @@ function App() {
             )}
           </div>
         </header>
-        <div className="app-main__content" style={{ background: themeColors.panelBg }}>
+        <div className="app-main__content app-shell__surface app-shell__surface--content surface-card">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={`${selectedServerId || 'none'}-${currentView}`}
