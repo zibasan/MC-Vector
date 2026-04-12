@@ -16,6 +16,7 @@ import BackupTargetSelectorWindow from './renderer/components/BackupTargetSelect
 import { useToast } from './renderer/components/ToastProvider';
 import { useAppUpdater } from './renderer/hooks/use-app-updater';
 import { useAppThemeSync } from './renderer/hooks/use-app-theme-sync';
+import { useGroupedServers } from './renderer/hooks/use-grouped-servers';
 import { useServerContextActions } from './renderer/hooks/use-server-context-actions';
 import { useServerAutomation } from './renderer/hooks/use-server-automation';
 import { useProxyNetworkAction } from './renderer/hooks/use-proxy-network-action';
@@ -167,22 +168,7 @@ function App() {
   const resolvedTheme = resolveAppTheme(appTheme, systemPrefersDark);
   const appShellStyle = buildAppShellStyle(resolvedTheme);
 
-  const groupedServers = useMemo(() => {
-    const grouped = new Map<string, MinecraftServer[]>();
-    for (const server of servers) {
-      const groupName = server.groupName?.trim() || t('server.list.ungrouped');
-      const bucket = grouped.get(groupName) ?? [];
-      bucket.push(server);
-      grouped.set(groupName, bucket);
-    }
-
-    return Array.from(grouped.entries())
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([groupName, entries]) => ({
-        groupName,
-        servers: [...entries].sort((left, right) => left.name.localeCompare(right.name)),
-      }));
-  }, [servers, t]);
+  const groupedServers = useGroupedServers({ servers, t });
 
   const headerTitle = getHeaderTitle(currentView, activeServer?.name, t);
 
