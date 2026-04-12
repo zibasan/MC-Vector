@@ -18,7 +18,6 @@ import {
 import { useTranslation } from './i18n';
 import { getAppSettings, onConfigChange, saveAppSettings } from './lib/config-commands';
 import { readFileContent, saveFileContent } from './lib/file-commands';
-import { onNgrokStatusChange } from './lib/ngrok-commands';
 // Tauri API ラッパー
 import {
   addServer as addServerApi,
@@ -26,9 +25,6 @@ import {
   getServers,
   getServerTemplates,
   isServerRunning,
-  onDownloadProgress,
-  onServerLog,
-  onServerStatusChange,
   type ServerTemplate,
   startServer as startServerApi,
   stopServer as stopServerApi,
@@ -52,6 +48,7 @@ import { useToast } from './renderer/components/ToastProvider';
 import UsersView from './renderer/components/UsersView';
 import { useServerContextActions } from './renderer/hooks/use-server-context-actions';
 import { useServerAutomation } from './renderer/hooks/use-server-automation';
+import { useServerRuntimeListeners } from './renderer/hooks/use-server-runtime-listeners';
 import { buildAppShellStyle, resolveAppTheme } from './renderer/shared/app-shell-theme';
 import { type AppView, type MinecraftServer } from './renderer/shared/server declaration';
 import { getHeaderTitle, getViewLabel } from './renderer/shared/view-labels';
@@ -249,84 +246,18 @@ function App() {
     loadTemplates,
   });
 
-  useEffect(() => {
-    const loadServers = async () => {
-      try {
-        const loadedServers = await getServers();
-        setServers(loadedServers);
-        await loadTemplates();
-        if (loadedServers.length > 0 && !selectedServerId) {
-          setSelectedServerId(loadedServers[0].id);
-        }
-      } catch {
-        showToast(t('server.toast.loadError'), 'error');
-      }
-    };
-    loadServers();
-
-    let cancelled = false;
-    const unlisteners: Array<() => void> = [];
-
-    const setupListeners = async () => {
-      const u1 = await onServerLog((data) => {
-        if (cancelled) {
-          return;
-        }
-        if (!data || !data.serverId) {
-          return;
-        }
-        const formattedLog = data.line.replace(/\n/g, '\r\n');
-        appendServerLog(data.serverId, formattedLog);
-      });
-      unlisteners.push(u1);
-
-      const u2 = await onDownloadProgress((data) => {
-        if (cancelled) {
-          return;
-        }
-        if (data.progress === 100) {
-          setDownloadStatus(null);
-          showToast(t('server.toast.downloadComplete', { status: data.status }), 'success');
-        } else {
-          setDownloadStatus({ id: data.serverId, progress: data.progress, msg: data.status });
-        }
-      });
-      unlisteners.push(u2);
-
-      const u3 = await onServerStatusChange((data) => {
-        if (cancelled) {
-          return;
-        }
-        const status = data.status as MinecraftServer['status'];
-        handleServerStatusChange({ serverId: data.serverId, status });
-      });
-      unlisteners.push(u3);
-
-      const u4 = await onNgrokStatusChange((data) => {
-        if (cancelled) {
-          return;
-        }
-        if (data.status === 'stopped' || data.status === 'error') {
-          setNgrokData((prev) => ({ ...prev, [data.serverId ?? '']: null }));
-        } else if (data.url && data.serverId) {
-          setNgrokData((prev) => ({ ...prev, [data.serverId!]: data.url! }));
-        }
-      });
-      unlisteners.push(u4);
-
-      // クリーンアップ済みなら即解除
-      if (cancelled) {
-        unlisteners.forEach((u) => u());
-      }
-    };
-
-    void setupListeners();
-
-    return () => {
-      cancelled = true;
-      unlisteners.forEach((u) => u());
-    };
-  }, []);
+  useServerRuntimeListeners({
+    selectedServerId,
+    setSelectedServerId,
+    setServers,
+    loadTemplates,
+    appendServerLog,
+    showToast,
+    t,
+    setDownloadStatus,
+    setNgrokData,
+    handleServerStatusChange,
+  });
 
   const activeServer = servers.find((s) => s.id === selectedServerId);
 

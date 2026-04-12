@@ -1,0 +1,128 @@
+import { useEffect } from 'react';
+import { onNgrokStatusChange } from '../../lib/ngrok-commands';
+import {
+  getServers,
+  onDownloadProgress,
+  onServerLog,
+  onServerStatusChange,
+} from '../../lib/server-commands';
+import type { ToastKind } from '../components/ToastProvider';
+import type { MinecraftServer } from '../shared/server declaration';
+
+type Translate = (key: string, values?: Record<string, unknown>) => string;
+type SetServers = (
+  nextServers: MinecraftServer[] | ((prevServers: MinecraftServer[]) => MinecraftServer[]),
+) => void;
+type SetDownloadStatus = (status: { id: string; progress: number; msg: string } | null) => void;
+type SetNgrokData = (
+  updater: (prevData: Record<string, string | null>) => Record<string, string | null>,
+) => void;
+
+interface ServerStatusChangeData {
+  serverId: string;
+  status: MinecraftServer['status'];
+}
+
+interface UseServerRuntimeListenersOptions {
+  selectedServerId: string;
+  setSelectedServerId: (serverId: string) => void;
+  setServers: SetServers;
+  loadTemplates: () => Promise<void>;
+  appendServerLog: (serverId: string, line: string) => void;
+  showToast: (message: string, type?: ToastKind) => void;
+  t: Translate;
+  setDownloadStatus: SetDownloadStatus;
+  setNgrokData: SetNgrokData;
+  handleServerStatusChange: (data: ServerStatusChangeData) => void;
+}
+
+export function useServerRuntimeListeners({
+  selectedServerId,
+  setSelectedServerId,
+  setServers,
+  loadTemplates,
+  appendServerLog,
+  showToast,
+  t,
+  setDownloadStatus,
+  setNgrokData,
+  handleServerStatusChange,
+}: UseServerRuntimeListenersOptions) {
+  useEffect(() => {
+    const loadServers = async () => {
+      try {
+        const loadedServers = await getServers();
+        setServers(loadedServers);
+        await loadTemplates();
+        if (loadedServers.length > 0 && !selectedServerId) {
+          setSelectedServerId(loadedServers[0].id);
+        }
+      } catch {
+        showToast(t('server.toast.loadError'), 'error');
+      }
+    };
+    void loadServers();
+
+    let cancelled = false;
+    const unlisteners: Array<() => void> = [];
+
+    const setupListeners = async () => {
+      const disposeServerLog = await onServerLog((data) => {
+        if (cancelled) {
+          return;
+        }
+        if (!data || !data.serverId) {
+          return;
+        }
+        const formattedLog = data.line.replace(/\n/g, '\r\n');
+        appendServerLog(data.serverId, formattedLog);
+      });
+      unlisteners.push(disposeServerLog);
+
+      const disposeDownloadProgress = await onDownloadProgress((data) => {
+        if (cancelled) {
+          return;
+        }
+        if (data.progress === 100) {
+          setDownloadStatus(null);
+          showToast(t('server.toast.downloadComplete', { status: data.status }), 'success');
+        } else {
+          setDownloadStatus({ id: data.serverId, progress: data.progress, msg: data.status });
+        }
+      });
+      unlisteners.push(disposeDownloadProgress);
+
+      const disposeServerStatus = await onServerStatusChange((data) => {
+        if (cancelled) {
+          return;
+        }
+        const status = data.status as MinecraftServer['status'];
+        handleServerStatusChange({ serverId: data.serverId, status });
+      });
+      unlisteners.push(disposeServerStatus);
+
+      const disposeNgrokStatus = await onNgrokStatusChange((data) => {
+        if (cancelled) {
+          return;
+        }
+        if (data.status === 'stopped' || data.status === 'error') {
+          setNgrokData((prev) => ({ ...prev, [data.serverId ?? '']: null }));
+        } else if (data.url && data.serverId) {
+          setNgrokData((prev) => ({ ...prev, [data.serverId]: data.url }));
+        }
+      });
+      unlisteners.push(disposeNgrokStatus);
+
+      if (cancelled) {
+        unlisteners.forEach((dispose) => dispose());
+      }
+    };
+
+    void setupListeners();
+
+    return () => {
+      cancelled = true;
+      unlisteners.forEach((dispose) => dispose());
+    };
+  }, []);
+}
