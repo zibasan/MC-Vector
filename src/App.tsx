@@ -24,10 +24,7 @@ import {
   downloadServerJar,
   getServers,
   getServerTemplates,
-  isServerRunning,
   type ServerTemplate,
-  startServer as startServerApi,
-  stopServer as stopServerApi,
   updateServer as updateServerApi,
 } from './lib/server-commands';
 import { checkForUpdates, downloadAndInstallUpdate } from './lib/update-commands';
@@ -48,6 +45,7 @@ import { useToast } from './renderer/components/ToastProvider';
 import UsersView from './renderer/components/UsersView';
 import { useServerContextActions } from './renderer/hooks/use-server-context-actions';
 import { useServerAutomation } from './renderer/hooks/use-server-automation';
+import { useServerProcessActions } from './renderer/hooks/use-server-process-actions';
 import { useServerRuntimeListeners } from './renderer/hooks/use-server-runtime-listeners';
 import { buildAppShellStyle, resolveAppTheme } from './renderer/shared/app-shell-theme';
 import { type AppView, type MinecraftServer } from './renderer/shared/server declaration';
@@ -260,93 +258,17 @@ function App() {
   });
 
   const activeServer = servers.find((s) => s.id === selectedServerId);
-
-  const startServerProcess = async (server: MinecraftServer) => {
-    const javaPath = server.javaPath || 'java';
-    const jarFile = server.software === 'Forge' ? 'forge-server.jar' : 'server.jar';
-    await startServerApi(server.id, javaPath, server.path, server.memory, jarFile);
-  };
-
-  const handleStart = async () => {
-    if (!activeServer) {
-      showToast(t('server.toast.noServerSelected'), 'error');
-      return;
-    }
-
-    const serverId = activeServer.id;
-    clearExpectedOffline(serverId);
-    resetAutoRestartState(serverId);
-    setServers((prev) => prev.map((s) => (s.id === serverId ? { ...s, status: 'starting' } : s)));
-
-    try {
-      await startServerProcess(activeServer);
-    } catch (e) {
-      console.error('Start failed:', e);
-      setServers((prev) => prev.map((s) => (s.id === serverId ? { ...s, status: 'offline' } : s)));
-      showToast(t('server.toast.startFailed'), 'error');
-    }
-  };
-
-  const handleStop = async () => {
-    if (selectedServerId) {
-      markExpectedOffline(selectedServerId);
-      clearAutoRestartTimer(selectedServerId);
-      setServers((prev) =>
-        prev.map((s) => (s.id === selectedServerId ? { ...s, status: 'stopping' } : s)),
-      );
-
-      try {
-        await stopServerApi(selectedServerId);
-      } catch (e) {
-        console.error('Stop failed:', e);
-        clearExpectedOffline(selectedServerId);
-        resetAutoRestartState(selectedServerId);
-        setServers((prev) =>
-          prev.map((s) => (s.id === selectedServerId ? { ...s, status: 'offline' } : s)),
-        );
-        showToast(t('server.toast.stopFailed'), 'error');
-      }
-    }
-  };
-
-  const handleRestart = async () => {
-    if (!activeServer) {
-      showToast(t('server.toast.noServerSelected'), 'error');
-      return;
-    }
-
-    const serverId = activeServer.id;
-    markExpectedOffline(serverId);
-    clearAutoRestartTimer(serverId);
-    setServers((prev) => prev.map((s) => (s.id === serverId ? { ...s, status: 'restarting' } : s)));
-
-    try {
-      await stopServerApi(serverId);
-
-      // サーバーが完全に停止するまでポーリング
-      const maxWait = 30;
-      for (let i = 0; i < maxWait; i++) {
-        await new Promise((r) => setTimeout(r, 1000));
-        const running = await isServerRunning(serverId);
-        if (!running) {
-          break;
-        }
-      }
-
-      const running = await isServerRunning(serverId);
-      if (running) {
-        throw new Error('Timed out waiting for server shutdown');
-      }
-
-      await startServerProcess(activeServer);
-    } catch (e) {
-      console.error('Restart failed:', e);
-      clearExpectedOffline(serverId);
-      resetAutoRestartState(serverId);
-      setServers((prev) => prev.map((s) => (s.id === serverId ? { ...s, status: 'offline' } : s)));
-      showToast(t('server.toast.restartFailed'), 'error');
-    }
-  };
+  const { handleStart, handleStop, handleRestart } = useServerProcessActions({
+    activeServer,
+    selectedServerId,
+    setServers,
+    showToast,
+    t,
+    clearExpectedOffline,
+    resetAutoRestartState,
+    markExpectedOffline,
+    clearAutoRestartTimer,
+  });
 
   const handleUpdateServer = async (updatedServer: MinecraftServer) => {
     setServers((prev) => prev.map((s) => (s.id === updatedServer.id ? updatedServer : s)));
