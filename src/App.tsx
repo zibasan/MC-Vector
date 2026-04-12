@@ -1,36 +1,36 @@
 import { useMemo, useState } from 'react';
-import { useTranslation } from './i18n';
+import { useTranslation } from '@/i18n';
 // Tauri API ラッパー
 import {
   getServerTemplates,
   type ServerTemplate,
   updateServer as updateServerApi,
-} from './lib/server-commands';
-import AppMainContent from './renderer/components/AppMainContent';
-import AppMainHeader from './renderer/components/AppMainHeader';
-import AppOverlayLayer from './renderer/components/AppOverlayLayer';
-import AppSidebarHeader from './renderer/components/AppSidebarHeader';
-import AppSidebarNavigation from './renderer/components/AppSidebarNavigation';
-import AppServerSidebar from './renderer/components/AppServerSidebar';
-import BackupTargetSelectorWindow from './renderer/components/BackupTargetSelectorWindow';
-import { useToast } from './renderer/components/ToastProvider';
-import { useAppUpdater } from './renderer/hooks/use-app-updater';
-import { useAppThemeSync } from './renderer/hooks/use-app-theme-sync';
-import { useGroupedServers } from './renderer/hooks/use-grouped-servers';
-import { useServerContextActions } from './renderer/hooks/use-server-context-actions';
-import { useServerAutomation } from './renderer/hooks/use-server-automation';
-import { useProxyNetworkAction } from './renderer/hooks/use-proxy-network-action';
-import { useServerCreateAction } from './renderer/hooks/use-server-create-action';
-import { useServerProcessActions } from './renderer/hooks/use-server-process-actions';
-import { useServerRuntimeListeners } from './renderer/hooks/use-server-runtime-listeners';
-import { useViewCycleShortcut } from './renderer/hooks/use-view-cycle-shortcut';
-import { buildAppShellStyle, resolveAppTheme } from './renderer/shared/app-shell-theme';
-import { type MinecraftServer } from './renderer/shared/server declaration';
-import { getHeaderTitle } from './renderer/shared/view-labels';
-import { useConsoleStore } from './store/consoleStore';
-import { useServerStore } from './store/serverStore';
-import { useSettingsStore } from './store/settingsStore';
-import { useUiStore } from './store/uiStore';
+} from '@/lib/server-commands';
+import AppMainContent from '@/renderer/components/AppMainContent';
+import AppMainHeader from '@/renderer/components/AppMainHeader';
+import AppOverlayLayer from '@/renderer/components/AppOverlayLayer';
+import AppSidebarHeader from '@/renderer/components/AppSidebarHeader';
+import AppSidebarNavigation from '@/renderer/components/AppSidebarNavigation';
+import AppServerSidebar from '@/renderer/components/AppServerSidebar';
+import BackupTargetSelectorWindow from '@/renderer/components/BackupTargetSelectorWindow';
+import { useToast } from '@/renderer/components/ToastProvider';
+import { useAppUpdater } from '@/renderer/hooks/use-app-updater';
+import { useAppThemeSync } from '@/renderer/hooks/use-app-theme-sync';
+import { useGroupedServers } from '@/renderer/hooks/use-grouped-servers';
+import { useServerContextActions } from '@/renderer/hooks/use-server-context-actions';
+import { useServerAutomation } from '@/renderer/hooks/use-server-automation';
+import { useProxyNetworkAction } from '@/renderer/hooks/use-proxy-network-action';
+import { useServerCreateAction } from '@/renderer/hooks/use-server-create-action';
+import { useServerProcessActions } from '@/renderer/hooks/use-server-process-actions';
+import { useServerRuntimeListeners } from '@/renderer/hooks/use-server-runtime-listeners';
+import { useViewCycleShortcut } from '@/renderer/hooks/use-view-cycle-shortcut';
+import { buildAppShellStyle, resolveAppTheme } from '@/renderer/shared/app-shell-theme';
+import { type MinecraftServer } from '@/renderer/shared/server declaration';
+import { getHeaderTitle } from '@/renderer/shared/view-labels';
+import { useConsoleStore } from '@/store/consoleStore';
+import { useServerStore } from '@/store/serverStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import { useUiStore } from '@/store/uiStore';
 
 function App() {
   const { t } = useTranslation();
