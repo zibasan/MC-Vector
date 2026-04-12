@@ -1,5 +1,4 @@
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { iconMenu } from './assets/icons';
 import { useTranslation } from './i18n';
 // Tauri API ラッパー
@@ -9,15 +8,14 @@ import {
   updateServer as updateServerApi,
 } from './lib/server-commands';
 import AddServerModal from './renderer/components/AddServerModal';
-import AppContentRouter from './renderer/components/AppContentRouter';
 import AppContextMenu from './renderer/components/AppContextMenu';
 import AppDownloadToast from './renderer/components/AppDownloadToast';
+import AppMainContent from './renderer/components/AppMainContent';
 import AppMainHeader from './renderer/components/AppMainHeader';
 import AppSidebarNavigation from './renderer/components/AppSidebarNavigation';
 import AppServerSidebar from './renderer/components/AppServerSidebar';
 import AppUpdateModal from './renderer/components/AppUpdateModal';
 import BackupTargetSelectorWindow from './renderer/components/BackupTargetSelectorWindow';
-import ViewErrorBoundary from './renderer/components/ViewErrorBoundary';
 import { useToast } from './renderer/components/ToastProvider';
 import { useAppUpdater } from './renderer/hooks/use-app-updater';
 import { useAppThemeSync } from './renderer/hooks/use-app-theme-sync';
@@ -71,13 +69,6 @@ function App() {
 
   const isSidebarOpen = useUiStore((state) => state.isSidebarOpen);
   const setIsSidebarOpen = useUiStore((state) => state.setIsSidebarOpen);
-
-  const lazyViewFallback = (
-    <div className="flex h-full items-center justify-center text-sm text-zinc-500">
-      {t('common.loadingView')}
-    </div>
-  );
-  const prefersReducedMotion = useReducedMotion();
 
   const [ngrokData, setNgrokData] = useState<Record<string, string | null>>({});
   const appTheme = useSettingsStore((state) => state.appTheme);
@@ -299,41 +290,17 @@ function App() {
           onStop={handleStop}
           t={t}
         />
-        <div className="app-main__content app-shell__surface app-shell__surface--content surface-card">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={`${selectedServerId || 'none'}-${currentView}`}
-              initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }}
-              transition={
-                prefersReducedMotion ? { duration: 0 } : { duration: 0.2, ease: 'easeOut' }
-              }
-              className="h-full"
-            >
-              <ViewErrorBoundary
-                fallback={
-                  <div className="flex h-full items-center justify-center text-sm text-red-400">
-                    {t('errors.generic')}
-                  </div>
-                }
-              >
-                <Suspense fallback={lazyViewFallback}>
-                  <AppContentRouter
-                    currentView={currentView}
-                    setCurrentView={setCurrentView}
-                    activeServer={activeServer}
-                    servers={servers}
-                    ngrokData={ngrokData}
-                    onBuildProxyNetwork={handleBuildProxyNetwork}
-                    onUpdateServer={handleUpdateServer}
-                    t={t}
-                  />
-                </Suspense>
-              </ViewErrorBoundary>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+        <AppMainContent
+          currentView={currentView}
+          selectedServerId={selectedServerId}
+          setCurrentView={setCurrentView}
+          activeServer={activeServer}
+          servers={servers}
+          ngrokData={ngrokData}
+          onBuildProxyNetwork={handleBuildProxyNetwork}
+          onUpdateServer={handleUpdateServer}
+          t={t}
+        />
       </main>
 
       {downloadStatus && (
