@@ -6,15 +6,12 @@ import {
   type ServerTemplate,
   updateServer as updateServerApi,
 } from './lib/server-commands';
-import AddServerModal from './renderer/components/AddServerModal';
-import AppContextMenu from './renderer/components/AppContextMenu';
-import AppDownloadToast from './renderer/components/AppDownloadToast';
 import AppMainContent from './renderer/components/AppMainContent';
 import AppMainHeader from './renderer/components/AppMainHeader';
+import AppOverlayLayer from './renderer/components/AppOverlayLayer';
 import AppSidebarHeader from './renderer/components/AppSidebarHeader';
 import AppSidebarNavigation from './renderer/components/AppSidebarNavigation';
 import AppServerSidebar from './renderer/components/AppServerSidebar';
-import AppUpdateModal from './renderer/components/AppUpdateModal';
 import BackupTargetSelectorWindow from './renderer/components/BackupTargetSelectorWindow';
 import { useToast } from './renderer/components/ToastProvider';
 import { useAppUpdater } from './renderer/hooks/use-app-updater';
@@ -287,38 +284,23 @@ function App() {
         />
       </main>
 
-      {downloadStatus && (
-        <AppDownloadToast
-          title={t('common.downloading')}
-          progress={downloadStatus.progress}
-          message={downloadStatus.msg}
-        />
-      )}
-      {showAddServerModal && (
-        <AddServerModal
-          onClose={() => setShowAddServerModal(false)}
-          onAdd={handleAddServer}
-          templates={serverTemplates}
-        />
-      )}
-      <AppContextMenu
+      <AppOverlayLayer
+        downloadStatus={downloadStatus}
+        showAddServerModal={showAddServerModal}
+        onCloseAddServerModal={() => setShowAddServerModal(false)}
+        onAddServer={handleAddServer}
+        serverTemplates={serverTemplates}
         contextMenu={contextMenu}
         onDuplicateServer={handleDuplicateServer}
         onSaveServerTemplate={handleSaveServerTemplate}
         onDeleteServer={handleDeleteServer}
-        cloneLabel={t('server.actions.clone')}
-        saveTemplateLabel={t('server.actions.saveTemplate')}
-        deleteLabel={t('common.delete')}
-      />
-
-      <AppUpdateModal
         updatePrompt={updatePrompt}
         updateProgress={updateProgress}
         updateReady={updateReady}
-        t={t}
-        onDismiss={handleDismissUpdate}
+        onDismissUpdate={handleDismissUpdate}
         onUpdateNow={handleUpdateNow}
-        onInstall={handleInstallUpdate}
+        onInstallUpdate={handleInstallUpdate}
+        t={t}
       />
     </div>
   );
