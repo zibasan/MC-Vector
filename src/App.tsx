@@ -1,17 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Suspense, useEffect, useMemo, useState } from 'react';
-import {
-  iconBackups,
-  iconConsole,
-  iconDashboard,
-  iconFiles,
-  iconMenu,
-  iconPlugins,
-  iconProperties,
-  iconProxy,
-  iconSettings,
-  iconUsers,
-} from './assets/icons';
+import { iconMenu } from './assets/icons';
 import { useTranslation } from './i18n';
 import { getAppSettings, onConfigChange, saveAppSettings } from './lib/config-commands';
 // Tauri API ラッパー
@@ -24,7 +13,7 @@ import AddServerModal from './renderer/components/AddServerModal';
 import AppContentRouter from './renderer/components/AppContentRouter';
 import AppContextMenu from './renderer/components/AppContextMenu';
 import AppDownloadToast from './renderer/components/AppDownloadToast';
-import AppNavItem from './renderer/components/AppNavItem';
+import AppSidebarNavigation from './renderer/components/AppSidebarNavigation';
 import AppServerSidebar from './renderer/components/AppServerSidebar';
 import AppUpdateModal from './renderer/components/AppUpdateModal';
 import BackupTargetSelectorWindow from './renderer/components/BackupTargetSelectorWindow';
@@ -321,83 +310,12 @@ function App() {
           </button>
         </div>
 
-        <div className="app-sidebar__nav app-shell__surface app-shell__surface--sidebar-panel surface-card">
-          <AppNavItem
-            label={isSidebarOpen ? t('nav.dashboard') : ''}
-            tooltip={t('nav.dashboard')}
-            view="dashboard"
-            current={currentView}
-            set={setCurrentView}
-            iconSrc={iconDashboard}
-          />
-          <AppNavItem
-            label={isSidebarOpen ? t('nav.console') : ''}
-            tooltip={t('nav.console')}
-            view="console"
-            current={currentView}
-            set={setCurrentView}
-            iconSrc={iconConsole}
-          />
-          <AppNavItem
-            label={isSidebarOpen ? t('nav.users') : ''}
-            tooltip={t('nav.users')}
-            view="users"
-            current={currentView}
-            set={setCurrentView}
-            iconSrc={iconUsers}
-          />
-          <AppNavItem
-            label={isSidebarOpen ? t('nav.files') : ''}
-            tooltip={t('nav.files')}
-            view="files"
-            current={currentView}
-            set={setCurrentView}
-            iconSrc={iconFiles}
-          />
-          <AppNavItem
-            label={isSidebarOpen ? t('nav.pluginsMods') : ''}
-            tooltip={t('nav.pluginsMods')}
-            view="plugins"
-            current={currentView}
-            set={setCurrentView}
-            iconSrc={iconPlugins}
-          />
-          <AppNavItem
-            label={isSidebarOpen ? t('nav.backups') : ''}
-            tooltip={t('nav.backups')}
-            view="backups"
-            current={currentView}
-            set={setCurrentView}
-            iconSrc={iconBackups}
-          />
-          <AppNavItem
-            label={isSidebarOpen ? t('nav.properties') : ''}
-            tooltip={t('nav.properties')}
-            view="properties"
-            current={currentView}
-            set={setCurrentView}
-            iconSrc={iconProperties}
-          />
-          <AppNavItem
-            label={isSidebarOpen ? t('nav.generalSettings') : ''}
-            tooltip={t('nav.generalSettings')}
-            view="general-settings"
-            current={currentView}
-            set={setCurrentView}
-            iconSrc={iconSettings}
-          />
-
-          <hr className="app-sidebar__divider" />
-
-          <AppNavItem
-            label={isSidebarOpen ? t('nav.proxyNetwork') : ''}
-            tooltip={t('nav.proxyNetwork')}
-            view="proxy"
-            current={currentView}
-            set={setCurrentView}
-            iconSrc={iconProxy}
-          />
-        </div>
+        <AppSidebarNavigation
+          isSidebarOpen={isSidebarOpen}
+          currentView={currentView}
+          setCurrentView={setCurrentView}
+          t={t}
+        />
 
         <AppServerSidebar
           isSidebarOpen={isSidebarOpen}
