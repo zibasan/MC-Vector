@@ -2,7 +2,7 @@ import { ask } from '@tauri-apps/plugin-dialog';
 import { copyFile, mkdir, readDir } from '@tauri-apps/plugin-fs';
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import {
   iconBackups,
   iconConsole,
@@ -16,7 +16,6 @@ import {
   iconUsers,
 } from './assets/icons';
 import { useTranslation } from './i18n';
-import { createBackup } from './lib/backup-commands';
 import { getAppSettings, onConfigChange, saveAppSettings } from './lib/config-commands';
 import { readFileContent, saveFileContent } from './lib/file-commands';
 import { onNgrokStatusChange } from './lib/ngrok-commands';
@@ -53,11 +52,7 @@ import PropertiesView from './renderer/components/properties/PropertiesView';
 import ServerSettings from './renderer/components/properties/ServerSettings';
 import { useToast } from './renderer/components/ToastProvider';
 import UsersView from './renderer/components/UsersView';
-import {
-  buildAutoBackupName,
-  buildTimeBasedAutoBackupKey,
-  resolveAutoBackupScheduleType,
-} from './renderer/shared/auto-backup';
+import { useServerAutomation } from './renderer/hooks/use-server-automation';
 import { buildAppShellStyle, resolveAppTheme } from './renderer/shared/app-shell-theme';
 import { type AppView, type MinecraftServer } from './renderer/shared/server declaration';
 import { getHeaderTitle, getViewLabel } from './renderer/shared/view-labels';
@@ -213,170 +208,18 @@ function App() {
 
   const appendServerLog = useConsoleStore((state) => state.appendServerLog);
   const removeServerLogs = useConsoleStore((state) => state.removeServerLogs);
-  const selectedServerIdRef = useRef(selectedServerId);
-  const serversRef = useRef<MinecraftServer[]>([]);
-  const expectedOfflineEventsRef = useRef<Record<string, number>>({});
-  const autoRestartAttemptsRef = useRef<Record<string, number>>({});
-  const autoRestartTimerRef = useRef<Record<string, ReturnType<typeof window.setTimeout>>>({});
-  const autoBackupIntervalRef = useRef<Record<string, ReturnType<typeof window.setInterval>>>({});
-  const autoBackupRunningRef = useRef<Record<string, boolean>>({});
-  const autoBackupLastRunKeyRef = useRef<Record<string, string>>({});
-
-  const clearAutoRestartTimer = (serverId: string) => {
-    const timerId = autoRestartTimerRef.current[serverId];
-    if (timerId) {
-      window.clearTimeout(timerId);
-      delete autoRestartTimerRef.current[serverId];
-    }
-  };
-
-  const resetAutoRestartState = (serverId: string) => {
-    clearAutoRestartTimer(serverId);
-    delete autoRestartAttemptsRef.current[serverId];
-  };
-
-  const markExpectedOffline = (serverId: string) => {
-    expectedOfflineEventsRef.current[serverId] =
-      (expectedOfflineEventsRef.current[serverId] ?? 0) + 1;
-  };
-
-  const consumeExpectedOffline = (serverId: string): boolean => {
-    const current = expectedOfflineEventsRef.current[serverId] ?? 0;
-    if (current <= 0) {
-      return false;
-    }
-    if (current === 1) {
-      delete expectedOfflineEventsRef.current[serverId];
-    } else {
-      expectedOfflineEventsRef.current[serverId] = current - 1;
-    }
-    return true;
-  };
-
-  const clearExpectedOffline = (serverId: string) => {
-    delete expectedOfflineEventsRef.current[serverId];
-  };
-
-  const clearAutoBackupInterval = (serverId: string) => {
-    const intervalId = autoBackupIntervalRef.current[serverId];
-    if (intervalId) {
-      window.clearInterval(intervalId);
-      delete autoBackupIntervalRef.current[serverId];
-    }
-    delete autoBackupRunningRef.current[serverId];
-    delete autoBackupLastRunKeyRef.current[serverId];
-  };
-
-  const runAutoBackup = async (serverId: string) => {
-    if (autoBackupRunningRef.current[serverId]) {
-      return;
-    }
-
-    const targetServer = serversRef.current.find((server) => server.id === serverId);
-    if (!targetServer?.autoBackupEnabled || targetServer.status !== 'online') {
-      return;
-    }
-
-    autoBackupRunningRef.current[serverId] = true;
-    try {
-      await createBackup(targetServer.path, buildAutoBackupName(targetServer));
-      showToast(t('server.toast.autoBackupCreated', { name: targetServer.name }), 'success');
-    } catch (error) {
-      console.error('Auto backup failed:', error);
-      showToast(t('server.toast.autoBackupFailed', { name: targetServer.name }), 'error');
-    } finally {
-      autoBackupRunningRef.current[serverId] = false;
-    }
-  };
-
-  useEffect(() => {
-    selectedServerIdRef.current = selectedServerId;
-  }, [selectedServerId]);
-
-  useEffect(() => {
-    serversRef.current = servers;
-
-    const activeServerIds = new Set(servers.map((server) => server.id));
-    for (const serverId of Object.keys(autoRestartTimerRef.current)) {
-      if (!activeServerIds.has(serverId)) {
-        clearAutoRestartTimer(serverId);
-      }
-    }
-    for (const serverId of Object.keys(autoRestartAttemptsRef.current)) {
-      if (!activeServerIds.has(serverId)) {
-        delete autoRestartAttemptsRef.current[serverId];
-      }
-    }
-    for (const serverId of Object.keys(expectedOfflineEventsRef.current)) {
-      if (!activeServerIds.has(serverId)) {
-        delete expectedOfflineEventsRef.current[serverId];
-      }
-    }
-
-    for (const serverId of Object.keys(autoBackupIntervalRef.current)) {
-      if (!activeServerIds.has(serverId)) {
-        clearAutoBackupInterval(serverId);
-      }
-    }
-
-    for (const server of servers) {
-      clearAutoBackupInterval(server.id);
-      if (!server.autoBackupEnabled) {
-        continue;
-      }
-
-      const scheduleType = resolveAutoBackupScheduleType(server);
-      if (scheduleType === 'interval') {
-        const intervalMinutes = Math.min(
-          1440,
-          Math.max(1, Math.floor(server.autoBackupIntervalMin ?? 60)),
-        );
-
-        autoBackupIntervalRef.current[server.id] = window.setInterval(
-          () => {
-            void runAutoBackup(server.id);
-          },
-          intervalMinutes * 60 * 1000,
-        );
-        continue;
-      }
-
-      autoBackupIntervalRef.current[server.id] = window.setInterval(() => {
-        const latestServer = serversRef.current.find((candidate) => candidate.id === server.id);
-        if (!latestServer?.autoBackupEnabled || latestServer.status !== 'online') {
-          return;
-        }
-
-        const triggerKey = buildTimeBasedAutoBackupKey(latestServer, new Date());
-        if (!triggerKey) {
-          return;
-        }
-
-        if (autoBackupLastRunKeyRef.current[server.id] === triggerKey) {
-          return;
-        }
-
-        autoBackupLastRunKeyRef.current[server.id] = triggerKey;
-        void runAutoBackup(server.id);
-      }, 15 * 1000);
-    }
-  }, [servers]);
-
-  useEffect(() => {
-    return () => {
-      for (const timerId of Object.values(autoRestartTimerRef.current)) {
-        window.clearTimeout(timerId);
-      }
-      autoRestartTimerRef.current = {};
-
-      for (const intervalId of Object.values(autoBackupIntervalRef.current)) {
-        window.clearInterval(intervalId);
-      }
-      autoBackupIntervalRef.current = {};
-      autoBackupRunningRef.current = {};
-      autoBackupLastRunKeyRef.current = {};
-    };
-  }, []);
+  const {
+    clearAutoRestartTimer,
+    resetAutoRestartState,
+    markExpectedOffline,
+    clearExpectedOffline,
+    handleServerStatusChange,
+  } = useServerAutomation({
+    servers,
+    setServers,
+    showToast,
+    t,
+  });
 
   const loadTemplates = async () => {
     try {
@@ -482,118 +325,7 @@ function App() {
           return;
         }
         const status = data.status as MinecraftServer['status'];
-        setServers((prev) => prev.map((s) => (s.id === data.serverId ? { ...s, status } : s)));
-
-        if (status === 'online') {
-          clearExpectedOffline(data.serverId);
-          resetAutoRestartState(data.serverId);
-          return;
-        }
-
-        if (status === 'offline' && consumeExpectedOffline(data.serverId)) {
-          resetAutoRestartState(data.serverId);
-          return;
-        }
-
-        if (status !== 'crashed' && status !== 'offline') {
-          return;
-        }
-
-        const targetServer = serversRef.current.find((server) => server.id === data.serverId);
-        if (!targetServer?.autoRestartOnCrash) {
-          resetAutoRestartState(data.serverId);
-          return;
-        }
-
-        const maxAutoRestarts = Math.min(
-          20,
-          Math.max(0, Math.floor(targetServer.maxAutoRestarts ?? 3)),
-        );
-        const restartDelaySec = Math.min(
-          300,
-          Math.max(1, Math.floor(targetServer.autoRestartDelaySec ?? 5)),
-        );
-
-        if (maxAutoRestarts <= 0) {
-          return;
-        }
-
-        const currentAttempt = autoRestartAttemptsRef.current[data.serverId] ?? 0;
-        if (currentAttempt >= maxAutoRestarts) {
-          showToast(
-            t('server.toast.autoRestartLimitReached', { name: targetServer.name }),
-            'error',
-          );
-          return;
-        }
-
-        const nextAttempt = currentAttempt + 1;
-        autoRestartAttemptsRef.current[data.serverId] = nextAttempt;
-
-        clearAutoRestartTimer(data.serverId);
-        setServers((prev) =>
-          prev.map((server) =>
-            server.id === data.serverId ? { ...server, status: 'restarting' } : server,
-          ),
-        );
-        showToast(
-          t('server.toast.autoRestartScheduled', {
-            name: targetServer.name,
-            seconds: restartDelaySec,
-            attempt: nextAttempt,
-            max: maxAutoRestarts,
-          }),
-          'info',
-        );
-
-        autoRestartTimerRef.current[data.serverId] = window.setTimeout(async () => {
-          clearAutoRestartTimer(data.serverId);
-
-          const latestServer = serversRef.current.find((server) => server.id === data.serverId);
-          if (!latestServer?.autoRestartOnCrash) {
-            resetAutoRestartState(data.serverId);
-            return;
-          }
-
-          try {
-            const running = await isServerRunning(data.serverId);
-            if (running) {
-              resetAutoRestartState(data.serverId);
-              return;
-            }
-
-            setServers((prev) =>
-              prev.map((server) =>
-                server.id === data.serverId ? { ...server, status: 'starting' } : server,
-              ),
-            );
-
-            const javaPath = latestServer.javaPath || 'java';
-            const jarFile = latestServer.software === 'Forge' ? 'forge-server.jar' : 'server.jar';
-            await startServerApi(
-              latestServer.id,
-              javaPath,
-              latestServer.path,
-              latestServer.memory,
-              jarFile,
-            );
-          } catch (error) {
-            console.error('Auto restart failed:', error);
-            setServers((prev) =>
-              prev.map((server) =>
-                server.id === data.serverId ? { ...server, status: 'offline' } : server,
-              ),
-            );
-            showToast(
-              t('server.toast.autoRestartTriggered', {
-                name: latestServer.name,
-                attempt: nextAttempt,
-                max: maxAutoRestarts,
-              }),
-              'error',
-            );
-          }
-        }, restartDelaySec * 1000);
+        handleServerStatusChange({ serverId: data.serverId, status });
       });
       unlisteners.push(u3);
 
