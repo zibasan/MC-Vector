@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from './i18n';
 // Tauri API ラッパー
 import {
@@ -22,25 +22,14 @@ import { useProxyNetworkAction } from './renderer/hooks/use-proxy-network-action
 import { useServerCreateAction } from './renderer/hooks/use-server-create-action';
 import { useServerProcessActions } from './renderer/hooks/use-server-process-actions';
 import { useServerRuntimeListeners } from './renderer/hooks/use-server-runtime-listeners';
+import { useViewCycleShortcut } from './renderer/hooks/use-view-cycle-shortcut';
 import { buildAppShellStyle, resolveAppTheme } from './renderer/shared/app-shell-theme';
-import { type AppView, type MinecraftServer } from './renderer/shared/server declaration';
+import { type MinecraftServer } from './renderer/shared/server declaration';
 import { getHeaderTitle } from './renderer/shared/view-labels';
 import { useConsoleStore } from './store/consoleStore';
 import { useServerStore } from './store/serverStore';
 import { useSettingsStore } from './store/settingsStore';
 import { useUiStore } from './store/uiStore';
-
-const TAB_CYCLE: AppView[] = [
-  'dashboard',
-  'console',
-  'users',
-  'files',
-  'plugins',
-  'backups',
-  'properties',
-  'general-settings',
-  'proxy',
-];
 
 function App() {
   const { t } = useTranslation();
@@ -81,22 +70,7 @@ function App() {
     handleDismissUpdate,
   } = useAppUpdater();
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Tab' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        const delta = e.shiftKey ? -1 : 1;
-        const idx = TAB_CYCLE.indexOf(currentView);
-        const baseIdx = idx === -1 ? 0 : idx;
-        const next = TAB_CYCLE[(baseIdx + delta + TAB_CYCLE.length) % TAB_CYCLE.length];
-        setCurrentView(next);
-
-        return;
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [currentView]);
+  useViewCycleShortcut({ currentView, setCurrentView });
 
   useAppThemeSync({ setAppTheme, setSystemPrefersDark });
 
