@@ -30,8 +30,10 @@ import {
 import { checkForUpdates, downloadAndInstallUpdate } from './lib/update-commands';
 import AddServerModal from './renderer/components/AddServerModal';
 import AppContextMenu from './renderer/components/AppContextMenu';
+import AppDownloadToast from './renderer/components/AppDownloadToast';
 import AppNavItem from './renderer/components/AppNavItem';
 import AppServerSidebar from './renderer/components/AppServerSidebar';
+import AppUpdateModal from './renderer/components/AppUpdateModal';
 import BackupsView from './renderer/components/BackupsView';
 import BackupTargetSelectorWindow from './renderer/components/BackupTargetSelectorWindow';
 import ConsoleView from './renderer/components/ConsoleView';
@@ -491,36 +493,6 @@ function App() {
 
   const headerTitle = getHeaderTitle(currentView, activeServer?.name, t);
 
-  const getReleaseNotesText = () => {
-    const notes: unknown = updatePrompt?.releaseNotes;
-    if (!notes) {
-      return '';
-    }
-    if (typeof notes === 'string') {
-      return notes;
-    }
-    if (Array.isArray(notes)) {
-      return notes
-        .map((entry: unknown) => {
-          if (typeof entry === 'string') {
-            return entry;
-          }
-          if (
-            entry &&
-            typeof entry === 'object' &&
-            'body' in entry &&
-            typeof (entry as Record<string, unknown>).body === 'string'
-          ) {
-            return (entry as Record<string, unknown>).body as string;
-          }
-          return '';
-        })
-        .filter(Boolean)
-        .join('\n');
-    }
-    return '';
-  };
-
   const handleOpenSettingsWindow = () => {
     setCurrentView('app-settings');
   };
@@ -788,19 +760,11 @@ function App() {
       </main>
 
       {downloadStatus && (
-        <div className="download-toast">
-          <div className="download-toast__header">
-            <span>{t('common.downloading')}</span>
-            <span className="text-accent">{downloadStatus.progress}%</span>
-          </div>
-          <div className="download-toast__message">{downloadStatus.msg}</div>
-          <div className="download-toast__progress-track">
-            <div
-              className="download-toast__progress-bar"
-              style={{ width: `${downloadStatus.progress}%` }}
-            ></div>
-          </div>
-        </div>
+        <AppDownloadToast
+          title={t('common.downloading')}
+          progress={downloadStatus.progress}
+          message={downloadStatus.msg}
+        />
       )}
       {showAddServerModal && (
         <AddServerModal
@@ -819,64 +783,15 @@ function App() {
         deleteLabel={t('common.delete')}
       />
 
-      {updatePrompt && (
-        <div className="app-update-overlay">
-          <div className="app-update-modal">
-            <h3 className="app-update-modal__title">
-              {t('settings.update.available', { version: updatePrompt.version || '?' })}
-            </h3>
-
-            {getReleaseNotesText() && (
-              <div className="mb-4">
-                <div className="app-update-modal__notes-label">
-                  {t('settings.update.releaseNotes')}
-                </div>
-                <pre className="app-update-modal__notes">{getReleaseNotesText()}</pre>
-              </div>
-            )}
-
-            {updateProgress !== null && !updateReady && (
-              <div className="mb-4">
-                <div className="app-update-modal__progress-label">
-                  {t('settings.update.downloading', { progress: Math.round(updateProgress) })}
-                </div>
-                <div className="app-update-modal__progress-track">
-                  <div
-                    className="app-update-modal__progress-bar"
-                    style={{
-                      width: `${Math.min(100, Math.round(updateProgress))}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {updateReady && (
-              <div className="mb-4 text-sm text-green-400">{t('settings.update.downloaded')}</div>
-            )}
-
-            <div className="flex justify-end gap-2">
-              <button className="btn-secondary" onClick={handleDismissUpdate}>
-                {t('common.cancel')}
-              </button>
-              {!updateReady && (
-                <button
-                  className="btn-primary"
-                  onClick={handleUpdateNow}
-                  disabled={updateProgress !== null && !updateReady}
-                >
-                  {t('settings.update.download')}
-                </button>
-              )}
-              {updateReady && (
-                <button className="btn-primary" onClick={handleInstallUpdate}>
-                  {t('settings.update.restart')}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <AppUpdateModal
+        updatePrompt={updatePrompt}
+        updateProgress={updateProgress}
+        updateReady={updateReady}
+        t={t}
+        onDismiss={handleDismissUpdate}
+        onUpdateNow={handleUpdateNow}
+        onInstall={handleInstallUpdate}
+      />
     </div>
   );
 }
