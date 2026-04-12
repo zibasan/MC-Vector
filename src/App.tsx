@@ -13,6 +13,7 @@ import AddServerModal from './renderer/components/AddServerModal';
 import AppContentRouter from './renderer/components/AppContentRouter';
 import AppContextMenu from './renderer/components/AppContextMenu';
 import AppDownloadToast from './renderer/components/AppDownloadToast';
+import AppMainHeader from './renderer/components/AppMainHeader';
 import AppSidebarNavigation from './renderer/components/AppSidebarNavigation';
 import AppServerSidebar from './renderer/components/AppServerSidebar';
 import AppUpdateModal from './renderer/components/AppUpdateModal';
@@ -28,7 +29,7 @@ import { useServerProcessActions } from './renderer/hooks/use-server-process-act
 import { useServerRuntimeListeners } from './renderer/hooks/use-server-runtime-listeners';
 import { buildAppShellStyle, resolveAppTheme } from './renderer/shared/app-shell-theme';
 import { type AppView, type MinecraftServer } from './renderer/shared/server declaration';
-import { getHeaderTitle, getViewLabel } from './renderer/shared/view-labels';
+import { getHeaderTitle } from './renderer/shared/view-labels';
 import { useConsoleStore } from './store/consoleStore';
 import { useServerStore } from './store/serverStore';
 import { normalizeAppTheme, useSettingsStore } from './store/settingsStore';
@@ -330,45 +331,15 @@ function App() {
       </aside>
 
       <main className="app-main app-shell__surface app-shell__surface--main">
-        <header className="app-main__header app-shell__surface app-shell__surface--header">
-          <div className="flex items-center gap-2.5">
-            <h2 className="app-main__title">{headerTitle}</h2>
-            <span className="app-main__subtitle"> / {getViewLabel(currentView, t)}</span>
-          </div>
-          <div className="flex items-center gap-2.5 ml-auto">
-            {currentView !== 'proxy' && (
-              <>
-                <button
-                  className="btn-start"
-                  onClick={handleStart}
-                  title={t('server.actions.start')}
-                  disabled={
-                    !activeServer ||
-                    (activeServer.status !== 'offline' && activeServer.status !== 'crashed')
-                  }
-                >
-                  ▶ {t('server.actions.start')}
-                </button>
-                <button
-                  className="btn-restart btn-secondary"
-                  onClick={handleRestart}
-                  title={t('server.actions.restart')}
-                  disabled={!activeServer || activeServer.status !== 'online'}
-                >
-                  ↻ {t('server.actions.restart')}
-                </button>
-                <button
-                  className="btn-stop"
-                  onClick={handleStop}
-                  title={t('server.actions.stop')}
-                  disabled={!activeServer || activeServer.status !== 'online'}
-                >
-                  ■ {t('server.actions.stop')}
-                </button>
-              </>
-            )}
-          </div>
-        </header>
+        <AppMainHeader
+          currentView={currentView}
+          headerTitle={headerTitle}
+          activeServerStatus={activeServer?.status}
+          onStart={handleStart}
+          onRestart={handleRestart}
+          onStop={handleStop}
+          t={t}
+        />
         <div className="app-main__content app-shell__surface app-shell__surface--content surface-card">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
