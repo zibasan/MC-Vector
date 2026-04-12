@@ -2,7 +2,6 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { iconMenu } from './assets/icons';
 import { useTranslation } from './i18n';
-import { getAppSettings, onConfigChange, saveAppSettings } from './lib/config-commands';
 // Tauri API ラッパー
 import {
   getServerTemplates,
@@ -21,6 +20,7 @@ import BackupTargetSelectorWindow from './renderer/components/BackupTargetSelect
 import ViewErrorBoundary from './renderer/components/ViewErrorBoundary';
 import { useToast } from './renderer/components/ToastProvider';
 import { useAppUpdater } from './renderer/hooks/use-app-updater';
+import { useAppThemeSync } from './renderer/hooks/use-app-theme-sync';
 import { useServerContextActions } from './renderer/hooks/use-server-context-actions';
 import { useServerAutomation } from './renderer/hooks/use-server-automation';
 import { useProxyNetworkAction } from './renderer/hooks/use-proxy-network-action';
@@ -32,7 +32,7 @@ import { type AppView, type MinecraftServer } from './renderer/shared/server dec
 import { getHeaderTitle } from './renderer/shared/view-labels';
 import { useConsoleStore } from './store/consoleStore';
 import { useServerStore } from './store/serverStore';
-import { normalizeAppTheme, useSettingsStore } from './store/settingsStore';
+import { useSettingsStore } from './store/settingsStore';
 import { useUiStore } from './store/uiStore';
 
 const TAB_CYCLE: AppView[] = [
@@ -110,48 +110,7 @@ function App() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [currentView]);
 
-  useEffect(() => {
-    const applyNormalizedTheme = async (value: unknown) => {
-      const normalizedTheme = normalizeAppTheme(value);
-      setAppTheme(normalizedTheme);
-
-      if (value !== undefined && value !== normalizedTheme) {
-        try {
-          await saveAppSettings({ theme: normalizedTheme });
-        } catch (persistError) {
-          console.error('Failed to persist normalized app theme', persistError);
-        }
-      }
-    };
-
-    const loadAppSettings = async () => {
-      try {
-        const settings = await getAppSettings();
-        if (settings?.theme !== undefined) {
-          await applyNormalizedTheme(settings.theme);
-        }
-      } catch (e) {
-        console.error('Failed to load app settings', e);
-      }
-    };
-    void loadAppSettings();
-
-    let disposeThemeWatch: (() => void) | undefined;
-    void (async () => {
-      disposeThemeWatch = await onConfigChange('theme', (value) => {
-        void applyNormalizedTheme(value);
-      });
-    })();
-
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleMedia = (event: MediaQueryListEvent) => setSystemPrefersDark(event.matches);
-    media.addEventListener('change', handleMedia);
-
-    return () => {
-      disposeThemeWatch?.();
-      media.removeEventListener('change', handleMedia);
-    };
-  }, []);
+  useAppThemeSync({ setAppTheme, setSystemPrefersDark });
 
   const appendServerLog = useConsoleStore((state) => state.appendServerLog);
   const removeServerLogs = useConsoleStore((state) => state.removeServerLogs);
