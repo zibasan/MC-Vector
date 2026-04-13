@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { onNgrokStatusChange } from '../../lib/ngrok-commands';
 import {
   getServers,
@@ -48,8 +48,38 @@ export function useServerRuntimeListeners({
   setNgrokData,
   handleServerStatusChange,
 }: UseServerRuntimeListenersOptions) {
+  // Keep a ref that always holds the latest prop values so the subscription
+  // effect can run exactly once while still reading up-to-date callbacks.
+  const propsRef = useRef({
+    selectedServerId,
+    setSelectedServerId,
+    setServers,
+    loadTemplates,
+    appendServerLog,
+    showToast,
+    t,
+    setDownloadStatus,
+    setNgrokData,
+    handleServerStatusChange,
+  });
+  propsRef.current = {
+    selectedServerId,
+    setSelectedServerId,
+    setServers,
+    loadTemplates,
+    appendServerLog,
+    showToast,
+    t,
+    setDownloadStatus,
+    setNgrokData,
+    handleServerStatusChange,
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const loadServers = async () => {
+      const { setServers, loadTemplates, selectedServerId, setSelectedServerId, showToast, t } =
+        propsRef.current;
       try {
         const loadedServers = await getServers();
         setServers(loadedServers);
@@ -75,7 +105,7 @@ export function useServerRuntimeListeners({
           return;
         }
         const formattedLog = data.line.replace(/\n/g, '\r\n');
-        appendServerLog(data.serverId, formattedLog);
+        propsRef.current.appendServerLog(data.serverId, formattedLog);
       });
       unlisteners.push(disposeServerLog);
 
@@ -83,6 +113,7 @@ export function useServerRuntimeListeners({
         if (cancelled) {
           return;
         }
+        const { setDownloadStatus, showToast, t } = propsRef.current;
         if (data.progress === 100) {
           setDownloadStatus(null);
           showToast(t('server.toast.downloadComplete', { status: data.status }), 'success');
@@ -97,7 +128,7 @@ export function useServerRuntimeListeners({
           return;
         }
         const status = data.status as MinecraftServer['status'];
-        handleServerStatusChange({ serverId: data.serverId, status });
+        propsRef.current.handleServerStatusChange({ serverId: data.serverId, status });
       });
       unlisteners.push(disposeServerStatus);
 
@@ -106,9 +137,9 @@ export function useServerRuntimeListeners({
           return;
         }
         if (data.status === 'stopped' || data.status === 'error') {
-          setNgrokData((prev) => ({ ...prev, [data.serverId ?? '']: null }));
+          propsRef.current.setNgrokData((prev) => ({ ...prev, [data.serverId ?? '']: null }));
         } else if (data.url && data.serverId) {
-          setNgrokData((prev) => ({ ...prev, [data.serverId]: data.url }));
+          propsRef.current.setNgrokData((prev) => ({ ...prev, [data.serverId]: data.url }));
         }
       });
       unlisteners.push(disposeNgrokStatus);
@@ -124,5 +155,5 @@ export function useServerRuntimeListeners({
       cancelled = true;
       unlisteners.forEach((dispose) => dispose());
     };
-  }, []);
+  }, []); // intentional: subscriptions are set up once; fresh values are read via propsRef
 }
