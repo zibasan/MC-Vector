@@ -40,20 +40,21 @@ export default function AppServerSidebar({
             <div className="app-sidebar__group-title">{group.groupName}</div>
 
             {group.servers.map((server) => (
-              <div
+              <button
                 key={server.id}
+                type="button"
                 className={`app-sidebar__server-item ${server.id === selectedServerId ? 'is-active' : ''}`}
                 onClick={() => onSelectServer(server.id)}
                 onContextMenu={(event) => onServerContextMenu(event, server.id)}
               >
-                <div className={`status-indicator ${server.status}`}></div>
-                <div className="flex flex-col">
-                  <div className="font-semibold text-sm text-text-primary">{server.name}</div>
+                <span className={`status-indicator ${server.status}`}></span>
+                <span className="flex flex-col">
+                  <span className="font-semibold text-sm text-text-primary">{server.name}</span>
                   {server.profileName && (
-                    <div className="text-[0.72rem] text-zinc-400">{server.profileName}</div>
+                    <span className="text-[0.72rem] text-zinc-400">{server.profileName}</span>
                   )}
-                </div>
-              </div>
+                </span>
+              </button>
             ))}
           </div>
         ))}
