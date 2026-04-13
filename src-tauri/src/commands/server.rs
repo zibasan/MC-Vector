@@ -339,34 +339,36 @@ pub async fn send_command(
         return Err("Command is too long".into());
     }
 
-    {
+    let mut servers = state.servers.lock().await;
+    let Some(server) = servers.get_mut(&server_id) else {
         let mut last_map = limiter.last_command_at.lock().await;
+        last_map.remove(&server_id);
+        return Err("Server not found or not running".into());
+    };
+
+    {
+        let last_map = limiter.last_command_at.lock().await;
         if let Some(last_sent) = last_map.get(&server_id) {
             if last_sent.elapsed() < COMMAND_MIN_INTERVAL {
                 return Err("Commands are being sent too quickly".into());
             }
         }
-        last_map.insert(server_id.clone(), Instant::now());
     }
 
-    let mut servers = state.servers.lock().await;
-    if let Some(server) = servers.get_mut(&server_id) {
-        server
-            .stdin
-            .write_all(format!("{}\n", normalized_command).as_bytes())
-            .await
-            .map_err(|e| format!("Failed to send command: {}", e))?;
-        server
-            .stdin
-            .flush()
-            .await
-            .map_err(|e| format!("Failed to flush stdin: {}", e))?;
-        Ok(())
-    } else {
-        let mut last_map = limiter.last_command_at.lock().await;
-        last_map.remove(&server_id);
-        Err("Server not found or not running".into())
-    }
+    server
+        .stdin
+        .write_all(format!("{}\n", normalized_command).as_bytes())
+        .await
+        .map_err(|e| format!("Failed to send command: {}", e))?;
+    server
+        .stdin
+        .flush()
+        .await
+        .map_err(|e| format!("Failed to flush stdin: {}", e))?;
+
+    let mut last_map = limiter.last_command_at.lock().await;
+    last_map.insert(server_id.clone(), Instant::now());
+    Ok(())
 }
 
 /// サーバーが実行中かどうかを返す
