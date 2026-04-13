@@ -29,7 +29,12 @@ export default function AppSidebarHeader({
         </button>
       )}
 
-      <button onClick={onToggleSidebar} className="app-sidebar__menu-button">
+      <button
+        type="button"
+        onClick={onToggleSidebar}
+        className="app-sidebar__menu-button"
+        aria-label={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+      >
         <img src={iconMenu} alt="" className="app-sidebar__menu-icon" />
       </button>
     </div>
