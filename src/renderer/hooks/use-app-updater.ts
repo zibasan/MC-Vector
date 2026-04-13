@@ -9,7 +9,7 @@ export interface UpdatePromptState {
 export function useAppUpdater() {
   const [updatePrompt, setUpdatePrompt] = useState<UpdatePromptState | null>(null);
   const [updateProgress, setUpdateProgress] = useState<number | null>(null);
-  const [updateReady, setUpdateReady] = useState(false);
+  const updateReady = false;
 
   useEffect(() => {
     const doUpdateCheck = async () => {
@@ -17,7 +17,6 @@ export function useAppUpdater() {
         const result = await checkForUpdates();
         if (result.available) {
           setUpdatePrompt({ version: result.version, releaseNotes: result.body });
-          setUpdateReady(false);
         }
       } catch (error) {
         console.error('Update check failed', error);
@@ -39,14 +38,11 @@ export function useAppUpdater() {
     }
   }, []);
 
-  const handleInstallUpdate = useCallback(async () => {
-    await handleUpdateNow();
-  }, [handleUpdateNow]);
+  const handleInstallUpdate = handleUpdateNow;
 
   const handleDismissUpdate = useCallback(() => {
     setUpdatePrompt(null);
     setUpdateProgress(null);
-    setUpdateReady(false);
   }, []);
 
   return {
