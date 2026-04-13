@@ -36,10 +36,7 @@ function isWithinRoot(targetPath: string, rootPath: string): boolean {
 
 async function getAllowedRoots(): Promise<string[]> {
   const dataDir = normalizePath(await appDataDir());
-  return [
-    dataDir,
-    ...ALLOWED_APPDATA_SUBDIRS.map((segment) => normalizePath(`${dataDir}/${segment}`)),
-  ];
+  return ALLOWED_APPDATA_SUBDIRS.map((segment) => normalizePath(`${dataDir}/${segment}`));
 }
 
 async function assertAllowedPath(path: string): Promise<string> {
