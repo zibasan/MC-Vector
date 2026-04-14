@@ -228,6 +228,13 @@ export function useServerAutomation({
         return;
       }
 
+      if (
+        (status === 'offline' || status === 'crashed') &&
+        (previousStatus === 'restarting' || Boolean(autoRestartTimerRef.current[serverId]))
+      ) {
+        return;
+      }
+
       if (status !== 'crashed' && status !== 'offline') {
         return;
       }

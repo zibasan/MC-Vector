@@ -20,6 +20,7 @@ const ALLOWED_TAURI_COMMANDS = new Set([
   'extract_item',
   'download_file',
   'list_dir_with_metadata',
+  'resolve_managed_path',
   'can_update_app',
   'get_app_location',
 ]);

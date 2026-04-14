@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { checkForUpdates, downloadAndInstallUpdate } from '../../lib/update-commands';
 
 export interface UpdatePromptState {
@@ -9,6 +9,7 @@ export interface UpdatePromptState {
 export function useAppUpdater() {
   const [updatePrompt, setUpdatePrompt] = useState<UpdatePromptState | null>(null);
   const [updateProgress, setUpdateProgress] = useState<number | null>(null);
+  const isUpdatingRef = useRef(false);
   const updateReady = false;
 
   useEffect(() => {
@@ -26,6 +27,10 @@ export function useAppUpdater() {
   }, []);
 
   const handleUpdateNow = useCallback(async () => {
+    if (isUpdatingRef.current) {
+      return;
+    }
+    isUpdatingRef.current = true;
     setUpdateProgress(0);
     try {
       await downloadAndInstallUpdate((downloaded, total) => {
@@ -35,6 +40,8 @@ export function useAppUpdater() {
     } catch (error) {
       console.error('Update error', error);
       setUpdateProgress(null);
+    } finally {
+      isUpdatingRef.current = false;
     }
   }, []);
 

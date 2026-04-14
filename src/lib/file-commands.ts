@@ -1,5 +1,4 @@
 import { open } from '@tauri-apps/plugin-dialog';
-import { appDataDir } from '@tauri-apps/api/path';
 import {
   copyFile,
   type DirEntry,
@@ -20,23 +19,12 @@ export interface FileEntryWithMeta {
   modified: number; // unix timestamp in seconds
 }
 
-const ALLOWED_APPDATA_SUBDIRS = ['servers', 'java', 'ngrok'];
-
 function normalizePath(input: string): string {
   const normalized = input.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
   if (normalized.length > 1 && normalized.endsWith('/') && !/^[A-Za-z]:\/$/.test(normalized)) {
     return normalized.slice(0, -1);
   }
   return normalized;
-}
-
-function isWithinRoot(targetPath: string, rootPath: string): boolean {
-  return targetPath === rootPath || targetPath.startsWith(`${rootPath}/`);
-}
-
-async function getAllowedRoots(): Promise<string[]> {
-  const dataDir = normalizePath(await appDataDir());
-  return ALLOWED_APPDATA_SUBDIRS.map((segment) => normalizePath(`${dataDir}/${segment}`));
 }
 
 async function assertAllowedPath(path: string): Promise<string> {
@@ -48,12 +36,8 @@ async function assertAllowedPath(path: string): Promise<string> {
     throw new Error('Path traversal is not allowed');
   }
 
-  const allowedRoots = await getAllowedRoots();
-  if (!allowedRoots.some((root) => isWithinRoot(normalizedPath, root))) {
-    throw new Error('Path is outside allowed scope');
-  }
-
-  return path;
+  const resolvedPath = await tauriInvoke<string>('resolve_managed_path', { path: normalizedPath });
+  return normalizePath(resolvedPath);
 }
 
 function assertSafeName(name: string): string {

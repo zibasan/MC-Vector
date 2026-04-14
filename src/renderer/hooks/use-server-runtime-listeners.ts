@@ -49,6 +49,27 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function parseServerId(value: unknown): string | null {
+  if (isNonEmptyString(value)) {
+    return value.trim();
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+  return null;
+}
+
+function parseProgress(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return null;
+  }
+  return Math.min(100, Math.max(0, value));
+}
+
 function isServerStatus(value: unknown): value is MinecraftServer['status'] {
   return (
     typeof value === 'string' &&
@@ -111,11 +132,16 @@ export function useServerRuntimeListeners({
         if (cancelled) {
           return;
         }
-        if (!data || !data.serverId) {
+        const payload: unknown = data;
+        if (!isRecord(payload)) {
           return;
         }
-        const formattedLog = data.line.replace(/\n/g, '\r\n');
-        propsRef.current.appendServerLog(data.serverId, formattedLog);
+        const serverId = parseServerId(payload.serverId);
+        if (!serverId || typeof payload.line !== 'string') {
+          return;
+        }
+        const formattedLog = payload.line.replace(/\n/g, '\r\n');
+        propsRef.current.appendServerLog(serverId, formattedLog);
       });
       unlisteners.push(disposeServerLog);
 
@@ -123,12 +149,23 @@ export function useServerRuntimeListeners({
         if (cancelled) {
           return;
         }
+        const payload: unknown = data;
+        if (!isRecord(payload)) {
+          return;
+        }
+        const serverId = parseServerId(payload.serverId);
+        const progress = parseProgress(payload.progress);
+        const statusText = isNonEmptyString(payload.status) ? payload.status.trim() : null;
+        if (!serverId || progress === null || !statusText) {
+          return;
+        }
+
         const { setDownloadStatus, showToast, t } = propsRef.current;
-        if (data.progress === 100) {
+        if (progress >= 100) {
           setDownloadStatus(null);
-          showToast(t('server.toast.downloadComplete', { status: data.status }), 'success');
+          showToast(t('server.toast.downloadComplete', { status: statusText }), 'success');
         } else {
-          setDownloadStatus({ id: data.serverId, progress: data.progress, msg: data.status });
+          setDownloadStatus({ id: serverId, progress, msg: statusText });
         }
       });
       unlisteners.push(disposeDownloadProgress);
