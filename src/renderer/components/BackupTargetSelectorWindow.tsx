@@ -404,14 +404,22 @@ export default function BackupTargetSelectorWindow() {
           <SquareCheckBig size={14} />
           <span>{t('backupSelector.selectionCount', { count: selected.size })}</span>
         </div>
-        <div className="backup-selector-window__view-toggle" role="group">
-          <span className="backup-selector-window__view-toggle-label">
+        <div
+          className="backup-selector-window__view-toggle"
+          role="group"
+          aria-labelledby="backup-selector-view-mode-label"
+        >
+          <span
+            id="backup-selector-view-mode-label"
+            className="backup-selector-window__view-toggle-label"
+          >
             {t('backupSelector.viewMode')}
           </span>
           <button
             type="button"
             className={`backup-selector-window__view-btn ${viewMode === 'tree' ? 'is-active' : ''}`}
             onClick={() => setViewMode('tree')}
+            aria-pressed={viewMode === 'tree'}
           >
             {t('backupSelector.viewTree')}
           </button>
@@ -419,6 +427,7 @@ export default function BackupTargetSelectorWindow() {
             type="button"
             className={`backup-selector-window__view-btn ${viewMode === 'graph' ? 'is-active' : ''}`}
             onClick={() => setViewMode('graph')}
+            aria-pressed={viewMode === 'graph'}
           >
             {t('backupSelector.viewGraph')}
           </button>

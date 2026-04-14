@@ -98,7 +98,15 @@ export default function ProxySetupView({
                   type="number"
                   className="input-field"
                   value={proxyPort}
-                  onChange={(e) => setProxyPort(Number(e.target.value))}
+                  min={1}
+                  max={65535}
+                  onChange={(event) => {
+                    const value = event.currentTarget.valueAsNumber;
+                    if (!Number.isFinite(value)) {
+                      return;
+                    }
+                    setProxyPort(Math.min(65535, Math.max(1, value)));
+                  }}
                 />
                 <div className="proxy-setup-view__hint">{t('proxySetup.portHint')}</div>
               </div>
@@ -117,6 +125,7 @@ export default function ProxySetupView({
 
                 {backendCandidates.map((server) => {
                   const backendCheckboxId = `proxy-backend-${server.id}`;
+                  const backendDetailId = `${backendCheckboxId}-detail`;
                   const backendDetail = t('proxySetup.backendDetail', {
                     software: server.software,
                     version: server.version,
@@ -131,14 +140,13 @@ export default function ProxySetupView({
                         checked={selectedBackendIds.includes(server.id)}
                         onChange={() => handleCheckboxChange(server.id)}
                         className="proxy-setup-view__checkbox"
+                        aria-describedby={backendDetailId}
                       />
-                      <label
-                        htmlFor={backendCheckboxId}
-                        className="proxy-setup-view__backend-meta"
-                        aria-label={backendDetail}
-                      >
+                      <label htmlFor={backendCheckboxId} className="proxy-setup-view__backend-meta">
                         <span className="proxy-setup-view__backend-name">{server.name}</span>
-                        <span className="proxy-setup-view__backend-detail">{backendDetail}</span>
+                        <span id={backendDetailId} className="proxy-setup-view__backend-detail">
+                          {backendDetail}
+                        </span>
                       </label>
                     </div>
                   );
