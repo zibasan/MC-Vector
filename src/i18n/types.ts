@@ -386,6 +386,7 @@ export interface TranslationDictionary {
       downloadSuccess: string;
       downloadFailed: string;
       removed: string;
+      removeFailed: string;
       pathCopied: string;
       pathInfo: string;
       selectionCancelled: string;
@@ -861,6 +862,9 @@ export interface TranslationDictionary {
     subtitle: string;
     serverPathNotSet: string;
     selectionCount: string;
+    viewMode: string;
+    viewTree: string;
+    viewGraph: string;
     selectAll: string;
     clearAll: string;
     loading: string;

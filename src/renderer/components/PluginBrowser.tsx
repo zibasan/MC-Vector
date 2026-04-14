@@ -20,6 +20,7 @@ import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
+import paperLogoUrl from '../../assets/papermc_logo.svg';
 import { useTranslation } from '../../i18n';
 import { deleteItem, listFiles, moveItem } from '../../lib/file-commands';
 import {
@@ -319,7 +320,7 @@ export default function PluginBrowser({ server }: Props) {
         hint: 'Paper ecosystem',
         inApp: true,
         icon: Server,
-        logoUrl: 'https://hangar.papermc.io/favicon.ico',
+        logoUrl: paperLogoUrl,
       });
     }
 
@@ -358,6 +359,8 @@ export default function PluginBrowser({ server }: Props) {
   const selectedPlatform =
     platformOptions.find((option) => option.key === platform) ?? platformOptions[0];
   const isInAppSearch = selectedPlatform?.inApp ?? false;
+  const searchPlatformLabel =
+    (selectedPlatform?.label || platform || 'Modrinth').trim() || 'Modrinth';
 
   const refreshInstalled = async () => {
     try {
@@ -1273,6 +1276,12 @@ export default function PluginBrowser({ server }: Props) {
     ? (compatibilityByItemId[detailItem.id] ?? 'unknown')
     : 'unknown';
   const detailProjectUrl = detailItem ? projectPageUrl(detailItem) : '';
+  const platformSwitchInitial = prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 };
+  const platformSwitchAnimate = { opacity: 1, y: 0 };
+  const platformSwitchExit = prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 };
+  const platformSwitchTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.2, ease: 'easeOut' as const };
 
   return (
     <div className="plugin-browser">
@@ -1332,7 +1341,7 @@ export default function PluginBrowser({ server }: Props) {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={t('plugins.browser.searchOn', {
-                  platform: selectedPlatform?.label || platform,
+                  platform: searchPlatformLabel,
                 })}
                 onKeyDown={(event) => event.key === 'Enter' && void search()}
               />
@@ -1352,7 +1361,7 @@ export default function PluginBrowser({ server }: Props) {
           <div className="plugin-browser__sort-row">
             <span className="plugin-browser__sort-label">{t('plugins.browser.sortLabel')}</span>
             <select
-              className="plugin-browser__sort-select"
+              className="input-field plugin-browser__sort-select"
               value={sortMode}
               onChange={(event) => setSortMode(event.target.value as SortMode)}
             >
@@ -1404,8 +1413,8 @@ export default function PluginBrowser({ server }: Props) {
       {isInAppSearch && (
         <>
           <div className="plugin-browser__results-grid">
-            <AnimatePresence initial={false}>
-              {sortedResults.map((item, index) => {
+            <AnimatePresence initial={false} mode="wait">
+              {sortedResults.map((item) => {
                 const installedMatch = findInstalledMatch(item);
                 const installedState = installedMatch
                   ? isDisabledPluginFile(installedMatch)
@@ -1424,21 +1433,10 @@ export default function PluginBrowser({ server }: Props) {
                 return (
                   <motion.div
                     key={`${item.platform}-${item.id}`}
-                    layout={!prefersReducedMotion}
-                    initial={
-                      prefersReducedMotion
-                        ? { opacity: 1, y: 0, scale: 1 }
-                        : { opacity: 0, y: 14, scale: 0.98 }
-                    }
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={
-                      prefersReducedMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -10 }
-                    }
-                    transition={
-                      prefersReducedMotion
-                        ? { duration: 0 }
-                        : { duration: 0.18, delay: Math.min(index * 0.02, 0.16) }
-                    }
+                    initial={platformSwitchInitial}
+                    animate={platformSwitchAnimate}
+                    exit={platformSwitchExit}
+                    transition={platformSwitchTransition}
                     className="plugin-browser__result-card"
                   >
                     <div
@@ -1566,9 +1564,10 @@ export default function PluginBrowser({ server }: Props) {
               {sortedResults.length === 0 && !loading && (
                 <motion.div
                   key="empty"
-                  initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={prefersReducedMotion ? { duration: 0 } : undefined}
+                  initial={platformSwitchInitial}
+                  animate={platformSwitchAnimate}
+                  exit={platformSwitchExit}
+                  transition={platformSwitchTransition}
                   className="plugin-browser__result-empty"
                 >
                   {t('plugins.browser.noResults')}

@@ -2,7 +2,7 @@ import Editor from '@monaco-editor/react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ask } from '@tauri-apps/plugin-dialog';
 import type * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   iconFile,
   iconFiles,
@@ -30,6 +30,7 @@ import {
   saveFileContent,
 } from '../../lib/file-commands';
 import { type MinecraftServer } from '../components/../shared/server declaration';
+import SvgMaskIcon from './SvgMaskIcon';
 import { useToast } from './ToastProvider';
 
 interface Props {
@@ -42,13 +43,32 @@ interface FileEntry {
   size?: number;
 }
 
+interface EditingFileState {
+  name: string;
+  path: string;
+}
+
+const WINDOWS_DRIVE_ROOT = /^[A-Za-z]:\/$/;
+
+function normalizeManagedPath(path: string): string {
+  const normalized = path.replace(/\\/g, '/');
+  if (normalized.length > 1 && normalized.endsWith('/') && !WINDOWS_DRIVE_ROOT.test(normalized)) {
+    return normalized.slice(0, -1);
+  }
+  return normalized;
+}
+
+function joinManagedPath(...segments: string[]): string {
+  return normalizeManagedPath(segments.filter(Boolean).join('/'));
+}
+
 export default function FilesView({ server }: Props) {
   const [currentPath, setCurrentPath] = useState(server.path);
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [serversRootAbsPath, setServersRootAbsPath] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
 
-  const [editingFile, setEditingFile] = useState<string | null>(null);
+  const [editingFile, setEditingFile] = useState<EditingFileState | null>(null);
   const [fileContent, setFileContent] = useState('');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -241,8 +261,9 @@ export default function FilesView({ server }: Props) {
       }
     } else {
       try {
-        const content = await readFileContent(`${currentPath}/${fileName}`);
-        setEditingFile(fileName);
+        const filePath = joinManagedPath(currentPath, fileName);
+        const content = await readFileContent(filePath);
+        setEditingFile({ name: fileName, path: filePath });
         setFileContent(content);
         setIsEditorOpen(true);
       } catch (e) {
@@ -266,22 +287,27 @@ export default function FilesView({ server }: Props) {
     setSelectedFiles([]);
   };
 
-  const handleSaveFile = async () => {
-    if (!editingFile) {
+  const handleSaveFile = useCallback(async () => {
+    if (!editingFile || isSaving) {
       return;
     }
     setIsSaving(true);
     try {
-      await saveFileContent(`${currentPath}/${editingFile}`, fileContent);
+      await saveFileContent(editingFile.path, fileContent);
       showToast(t('files.toast.saved'), 'success');
+      setIsEditorOpen(false);
+      setEditingFile(null);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to save file content', {
+        currentPath,
+        filePath: editingFile.path,
+        error: err,
+      });
       showToast(t('files.toast.saveFailed'), 'error');
+    } finally {
+      setIsSaving(false);
     }
-    setIsSaving(false);
-    setIsEditorOpen(false);
-    setEditingFile(null);
-  };
+  }, [currentPath, editingFile, fileContent, isSaving, showToast, t]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -293,11 +319,11 @@ export default function FilesView({ server }: Props) {
         return;
       }
       e.preventDefault();
-      handleSaveFile();
+      void handleSaveFile();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isEditorOpen, editingFile, fileContent]);
+  }, [handleSaveFile, isEditorOpen]);
 
   const handleContextMenu = (e: React.MouseEvent, file: FileEntry | null) => {
     e.preventDefault();
@@ -511,7 +537,7 @@ export default function FilesView({ server }: Props) {
           onClick={handleOpenExplorer}
           title={t('files.toolbar.openExplorer')}
         >
-          <img src={iconOpenFolder} className="w-4" alt="" />
+          <SvgMaskIcon src={iconOpenFolder} className="files-view__toolbar-icon" />
         </button>
         {selectedFiles.length > 0 && (
           <>
@@ -521,28 +547,28 @@ export default function FilesView({ server }: Props) {
               onClick={() => openMoveModal(false)}
               title={t('files.toolbar.move')}
             >
-              <img src={iconMove} className="w-4" alt="" />
+              <SvgMaskIcon src={iconMove} className="files-view__toolbar-icon" />
             </button>
             <button
               className="files-view__toolbar-btn"
               onClick={handleZip}
               title={t('files.toolbar.compress')}
             >
-              <img src={iconZip} className="w-4" alt="" />
+              <SvgMaskIcon src={iconZip} className="files-view__toolbar-icon" />
             </button>
             <button
               className="files-view__toolbar-btn"
               onClick={handleUnzip}
               title={t('files.toolbar.extract')}
             >
-              <img src={iconUnzip} className="w-4" alt="" />
+              <SvgMaskIcon src={iconUnzip} className="files-view__toolbar-icon" />
             </button>
             <button
               className="files-view__toolbar-btn files-view__toolbar-btn--danger"
               onClick={handleDelete}
               title={t('files.toolbar.delete')}
             >
-              <img src={iconTrash} className="w-4" alt="" />
+              <SvgMaskIcon src={iconTrash} className="files-view__toolbar-icon" />
             </button>
           </>
         )}
@@ -584,10 +610,9 @@ export default function FilesView({ server }: Props) {
                 onClick={(e) => handleCheckboxClick(file.name, e)}
                 className="cursor-pointer mr-2.5 ml-2.5"
               />
-              <img
+              <SvgMaskIcon
                 src={file.isDirectory ? iconFolder : iconFile}
-                alt=""
-                className="w-5 h-5 object-contain mr-2.5"
+                className={`files-view__row-icon ${file.isDirectory ? 'files-view__row-icon--dir' : 'files-view__row-icon--file'}`}
               />
               <span
                 className={`files-view__name ${file.isDirectory ? 'files-view__name--dir' : 'files-view__name--file'}`}
@@ -611,9 +636,15 @@ export default function FilesView({ server }: Props) {
       {isEditorOpen && (
         <div className="files-view__editor-overlay">
           <div className="files-view__editor-header">
-            <span>{editingFile}</span>
+            <span>{editingFile?.name}</span>
             <div className="files-view__editor-actions">
-              <button className="btn-secondary mr-2.5" onClick={() => setIsEditorOpen(false)}>
+              <button
+                className="btn-secondary mr-2.5"
+                onClick={() => {
+                  setIsEditorOpen(false);
+                  setEditingFile(null);
+                }}
+              >
                 {t('common.close')}
               </button>
               <button
@@ -628,11 +659,11 @@ export default function FilesView({ server }: Props) {
           <Editor
             height="100%"
             defaultLanguage={
-              editingFile?.endsWith('.json')
+              editingFile?.name.endsWith('.json')
                 ? 'json'
-                : editingFile?.endsWith('.yml') || editingFile?.endsWith('.yaml')
+                : editingFile?.name.endsWith('.yml') || editingFile?.name.endsWith('.yaml')
                   ? 'yaml'
-                  : editingFile?.endsWith('.properties')
+                  : editingFile?.name.endsWith('.properties')
                     ? 'ini'
                     : 'plaintext'
             }
@@ -654,7 +685,7 @@ export default function FilesView({ server }: Props) {
                 className={`files-view__create-option ${createMode === 'folder' ? 'is-active' : ''}`}
                 onClick={() => setCreateMode('folder')}
               >
-                <img src={iconFiles} alt="" className="w-8 h-8 object-contain" />
+                <SvgMaskIcon src={iconFiles} className="w-8 h-8" />
                 <span
                   className={`files-view__create-option-label ${createMode === 'folder' ? 'is-active' : 'is-idle'}`}
                 >
@@ -666,7 +697,7 @@ export default function FilesView({ server }: Props) {
                 className={`files-view__create-option ${createMode === 'file' ? 'is-active' : ''}`}
                 onClick={() => setCreateMode('file')}
               >
-                <img src={iconFile} alt="" className="w-8 h-8 object-contain" />
+                <SvgMaskIcon src={iconFile} className="w-8 h-8" />
                 <span
                   className={`files-view__create-option-label ${createMode === 'file' ? 'is-active' : 'is-idle'}`}
                 >
@@ -678,7 +709,7 @@ export default function FilesView({ server }: Props) {
                 className="files-view__create-option files-view__create-option--import"
                 onClick={handleImport}
               >
-                <img src={iconImport} alt="" className="w-8 h-8 object-contain" />
+                <SvgMaskIcon src={iconImport} className="w-8 h-8" />
                 <span className="files-view__create-option-label is-idle">
                   {t('files.modal.import')}
                 </span>
@@ -804,7 +835,7 @@ export default function FilesView({ server }: Props) {
                   setContextMenu(null);
                 }}
               >
-                <img src={iconMove} className="files-view__context-icon" alt="" />
+                <SvgMaskIcon src={iconMove} className="files-view__context-icon" />
                 {t('files.contextMenu.moveItem')}
               </div>
 
@@ -816,7 +847,7 @@ export default function FilesView({ server }: Props) {
                   setContextMenu(null);
                 }}
               >
-                <img src={iconZip} className="files-view__context-icon" alt="" />
+                <SvgMaskIcon src={iconZip} className="files-view__context-icon" />
                 {t('files.contextMenu.compressItem')}
               </div>
 
@@ -828,7 +859,7 @@ export default function FilesView({ server }: Props) {
                   setContextMenu(null);
                 }}
               >
-                <img src={iconUnzip} className="files-view__context-icon" alt="" />
+                <SvgMaskIcon src={iconUnzip} className="files-view__context-icon" />
                 {t('files.contextMenu.extractItem')}
               </div>
 
@@ -837,7 +868,7 @@ export default function FilesView({ server }: Props) {
                 className="files-view__context-item files-view__context-item--danger"
                 onClick={handleDelete}
               >
-                <img src={iconTrash} className="files-view__context-icon" alt="" />
+                <SvgMaskIcon src={iconTrash} className="files-view__context-icon" />
                 {t('files.contextMenu.deleteItem')}
               </div>
             </>
@@ -870,7 +901,7 @@ export default function FilesView({ server }: Props) {
                   setContextMenu(null);
                 }}
               >
-                <img src={iconMove} className="files-view__context-icon" alt="" />
+                <SvgMaskIcon src={iconMove} className="files-view__context-icon" />
                 {t('files.contextMenu.move')}
               </div>
             </>
