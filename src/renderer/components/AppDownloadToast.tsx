@@ -21,7 +21,10 @@ export default function AppDownloadToast({ title, progress, message }: AppDownlo
         aria-valuemin={0}
         aria-valuemax={100}
       >
-        <div className="download-toast__progress-bar" style={{ width: `${clampedProgress}%` }}></div>
+        <div
+          className="download-toast__progress-bar"
+          style={{ width: `${clampedProgress}%` }}
+        ></div>
       </div>
     </div>
   );

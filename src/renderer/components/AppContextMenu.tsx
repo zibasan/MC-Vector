@@ -24,7 +24,11 @@ export default function AppContextMenu({
   }
 
   return (
-    <div className="app-context-menu" style={{ top: contextMenu.y, left: contextMenu.x }} role="menu">
+    <div
+      className="app-context-menu"
+      style={{ top: contextMenu.y, left: contextMenu.x }}
+      role="menu"
+    >
       <button
         type="button"
         role="menuitem"
