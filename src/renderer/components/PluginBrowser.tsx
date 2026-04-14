@@ -1273,6 +1273,16 @@ export default function PluginBrowser({ server }: Props) {
     ? (compatibilityByItemId[detailItem.id] ?? 'unknown')
     : 'unknown';
   const detailProjectUrl = detailItem ? projectPageUrl(detailItem) : '';
+  const resultCardInitial = prefersReducedMotion
+    ? { opacity: 1, y: 0, scale: 1 }
+    : { opacity: 0, y: 14, scale: 0.98 };
+  const resultCardAnimate = { opacity: 1, y: 0, scale: 1 };
+  const resultCardExit = prefersReducedMotion
+    ? { opacity: 1, y: 0, scale: 1 }
+    : { opacity: 0, y: -10, scale: 0.98 };
+  const resultCardTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.2, ease: [0.22, 1, 0.36, 1] as const };
 
   return (
     <div className="plugin-browser">
@@ -1404,8 +1414,8 @@ export default function PluginBrowser({ server }: Props) {
       {isInAppSearch && (
         <>
           <div className="plugin-browser__results-grid">
-            <AnimatePresence initial={false}>
-              {sortedResults.map((item, index) => {
+            <AnimatePresence initial={false} mode="wait">
+              {sortedResults.map((item) => {
                 const installedMatch = findInstalledMatch(item);
                 const installedState = installedMatch
                   ? isDisabledPluginFile(installedMatch)
@@ -1424,21 +1434,10 @@ export default function PluginBrowser({ server }: Props) {
                 return (
                   <motion.div
                     key={`${item.platform}-${item.id}`}
-                    layout={!prefersReducedMotion}
-                    initial={
-                      prefersReducedMotion
-                        ? { opacity: 1, y: 0, scale: 1 }
-                        : { opacity: 0, y: 14, scale: 0.98 }
-                    }
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={
-                      prefersReducedMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -10 }
-                    }
-                    transition={
-                      prefersReducedMotion
-                        ? { duration: 0 }
-                        : { duration: 0.18, delay: Math.min(index * 0.02, 0.16) }
-                    }
+                    initial={resultCardInitial}
+                    animate={resultCardAnimate}
+                    exit={resultCardExit}
+                    transition={resultCardTransition}
                     className="plugin-browser__result-card"
                   >
                     <div

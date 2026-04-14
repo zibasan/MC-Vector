@@ -2,7 +2,7 @@ import Editor from '@monaco-editor/react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ask } from '@tauri-apps/plugin-dialog';
 import type * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   iconFile,
   iconFiles,
@@ -266,22 +266,23 @@ export default function FilesView({ server }: Props) {
     setSelectedFiles([]);
   };
 
-  const handleSaveFile = async () => {
-    if (!editingFile) {
+  const handleSaveFile = useCallback(async () => {
+    if (!editingFile || isSaving) {
       return;
     }
     setIsSaving(true);
     try {
       await saveFileContent(`${currentPath}/${editingFile}`, fileContent);
       showToast(t('files.toast.saved'), 'success');
+      setIsEditorOpen(false);
+      setEditingFile(null);
     } catch (err) {
       console.error(err);
       showToast(t('files.toast.saveFailed'), 'error');
+    } finally {
+      setIsSaving(false);
     }
-    setIsSaving(false);
-    setIsEditorOpen(false);
-    setEditingFile(null);
-  };
+  }, [currentPath, editingFile, fileContent, isSaving, showToast, t]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -293,11 +294,11 @@ export default function FilesView({ server }: Props) {
         return;
       }
       e.preventDefault();
-      handleSaveFile();
+      void handleSaveFile();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isEditorOpen, editingFile, fileContent]);
+  }, [handleSaveFile, isEditorOpen]);
 
   const handleContextMenu = (e: React.MouseEvent, file: FileEntry | null) => {
     e.preventDefault();

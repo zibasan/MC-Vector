@@ -66,28 +66,30 @@ export default function ProxySetupView({
       <h2 className="proxy-setup-view__title">{t('proxySetup.title')}</h2>
 
       <div className="proxy-setup-view__panel">
-        <div className="proxy-setup-view__field">
-          <label className="proxy-setup-view__label">{t('proxySetup.proxySoftware')}</label>
-          <select
-            className="input-field"
-            value={proxySoftware}
-            onChange={(e) => setProxySoftware(e.target.value)}
-          >
-            <option value="Velocity">{t('proxySetup.velocityRecommended')}</option>
-            <option value="Waterfall">{t('proxySetup.waterfall')}</option>
-            <option value="BungeeCord">{t('proxySetup.bungeecord')}</option>
-          </select>
-        </div>
+        <div className="proxy-setup-view__top-grid">
+          <div className="proxy-setup-view__field">
+            <label className="proxy-setup-view__label">{t('proxySetup.proxySoftware')}</label>
+            <select
+              className="input-field"
+              value={proxySoftware}
+              onChange={(e) => setProxySoftware(e.target.value)}
+            >
+              <option value="Velocity">{t('proxySetup.velocityRecommended')}</option>
+              <option value="Waterfall">{t('proxySetup.waterfall')}</option>
+              <option value="BungeeCord">{t('proxySetup.bungeecord')}</option>
+            </select>
+          </div>
 
-        <div className="proxy-setup-view__field">
-          <label className="proxy-setup-view__label">{t('proxySetup.proxyPort')}</label>
-          <input
-            type="number"
-            className="input-field"
-            value={proxyPort}
-            onChange={(e) => setProxyPort(Number(e.target.value))}
-          />
-          <div className="proxy-setup-view__hint">{t('proxySetup.portHint')}</div>
+          <div className="proxy-setup-view__field">
+            <label className="proxy-setup-view__label">{t('proxySetup.proxyPort')}</label>
+            <input
+              type="number"
+              className="input-field"
+              value={proxyPort}
+              onChange={(e) => setProxyPort(Number(e.target.value))}
+            />
+            <div className="proxy-setup-view__hint">{t('proxySetup.portHint')}</div>
+          </div>
         </div>
 
         <div className="proxy-setup-view__field proxy-setup-view__field--large-gap">

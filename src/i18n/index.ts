@@ -49,7 +49,8 @@ function getNestedValue(obj: unknown, path: string): string | undefined {
 function interpolate(text: string, params?: TranslationParams): string {
   if (!params) return text;
 
-  return text.replace(/\{(\w+)\}/g, (_, key: string) => {
+  return text.replace(/\{\{(\w+)\}\}|\{(\w+)\}/g, (_, doubleKey?: string, singleKey?: string) => {
+    const key = doubleKey ?? singleKey ?? '';
     const value = params[key];
     return value !== undefined ? String(value) : `{${key}}`;
   });

@@ -19,10 +19,15 @@
   }
 
   .proxy-setup-view__panel {
-    @apply p-6 max-w-4xl rounded-2xl border;
+    @apply p-6 w-full max-w-4xl mx-auto rounded-2xl border;
     border-color: var(--mv-border-soft);
     background: var(--mv-panel-bg-alt);
     box-shadow: var(--mv-shadow-panel);
+  }
+
+  .proxy-setup-view__top-grid {
+    @apply grid gap-4;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   }
 
   .proxy-setup-view__field {
@@ -56,7 +61,7 @@
   }
 
   .proxy-setup-view__backend-row {
-    @apply flex items-center p-2.5 border-b border-zinc-700/65 rounded-md;
+    @apply flex items-start p-2.5 border-b border-zinc-700/65 rounded-md gap-2;
   }
 
   .proxy-setup-view__backend-row:last-child {
@@ -64,19 +69,24 @@
   }
 
   .proxy-setup-view__checkbox {
-    @apply mr-2.5 cursor-pointer;
+    @apply cursor-pointer mt-0.5;
+    accent-color: #22d3ee;
+  }
+
+  .proxy-setup-view__backend-meta {
+    @apply min-w-0 flex-1;
   }
 
   .proxy-setup-view__backend-name {
-    @apply font-semibold;
+    @apply font-semibold truncate;
   }
 
   .proxy-setup-view__backend-detail {
-    @apply text-xs text-zinc-400;
+    @apply text-xs text-zinc-400 break-words;
   }
 
   .proxy-setup-view__actions {
-    @apply flex items-center gap-4;
+    @apply flex items-center justify-end gap-4;
   }
 
   .proxy-setup-view__build-btn {

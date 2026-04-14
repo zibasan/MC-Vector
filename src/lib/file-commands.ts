@@ -1,4 +1,5 @@
 import { open } from '@tauri-apps/plugin-dialog';
+import { appDataDir } from '@tauri-apps/api/path';
 import {
   copyFile,
   type DirEntry,
@@ -27,16 +28,64 @@ function normalizePath(input: string): string {
   return normalized;
 }
 
+const MANAGED_ROOT_SEGMENTS = ['servers', 'java', 'ngrok'] as const;
+const WINDOWS_ABSOLUTE_PATH = /^[A-Za-z]:\//;
+let cachedAppDataRoot: string | null = null;
+
+function hasTraversalSegment(path: string): boolean {
+  return path === '..' || path.startsWith('../') || path.includes('/../') || path.endsWith('/..');
+}
+
+function isAbsolutePath(path: string): boolean {
+  return path.startsWith('/') || WINDOWS_ABSOLUTE_PATH.test(path);
+}
+
+async function getAppDataRoot(): Promise<string> {
+  if (cachedAppDataRoot) {
+    return cachedAppDataRoot;
+  }
+  const root = normalizePath(await appDataDir());
+  cachedAppDataRoot = root;
+  return root;
+}
+
+async function normalizeManagedInputPath(path: string): Promise<string> {
+  if (isAbsolutePath(path)) {
+    return path;
+  }
+
+  const relativePath = normalizePath(path)
+    .replace(/^\.\/+/, '')
+    .replace(/^\/+/, '');
+  if (!relativePath) {
+    throw new Error('Invalid path');
+  }
+  if (hasTraversalSegment(relativePath)) {
+    throw new Error('Path traversal is not allowed');
+  }
+
+  const appDataRoot = await getAppDataRoot();
+  const managedRelative = MANAGED_ROOT_SEGMENTS.some(
+    (segment) => relativePath === segment || relativePath.startsWith(`${segment}/`),
+  )
+    ? relativePath
+    : `servers/${relativePath}`;
+  return normalizePath(`${appDataRoot}/${managedRelative}`);
+}
+
 async function assertAllowedPath(path: string): Promise<string> {
   const normalizedPath = normalizePath(path);
   if (!normalizedPath || normalizedPath.includes('\0')) {
     throw new Error('Invalid path');
   }
-  if (normalizedPath.includes('/../') || normalizedPath.endsWith('/..')) {
+  if (hasTraversalSegment(normalizedPath)) {
     throw new Error('Path traversal is not allowed');
   }
 
-  const resolvedPath = await tauriInvoke<string>('resolve_managed_path', { path: normalizedPath });
+  const managedInputPath = await normalizeManagedInputPath(normalizedPath);
+  const resolvedPath = await tauriInvoke<string>('resolve_managed_path', {
+    path: managedInputPath,
+  });
   return normalizePath(resolvedPath);
 }
 

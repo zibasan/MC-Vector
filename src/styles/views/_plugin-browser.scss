@@ -151,7 +151,7 @@
   }
 
   .plugin-browser__compat-badge {
-    @apply text-[0.66rem] font-semibold rounded-full px-2 py-0.5 border;
+    @apply text-[0.66rem] font-semibold rounded-full px-2 py-0.5 border whitespace-nowrap;
   }
 
   .plugin-browser__compat-badge.is-compatible {

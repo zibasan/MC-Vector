@@ -18,6 +18,8 @@ interface IncomingPayload {
   selected: string[];
 }
 
+type SelectorViewMode = 'tree' | 'graph';
+
 function parseInitialPayload(): IncomingPayload {
   const params = new URLSearchParams(window.location.search);
   const serverPath = params.get('serverPath') ?? '';
@@ -60,6 +62,17 @@ const sortNodes = (nodes: SelectorNode[]): SelectorNode[] => {
   });
 };
 
+const flattenNodes = (nodes: SelectorNode[]): SelectorNode[] => {
+  const flattened: SelectorNode[] = [];
+  for (const node of nodes) {
+    flattened.push(node);
+    if (node.children && node.children.length > 0) {
+      flattened.push(...flattenNodes(node.children));
+    }
+  }
+  return flattened;
+};
+
 export default function BackupTargetSelectorWindow() {
   const { t } = useTranslation();
   const initial = useMemo(parseInitialPayload, []);
@@ -69,6 +82,7 @@ export default function BackupTargetSelectorWindow() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [viewMode, setViewMode] = useState<SelectorViewMode>('tree');
 
   const loadTree = async (basePath: string, preselected: Set<string>) => {
     if (!basePath) {
@@ -268,6 +282,7 @@ export default function BackupTargetSelectorWindow() {
 
           <input
             type="checkbox"
+            className="backup-selector-window__node-checkbox"
             checked={checked}
             onChange={(event) => handleToggleNode(node, event.target.checked)}
           />
@@ -297,6 +312,59 @@ export default function BackupTargetSelectorWindow() {
     );
   };
 
+  const renderGraphGroup = (root: SelectorNode) => {
+    const rootChecked = selected.has(root.path);
+    const descendants = root.children ? flattenNodes(root.children) : [];
+
+    return (
+      <section key={root.path} className="backup-selector-window__graph-root">
+        <div
+          className={`backup-selector-window__graph-root-row ${rootChecked ? 'is-selected' : ''}`}
+        >
+          <input
+            type="checkbox"
+            className="backup-selector-window__node-checkbox"
+            checked={rootChecked}
+            onChange={(event) => handleToggleNode(root, event.target.checked)}
+          />
+          <span className="backup-selector-window__kind-icon">
+            {root.isDirectory ? <Folder size={14} /> : <File size={14} />}
+          </span>
+          <button
+            type="button"
+            className="backup-selector-window__graph-root-toggle"
+            onClick={() => handleToggleNode(root, !rootChecked)}
+            title={root.path}
+          >
+            {root.name}
+          </button>
+          <span className="backup-selector-window__size">{formatSize(root.size)}</span>
+        </div>
+
+        {descendants.length > 0 && (
+          <div className="backup-selector-window__graph-links">
+            {descendants.map((node) => {
+              const checked = selected.has(node.path);
+
+              return (
+                <button
+                  key={node.path}
+                  type="button"
+                  className={`backup-selector-window__graph-node ${checked ? 'is-selected' : ''}`}
+                  onClick={() => handleToggleNode(node, !checked)}
+                  title={node.path}
+                >
+                  {node.isDirectory ? <Folder size={12} /> : <File size={12} />}
+                  <span className="backup-selector-window__graph-node-label">{node.path}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    );
+  };
+
   return (
     <div className="backup-selector-window">
       <header className="backup-selector-window__header">
@@ -315,6 +383,25 @@ export default function BackupTargetSelectorWindow() {
           <SquareCheckBig size={14} />
           <span>{t('backupSelector.selectionCount', { count: selected.size })}</span>
         </div>
+        <div className="backup-selector-window__view-toggle" role="group">
+          <span className="backup-selector-window__view-toggle-label">
+            {t('backupSelector.viewMode')}
+          </span>
+          <button
+            type="button"
+            className={`backup-selector-window__view-btn ${viewMode === 'tree' ? 'is-active' : ''}`}
+            onClick={() => setViewMode('tree')}
+          >
+            {t('backupSelector.viewTree')}
+          </button>
+          <button
+            type="button"
+            className={`backup-selector-window__view-btn ${viewMode === 'graph' ? 'is-active' : ''}`}
+            onClick={() => setViewMode('graph')}
+          >
+            {t('backupSelector.viewGraph')}
+          </button>
+        </div>
         <div className="backup-selector-window__toolbar-actions">
           <button type="button" className="btn-secondary" onClick={handleSelectAll}>
             {t('backupSelector.selectAll')}
@@ -325,11 +412,19 @@ export default function BackupTargetSelectorWindow() {
         </div>
       </div>
 
-      <div className="backup-selector-window__tree-panel">
+      <div
+        className={
+          viewMode === 'graph'
+            ? 'backup-selector-window__graph-panel'
+            : 'backup-selector-window__tree-panel'
+        }
+      >
         {loading ? (
           <div className="backup-selector-window__empty">{t('backupSelector.loading')}</div>
         ) : tree.length === 0 ? (
           <div className="backup-selector-window__empty">{t('backupSelector.empty')}</div>
+        ) : viewMode === 'graph' ? (
+          tree.map((node) => renderGraphGroup(node))
         ) : (
           tree.map((node) => renderNode(node, 0))
         )}

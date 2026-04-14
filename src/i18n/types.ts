@@ -861,6 +861,9 @@ export interface TranslationDictionary {
     subtitle: string;
     serverPathNotSet: string;
     selectionCount: string;
+    viewMode: string;
+    viewTree: string;
+    viewGraph: string;
     selectAll: string;
     clearAll: string;
     loading: string;
