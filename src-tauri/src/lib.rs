@@ -5,7 +5,6 @@ use tauri::Manager;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_http::init())
@@ -31,6 +30,7 @@ pub fn run() {
             Ok(())
         })
         .manage(commands::server::ServerManager::default())
+        .manage(commands::server::CommandLimiter::default())
         .manage(commands::ngrok::NgrokManager::default())
         .invoke_handler(tauri::generate_handler![
             // サーバー操作
@@ -58,6 +58,7 @@ pub fn run() {
             commands::ngrok::is_ngrok_installed,
             // ファイルユーティリティ
             commands::file_utils::list_dir_with_metadata,
+            commands::file_utils::resolve_managed_path,
             // アップデートユーティリティ
             commands::updater_utils::can_update_app,
             commands::updater_utils::get_app_location,

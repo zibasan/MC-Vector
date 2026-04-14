@@ -1,3 +1,4 @@
+import { fileURLToPath, URL } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite-plus';
 
@@ -11,6 +12,12 @@ export default defineConfig({
   plugins: [react()],
 
   clearScreen: false,
+
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
 
   server: {
     port: portlessPort ?? 5173,
@@ -101,7 +108,7 @@ export default defineConfig({
   // Staged file checks (replaces lint-staged)
   staged: {
     'src/**/*.{ts,tsx}': 'vp check --fix',
-    'src-tauri/src/**/*.rs': 'cargo fmt --all --manifest-path src-tauri/Cargo.toml',
+    'src-tauri/src/**/*.rs': 'cargo fmt --all --manifest-path src-tauri/Cargo.toml --',
     '**/*.{yml,yaml}': 'yamllint',
   },
 });

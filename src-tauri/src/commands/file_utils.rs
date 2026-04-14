@@ -1,4 +1,6 @@
-use std::path::Path;
+use std::ffi::OsString;
+use std::path::{Component, Path, PathBuf};
+use tauri::{AppHandle, Manager};
 
 #[derive(serde::Serialize)]
 pub struct FileEntryInfo {
@@ -8,6 +10,79 @@ pub struct FileEntryInfo {
     pub size: u64,
     /// Unix timestamp in seconds (modification time)
     pub modified: u64,
+}
+
+const ALLOWED_APPDATA_SUBDIRS: [&str; 3] = ["servers", "java", "ngrok"];
+
+fn canonicalize_with_existing_ancestor(path: &Path) -> Result<PathBuf, String> {
+    if path.exists() {
+        return std::fs::canonicalize(path).map_err(|e| format!("Failed to resolve path: {}", e));
+    }
+
+    let mut existing_ancestor = path.to_path_buf();
+    let mut missing_segments: Vec<OsString> = Vec::new();
+
+    while !existing_ancestor.exists() {
+        let segment = existing_ancestor
+            .file_name()
+            .ok_or_else(|| "Path has no existing parent".to_string())?;
+        missing_segments.push(segment.to_os_string());
+        existing_ancestor = existing_ancestor
+            .parent()
+            .ok_or_else(|| "Path has no existing parent".to_string())?
+            .to_path_buf();
+    }
+
+    let mut canonical = std::fs::canonicalize(&existing_ancestor)
+        .map_err(|e| format!("Failed to resolve path: {}", e))?;
+    for segment in missing_segments.iter().rev() {
+        canonical.push(segment);
+    }
+    Ok(canonical)
+}
+
+fn is_within_root(target_path: &Path, root_path: &Path) -> bool {
+    target_path == root_path || target_path.starts_with(root_path)
+}
+
+#[tauri::command]
+pub async fn resolve_managed_path(app: AppHandle, path: String) -> Result<String, String> {
+    let normalized = path.trim();
+    if normalized.is_empty() || normalized.contains('\0') {
+        return Err("Invalid path".to_string());
+    }
+
+    let target_path = PathBuf::from(normalized);
+    if !target_path.is_absolute() {
+        return Err("Path must be absolute".to_string());
+    }
+    if target_path
+        .components()
+        .any(|component| matches!(component, Component::ParentDir | Component::CurDir))
+    {
+        return Err("Path traversal is not allowed".to_string());
+    }
+
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| "Failed to resolve app data directory".to_string())?;
+    std::fs::create_dir_all(&app_data_dir)
+        .map_err(|e| format!("Failed to prepare app data directory: {}", e))?;
+
+    let canonical_app_data = canonicalize_with_existing_ancestor(&app_data_dir)?;
+    let canonical_target = canonicalize_with_existing_ancestor(&target_path)?;
+
+    let is_allowed = ALLOWED_APPDATA_SUBDIRS.iter().any(|segment| {
+        let root_path = canonical_app_data.join(segment);
+        is_within_root(&canonical_target, &root_path)
+    });
+
+    if !is_allowed {
+        return Err("Path is outside allowed scope".to_string());
+    }
+
+    Ok(canonical_target.to_string_lossy().to_string())
 }
 
 /// ディレクトリの内容をメタデータ付きで一括取得
