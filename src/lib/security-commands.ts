@@ -5,6 +5,15 @@ export type UserRole = 'admin' | 'user' | 'viewer';
 interface SecurityGatewayResponse {
   sanitized?: string;
   allowed?: boolean;
+  program?: string;
+  args?: string[];
+  resolvedPath?: string;
+  logged?: boolean;
+  entry?: {
+    user?: string;
+    action?: string;
+    timestamp?: number;
+  };
 }
 
 export async function securityGateway<T = unknown>(
@@ -39,4 +48,62 @@ export async function checkRateLimit(userId: string): Promise<boolean> {
     throw new Error('security_gateway rate_limit_check returned invalid payload');
   }
   return true;
+}
+
+export interface ValidatedCommand {
+  program: string;
+  args: string[];
+}
+
+export async function validateSafeCommand(
+  program: string,
+  args: string[] = [],
+): Promise<ValidatedCommand> {
+  const response = await securityGateway<SecurityGatewayResponse>('validate_safe_command', {
+    program,
+    args,
+  });
+  if (response.allowed !== true || typeof response.program !== 'string' || !Array.isArray(response.args)) {
+    throw new Error('security_gateway validate_safe_command returned invalid payload');
+  }
+  return {
+    program: response.program,
+    args: response.args,
+  };
+}
+
+export async function resolveSafePath(base: string, input: string): Promise<string> {
+  const response = await securityGateway<SecurityGatewayResponse>('resolve_safe_path', {
+    base,
+    input,
+  });
+  if (typeof response.resolvedPath !== 'string') {
+    throw new Error('security_gateway resolve_safe_path returned invalid payload');
+  }
+  return response.resolvedPath;
+}
+
+export interface AuditEntry {
+  user: string;
+  action: string;
+  timestamp: number;
+}
+
+export async function logAuditAction(user: string, action: string): Promise<AuditEntry> {
+  const response = await securityGateway<SecurityGatewayResponse>('audit_log', { user, action });
+  const entry = response.entry;
+  if (
+    response.logged !== true ||
+    !entry ||
+    typeof entry.user !== 'string' ||
+    typeof entry.action !== 'string' ||
+    typeof entry.timestamp !== 'number'
+  ) {
+    throw new Error('security_gateway audit_log returned invalid payload');
+  }
+  return {
+    user: entry.user,
+    action: entry.action,
+    timestamp: entry.timestamp,
+  };
 }

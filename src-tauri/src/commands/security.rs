@@ -1,7 +1,9 @@
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use std::path::{Component, Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 const RATE_LIMIT_WINDOW: Duration = Duration::from_secs(1);
 
@@ -120,6 +122,84 @@ fn check_rate_limit_with_state(
     Ok(())
 }
 
+fn sanitize_command_arg(arg: &str) -> String {
+    arg.replace(';', "").replace('&', "")
+}
+
+fn validate_safe_command(program: &str, args: &[String]) -> Result<(String, Vec<String>), String> {
+    let normalized_program = program.trim();
+    if normalized_program.is_empty() {
+        return Err("security_gateway validate_safe_command requires non-empty payload.program".to_string());
+    }
+
+    let file_name = Path::new(normalized_program)
+        .file_name()
+        .and_then(|value| value.to_str())
+        .map(|value| value.to_ascii_lowercase())
+        .ok_or_else(|| "security_gateway validate_safe_command program is invalid".to_string())?;
+
+    if file_name != "java" && file_name != "java.exe" {
+        return Err("Forbidden: program is not in allowlist".to_string());
+    }
+
+    let sanitized_args = args.iter().map(|arg| sanitize_command_arg(arg)).collect();
+    Ok((normalized_program.to_string(), sanitized_args))
+}
+
+fn resolve_safe_path(base: &str, input: &str) -> Result<String, String> {
+    let normalized_base = base.trim();
+    let normalized_input = input.trim();
+    if normalized_base.is_empty() || normalized_input.is_empty() {
+        return Err("security_gateway resolve_safe_path requires non-empty payload.base and payload.input".to_string());
+    }
+
+    let base_path = PathBuf::from(normalized_base);
+    if !base_path.is_absolute() {
+        return Err("security_gateway resolve_safe_path payload.base must be absolute".to_string());
+    }
+
+    let input_path = PathBuf::from(normalized_input);
+    if input_path.is_absolute() {
+        return Err("Path traversal detected".to_string());
+    }
+
+    if input_path
+        .components()
+        .any(|component| matches!(component, Component::ParentDir | Component::CurDir))
+    {
+        return Err("Path traversal detected".to_string());
+    }
+
+    Ok(base_path.join(input_path).to_string_lossy().to_string())
+}
+
+fn build_audit_entry(user: &str, action: &str) -> Result<Value, String> {
+    let normalized_user = user.trim();
+    let normalized_action = action.trim();
+    if normalized_user.is_empty() || normalized_action.is_empty() {
+        return Err("security_gateway audit_log requires non-empty payload.user and payload.action".to_string());
+    }
+
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| "Failed to create audit timestamp".to_string())?
+        .as_secs();
+
+    log::info!(
+        target: "security.audit",
+        "[AUDIT] user={} action={} timestamp={}",
+        normalized_user,
+        normalized_action,
+        timestamp
+    );
+
+    Ok(json!({
+        "user": normalized_user,
+        "action": normalized_action,
+        "timestamp": timestamp,
+    }))
+}
+
 #[tauri::command]
 pub async fn security_gateway(action: String, payload: Value) -> Result<Value, String> {
     match action.trim() {
@@ -156,13 +236,73 @@ pub async fn security_gateway(action: String, payload: Value) -> Result<Value, S
                 "allowed": true,
             }))
         }
+        "validate_safe_command" => {
+            let program = payload
+                .get("program")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "security_gateway validate_safe_command requires string payload.program".to_string())?;
+            let args = payload
+                .get("args")
+                .and_then(Value::as_array)
+                .map(|items| {
+                    items
+                        .iter()
+                        .map(|item| {
+                            item.as_str().map(|value| value.to_string()).ok_or_else(|| {
+                                "security_gateway validate_safe_command payload.args must be string[]".to_string()
+                            })
+                        })
+                        .collect::<Result<Vec<String>, String>>()
+                })
+                .transpose()?
+                .unwrap_or_default();
+            let (validated_program, sanitized_args) = validate_safe_command(program, &args)?;
+            Ok(json!({
+                "allowed": true,
+                "program": validated_program,
+                "args": sanitized_args,
+            }))
+        }
+        "resolve_safe_path" => {
+            let base = payload
+                .get("base")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "security_gateway resolve_safe_path requires string payload.base".to_string())?;
+            let input = payload
+                .get("input")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "security_gateway resolve_safe_path requires string payload.input".to_string())?;
+            let resolved = resolve_safe_path(base, input)?;
+            Ok(json!({
+                "resolvedPath": resolved,
+            }))
+        }
+        "audit_log" => {
+            let user = payload
+                .get("user")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "security_gateway audit_log requires string payload.user".to_string())?;
+            let action = payload
+                .get("action")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "security_gateway audit_log requires string payload.action".to_string())?;
+            let entry = build_audit_entry(user, action)?;
+            Ok(json!({
+                "logged": true,
+                "entry": entry,
+            }))
+        }
         _ => Err(format!("Unsupported security action: {}", action)),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{authorize, check_rate_limit_with_state, sanitize_log_input, Role, RATE_LIMIT_WINDOW};
+    use super::{
+        authorize, build_audit_entry, check_rate_limit_with_state, resolve_safe_path, sanitize_log_input,
+        validate_safe_command, Role, RATE_LIMIT_WINDOW,
+    };
+    use serde_json::Value;
     use std::collections::HashMap;
     use std::time::{Duration, Instant};
 
@@ -225,5 +365,40 @@ mod tests {
             now + RATE_LIMIT_WINDOW
         )
         .is_ok());
+    }
+
+    #[test]
+    fn validate_safe_command_allows_java_and_sanitizes_args() {
+        let args = vec!["foo;bar".to_string(), "x&y".to_string()];
+        let (program, sanitized_args) = validate_safe_command("java", &args).expect("should pass");
+        assert_eq!(program, "java");
+        assert_eq!(sanitized_args[0], "foobar");
+        assert_eq!(sanitized_args[1], "xy");
+    }
+
+    #[test]
+    fn validate_safe_command_rejects_non_allowlisted_program() {
+        let args = vec!["--help".to_string()];
+        assert!(validate_safe_command("/bin/sh", &args).is_err());
+    }
+
+    #[test]
+    fn resolve_safe_path_rejects_traversal() {
+        let result = resolve_safe_path("/app/data", "../etc/passwd");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn resolve_safe_path_builds_absolute_path() {
+        let resolved = resolve_safe_path("/app/data", "servers/a").expect("should resolve");
+        assert_eq!(resolved, "/app/data/servers/a");
+    }
+
+    #[test]
+    fn build_audit_entry_contains_required_fields() {
+        let entry = build_audit_entry("user-1", "start_server").expect("should build");
+        assert_eq!(entry.get("user").and_then(Value::as_str), Some("user-1"));
+        assert_eq!(entry.get("action").and_then(Value::as_str), Some("start_server"));
+        assert!(entry.get("timestamp").and_then(Value::as_u64).is_some());
     }
 }
