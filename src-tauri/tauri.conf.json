@@ -1,6 +1,6 @@
 {
   "productName": "MC-Vector",
-  "version": "2.0.51",
+  "version": "2.0.52",
   "identifier": "com.tukuyomi032.mcvector",
   "build": {
     "beforeDevCommand": "pnpm dev:plain",
@@ -14,6 +14,9 @@
         "title": "MC-Vector",
         "width": 1200,
         "height": 800,
+        "theme": "Dark",
+        "titleBarStyle": "Transparent",
+        "backgroundColor": "#0f0f11",
         "resizable": true,
         "fullscreen": false
       }
