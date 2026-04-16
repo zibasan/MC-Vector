@@ -131,6 +131,15 @@ fn validate_server_id(server_id: &str) -> Result<String, String> {
     Ok(normalized.to_string())
 }
 
+fn audit_server_action(action: &str, server_id: &str) {
+    log::info!(
+        target: "security.audit",
+        "[AUDIT] action={} server_id={}",
+        action,
+        server_id
+    );
+}
+
 /// サーバーを起動し、stdout/stderr をイベントストリーミングする
 #[tauri::command]
 pub async fn start_server(
@@ -213,6 +222,7 @@ pub async fn start_server(
             status: "online".to_string(),
         },
     );
+    audit_server_action("start_server", &validated_server_id);
 
     // stdout ストリーミング
     let app_stdout = app.clone();
@@ -334,6 +344,7 @@ pub async fn stop_server(state: State<'_, ServerManager>, server_id: String) -> 
             .flush()
             .await
             .map_err(|e| format!("Failed to flush stdin: {}", e))?;
+        audit_server_action("stop_server", &validated_server_id);
         Ok(())
     } else {
         Err("Server not found or not running".into())
@@ -391,7 +402,8 @@ pub async fn send_command(
         .map_err(|e| format!("Failed to flush stdin: {}", e))?;
 
     let mut last_map = limiter.last_command_at.lock().await;
-    last_map.insert(validated_server_id, Instant::now());
+    last_map.insert(validated_server_id.clone(), Instant::now());
+    audit_server_action("send_command", &validated_server_id);
     Ok(())
 }
 
