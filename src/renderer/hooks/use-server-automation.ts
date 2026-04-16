@@ -156,6 +156,8 @@ export function useServerAutomation({
   const expectedOfflineEventsRef = useRef<Record<string, number>>({});
   const autoRestartAttemptsRef = useRef<Record<string, number>>({});
   const autoRestartScheduleRef = useRef<Record<string, AutoRestartScheduleEntry>>({});
+  const autoRestartInProgressRef = useRef<Record<string, boolean>>({});
+  const autoRestartProcessingRef = useRef<Record<string, boolean>>({});
   const autoBackupScheduleRef = useRef<Record<string, AutoBackupScheduleEntry>>({});
   const autoBackupRunningRef = useRef<Record<string, boolean>>({});
   const automationTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
@@ -210,6 +212,8 @@ export function useServerAutomation({
     (serverId: string) => {
       clearAutoRestartTimer(serverId);
       delete autoRestartAttemptsRef.current[serverId];
+      delete autoRestartInProgressRef.current[serverId];
+      delete autoRestartProcessingRef.current[serverId];
     },
     [clearAutoRestartTimer],
   );
@@ -288,10 +292,11 @@ export function useServerAutomation({
 
     try {
       for (const [serverId, restartEntry] of Object.entries(autoRestartScheduleRef.current)) {
-        if (restartEntry.dueAt > nowMs) {
+        if (restartEntry.dueAt > nowMs || autoRestartProcessingRef.current[serverId]) {
           continue;
         }
 
+        autoRestartProcessingRef.current[serverId] = true;
         delete autoRestartScheduleRef.current[serverId];
 
         const latestServer = serversRef.current.find((server) => server.id === serverId);
@@ -324,6 +329,7 @@ export function useServerAutomation({
           );
         } catch (error) {
           console.error('Auto restart failed:', error);
+          delete autoRestartInProgressRef.current[serverId];
           setServers((prev) =>
             prev.map((server) =>
               server.id === serverId ? { ...server, status: 'offline' } : server,
@@ -337,6 +343,8 @@ export function useServerAutomation({
             }),
             'error',
           );
+        } finally {
+          delete autoRestartProcessingRef.current[serverId];
         }
       }
 
@@ -416,6 +424,16 @@ export function useServerAutomation({
         delete autoRestartAttemptsRef.current[serverId];
       }
     }
+    for (const serverId of Object.keys(autoRestartInProgressRef.current)) {
+      if (!activeServerIds.has(serverId)) {
+        delete autoRestartInProgressRef.current[serverId];
+      }
+    }
+    for (const serverId of Object.keys(autoRestartProcessingRef.current)) {
+      if (!activeServerIds.has(serverId)) {
+        delete autoRestartProcessingRef.current[serverId];
+      }
+    }
     for (const serverId of Object.keys(expectedOfflineEventsRef.current)) {
       if (!activeServerIds.has(serverId)) {
         delete expectedOfflineEventsRef.current[serverId];
@@ -452,6 +470,8 @@ export function useServerAutomation({
     return () => {
       clearAutomationTimer();
       autoRestartScheduleRef.current = {};
+      autoRestartInProgressRef.current = {};
+      autoRestartProcessingRef.current = {};
       autoBackupScheduleRef.current = {};
       autoBackupRunningRef.current = {};
       automationTickInFlightRef.current = false;
@@ -484,7 +504,10 @@ export function useServerAutomation({
 
       if (
         (status === 'offline' || status === 'crashed') &&
-        (previousStatus === 'restarting' || Boolean(autoRestartScheduleRef.current[serverId]))
+        (previousStatus === 'restarting' ||
+          Boolean(autoRestartInProgressRef.current[serverId]) ||
+          Boolean(autoRestartProcessingRef.current[serverId]) ||
+          Boolean(autoRestartScheduleRef.current[serverId]))
       ) {
         return;
       }
@@ -520,6 +543,7 @@ export function useServerAutomation({
 
       const nextAttempt = currentAttempt + 1;
       autoRestartAttemptsRef.current[serverId] = nextAttempt;
+      autoRestartInProgressRef.current[serverId] = true;
 
       clearAutoRestartTimer(serverId);
       setServers((prev) =>

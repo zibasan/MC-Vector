@@ -267,10 +267,7 @@ pub async fn start_server(
                 );
                 match stdout_log_tx.try_send(notice) {
                     Ok(_) => dropped_lines = 0,
-                    Err(tokio::sync::mpsc::error::TrySendError::Full(_)) => {
-                        dropped_lines += 1;
-                        continue;
-                    }
+                    Err(tokio::sync::mpsc::error::TrySendError::Full(_)) => {}
                     Err(tokio::sync::mpsc::error::TrySendError::Closed(_)) => return,
                 }
             }
@@ -414,13 +411,12 @@ pub async fn send_command(
     }
 
     {
-        let mut last_map = limiter.last_command_at.lock().await;
+        let last_map = limiter.last_command_at.lock().await;
         if let Some(last_sent) = last_map.get(&server_id) {
             if last_sent.elapsed() < COMMAND_MIN_INTERVAL {
                 return Err("Commands are being sent too quickly".into());
             }
         }
-        last_map.insert(server_id.clone(), Instant::now());
     }
 
     let command_tx = {
@@ -442,6 +438,9 @@ pub async fn send_command(
         last_map.remove(&server_id);
         return Err("Server not found or not running".to_string());
     }
+
+    let mut last_map = limiter.last_command_at.lock().await;
+    last_map.insert(server_id, Instant::now());
 
     Ok(())
 }

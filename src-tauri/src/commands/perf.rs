@@ -68,6 +68,8 @@ fn apply_sgr_codes(params: &str, style: &mut AnsiStyleState) {
             "0" => *style = AnsiStyleState::default(),
             "1" => style.font_weight = Some(700),
             "22" => style.font_weight = None,
+            "39" => style.color = None,
+            "49" => style.background_color = None,
             _ => {
                 if let Some(color) = ansi_foreground_color(code) {
                     style.color = Some(color);
@@ -129,7 +131,7 @@ fn parse_ansi_line(line: String) -> Vec<AnsiSegmentDto> {
     }
 
     if segments.is_empty() {
-        return vec![make_segment(line, AnsiStyleState::default())];
+        return vec![make_segment(String::new(), AnsiStyleState::default())];
     }
 
     segments
@@ -221,6 +223,36 @@ mod tests {
         assert_eq!(segments[0].text, "日本語 ");
         assert_eq!(segments[1].text, "成功");
         assert_eq!(segments[1].color.as_deref(), Some("#22c55e"));
+    }
+
+    #[test]
+    fn keeps_empty_string_segment() {
+        let segments = parse_ansi_line(String::new());
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].text, "");
+        assert!(segments[0].color.is_none());
+        assert!(segments[0].background_color.is_none());
+        assert!(segments[0].font_weight.is_none());
+    }
+
+    #[test]
+    fn handles_only_ansi_codes() {
+        let segments = parse_ansi_line("\u{1b}[31m".to_string());
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].text, "");
+        assert!(segments[0].color.is_none());
+        assert!(segments[0].background_color.is_none());
+        assert!(segments[0].font_weight.is_none());
+    }
+
+    #[test]
+    fn handles_incomplete_escape_sequence() {
+        let segments = parse_ansi_line("\u{1b}[31".to_string());
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].text, "\u{1b}[31");
+        assert!(segments[0].color.is_none());
+        assert!(segments[0].background_color.is_none());
+        assert!(segments[0].font_weight.is_none());
     }
 
     #[test]

@@ -182,7 +182,9 @@ pub async fn write_managed_text_file(
 #[tauri::command]
 pub async fn read_managed_text_file(app: AppHandle, path: String) -> Result<String, String> {
     let resolved = resolve_managed_path(app, path).await?;
-    std::fs::read_to_string(&resolved).map_err(|e| format!("Failed to read file: {}", e))
+    tokio::fs::read_to_string(&resolved)
+        .await
+        .map_err(|e| format!("Failed to read file: {}", e))
 }
 
 /// ディレクトリの内容をメタデータ付きで一括取得

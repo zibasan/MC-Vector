@@ -232,6 +232,11 @@ export default function DashboardView({ server }: Props) {
   const [resourceStats, setResourceStats] = useState<ResourcePoint[]>([]);
   const [tpsStats, setTpsStats] = useState<TpsPoint[]>([]);
 
+  useEffect(() => {
+    setResourceStats([]);
+    setTpsStats([]);
+  }, [server.id, server.software]);
+
   const supportsTpsPolling = useMemo(() => {
     return server.software === 'Paper' || server.software === 'LeafMC';
   }, [server.software]);
