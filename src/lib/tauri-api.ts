@@ -1,30 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { type Event, listen, type UnlistenFn } from '@tauri-apps/api/event';
-
-const ALLOWED_TAURI_COMMANDS = new Set([
-  'start_server',
-  'stop_server',
-  'send_command',
-  'is_server_running',
-  'get_server_pid',
-  'get_server_stats',
-  'download_server_jar',
-  'download_java',
-  'start_ngrok',
-  'stop_ngrok',
-  'download_ngrok',
-  'is_ngrok_installed',
-  'create_backup',
-  'restore_backup',
-  'compress_item',
-  'extract_item',
-  'download_file',
-  'list_dir_with_metadata',
-  'resolve_managed_path',
-  'write_managed_text_file',
-  'can_update_app',
-  'get_app_location',
-]);
+import { ALLOWED_TAURI_COMMANDS } from './tauri-command-allowlist';
 
 function assertAllowedCommand(cmd: string): string {
   const normalized = cmd.trim();

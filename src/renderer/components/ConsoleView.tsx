@@ -3,6 +3,7 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
 import type { FC } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '../../i18n';
+import { parseAnsiLines } from '../../lib/performance-commands';
 import { sendCommand } from '../../lib/server-commands';
 import { tauriListen } from '../../lib/tauri-api';
 import { type MinecraftServer } from '../components/../shared/server declaration';
@@ -200,21 +201,45 @@ const ConsoleView: FC<ConsoleViewProps> = ({ server, ngrokUrl }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMatchIndex, setActiveMatchIndex] = useState(0);
   const [logFilter, setLogFilter] = useState<LogLevelFilter>('ALL');
+  const [rustParsedSegments, setRustParsedSegments] = useState<AnsiSegment[][] | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const matchRefs = useRef<Record<string, HTMLSpanElement | null>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadParsedSegments = async () => {
+      try {
+        const parsed = await parseAnsiLines(logs);
+        if (!cancelled) {
+          setRustParsedSegments(parsed);
+        }
+      } catch {
+        if (!cancelled) {
+          setRustParsedSegments(null);
+        }
+      }
+    };
+
+    void loadParsedSegments();
+    return () => {
+      cancelled = true;
+    };
+  }, [logs]);
 
   const parsedLogs = useMemo<ParsedLogEntry[]>(() => {
     return logs.map((line, originalIndex) => {
       const plainLine = stripAnsiCodes(line);
+      const rustSegments = rustParsedSegments?.[originalIndex];
       return {
         line,
         plainLine,
         originalIndex,
         level: detectLogLevel(plainLine),
-        segments: ansiToSegments(line),
+        segments: rustSegments && rustSegments.length > 0 ? rustSegments : ansiToSegments(line),
       };
     });
-  }, [logs]);
+  }, [logs, rustParsedSegments]);
 
   const visibleLogs = useMemo(() => {
     if (logFilter === 'ALL') {
