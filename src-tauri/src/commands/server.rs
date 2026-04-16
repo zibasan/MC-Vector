@@ -145,6 +145,7 @@ fn audit_server_action(action: &str, server_id: &str) {
 pub async fn start_server(
     app: AppHandle,
     state: State<'_, ServerManager>,
+    limiter: State<'_, CommandLimiter>,
     server_id: String,
     java_path: String,
     server_path: String,
@@ -299,12 +300,17 @@ pub async fn start_server(
     let app_exit = app.clone();
     let sid_exit = validated_server_id;
     let servers_ref = state.servers.clone();
+    let limiter_ref = limiter.last_command_at.clone();
     tokio::spawn(async move {
         let status = child.wait().await;
         // 管理マップから削除
         {
             let mut servers = servers_ref.lock().await;
             servers.remove(&sid_exit);
+        }
+        {
+            let mut last_map = limiter_ref.lock().await;
+            last_map.remove(&sid_exit);
         }
         let exit_status = match status {
             Ok(s) => {
