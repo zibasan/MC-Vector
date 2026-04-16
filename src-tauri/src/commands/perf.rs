@@ -143,6 +143,44 @@ pub async fn parse_ansi_lines(lines: Vec<String>) -> Result<Vec<Vec<AnsiSegmentD
 #[cfg(test)]
 mod tests {
     use super::parse_ansi_line;
+    use std::time::Instant;
+
+    #[derive(Clone, Copy)]
+    enum BenchmarkLineKind {
+        Plain,
+        Color,
+        MixedUtf8,
+    }
+
+    impl BenchmarkLineKind {
+        fn from_index(index: usize) -> Self {
+            match index % 3 {
+                0 => Self::Plain,
+                1 => Self::Color,
+                _ => Self::MixedUtf8,
+            }
+        }
+    }
+
+    fn benchmark_line(kind: BenchmarkLineKind, index: usize) -> String {
+        match kind {
+            BenchmarkLineKind::Plain => format!("tick {}: player joined the server", index),
+            BenchmarkLineKind::Color => {
+                format!("\u{1b}[31mERROR {index}\u{1b}[0m fallback message {index}")
+            }
+            BenchmarkLineKind::MixedUtf8 => {
+                format!("玩家 {index} - \u{1b}[92m成功\u{1b}[0m / \u{1b}[93m警告⚠\u{1b}[0m")
+            }
+        }
+    }
+
+    fn expected_segment_count(kind: BenchmarkLineKind) -> usize {
+        match kind {
+            BenchmarkLineKind::Plain => 1,
+            BenchmarkLineKind::Color => 2,
+            BenchmarkLineKind::MixedUtf8 => 4,
+        }
+    }
 
     #[test]
     fn keeps_plain_line_as_single_segment() {
@@ -183,5 +221,51 @@ mod tests {
         assert_eq!(segments[0].text, "日本語 ");
         assert_eq!(segments[1].text, "成功");
         assert_eq!(segments[1].color.as_deref(), Some("#22c55e"));
+    }
+
+    #[test]
+    #[ignore = "Manual benchmark harness. Run with `cargo test -- --ignored`."]
+    fn benchmark_parse_ansi_line_large_batch() {
+        const BATCH_SIZE: usize = 120_000;
+        let mut total_segments = 0usize;
+        let mut expected_total_segments = 0usize;
+        let mut styled_segments = 0usize;
+
+        let started = Instant::now();
+        for index in 0..BATCH_SIZE {
+            let kind = BenchmarkLineKind::from_index(index);
+            let segments = parse_ansi_line(benchmark_line(kind, index));
+            assert!(!segments.is_empty(), "line {index} returned no segments");
+            assert!(
+                segments.iter().any(|segment| !segment.text.is_empty()),
+                "line {index} returned only empty segment text"
+            );
+
+            total_segments += segments.len();
+            expected_total_segments += expected_segment_count(kind);
+            styled_segments += segments
+                .iter()
+                .filter(|segment| {
+                    segment.color.is_some()
+                        || segment.background_color.is_some()
+                        || segment.font_weight.is_some()
+                })
+                .count();
+        }
+        let elapsed = started.elapsed();
+        let elapsed_secs = elapsed.as_secs_f64();
+        let lines_per_sec = if elapsed_secs > 0.0 {
+            BATCH_SIZE as f64 / elapsed_secs
+        } else {
+            f64::INFINITY
+        };
+
+        println!(
+            "benchmark_parse_ansi_line_large_batch: lines={BATCH_SIZE} elapsed_ms={:.2} lines_per_sec={lines_per_sec:.0} total_segments={total_segments} styled_segments={styled_segments}",
+            elapsed.as_secs_f64() * 1_000.0
+        );
+
+        assert_eq!(total_segments, expected_total_segments);
+        assert!(styled_segments > 0);
     }
 }
