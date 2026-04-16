@@ -170,10 +170,21 @@ const ResourceChartCard = memo(function ResourceChartCard({
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE_COLOR} />
-            <XAxis dataKey="timeLabel" stroke={AXIS_STROKE_COLOR} tick={TICK_STYLE} minTickGap={24} />
+            <XAxis
+              dataKey="timeLabel"
+              stroke={AXIS_STROKE_COLOR}
+              tick={TICK_STYLE}
+              minTickGap={24}
+            />
             <YAxis stroke={AXIS_STROKE_COLOR} tick={TICK_STYLE} domain={yDomain} />
             <Tooltip contentStyle={TOOLTIP_STYLE} />
-            <Area type="monotone" dataKey={dataKey} stroke={stroke} fill={fill} isAnimationActive={false} />
+            <Area
+              type="monotone"
+              dataKey={dataKey}
+              stroke={stroke}
+              fill={fill}
+              isAnimationActive={false}
+            />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -250,7 +261,9 @@ export default function DashboardView({ server }: Props) {
   }, [currentTps]);
 
   const tpsSamplingLabel = useMemo(() => {
-    return supportsTpsPolling ? t('dashboard.stats.tpsAutoSampled') : t('dashboard.stats.tpsLogBased');
+    return supportsTpsPolling
+      ? t('dashboard.stats.tpsAutoSampled')
+      : t('dashboard.stats.tpsLogBased');
   }, [supportsTpsPolling, t]);
 
   useEffect(() => {

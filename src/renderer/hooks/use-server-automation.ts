@@ -117,7 +117,10 @@ function buildAutoBackupScheduleSignature(server: MinecraftServer): string {
   return `${scheduleType}:${hour}:${minute}`;
 }
 
-function createAutoBackupScheduleEntry(server: MinecraftServer, now: Date): AutoBackupScheduleEntry {
+function createAutoBackupScheduleEntry(
+  server: MinecraftServer,
+  now: Date,
+): AutoBackupScheduleEntry {
   const scheduleType = resolveAutoBackupScheduleType(server);
   const intervalMinutes = resolveAutoBackupIntervalMinutes(server);
   return {
@@ -184,12 +187,15 @@ export function useServerAutomation({
     }, delayMs);
   }, [clearAutomationTimer]);
 
-  const clearAutoRestartTimer = useCallback((serverId: string) => {
-    if (autoRestartScheduleRef.current[serverId]) {
-      delete autoRestartScheduleRef.current[serverId];
-      scheduleAutomationTick();
-    }
-  }, [scheduleAutomationTick]);
+  const clearAutoRestartTimer = useCallback(
+    (serverId: string) => {
+      if (autoRestartScheduleRef.current[serverId]) {
+        delete autoRestartScheduleRef.current[serverId];
+        scheduleAutomationTick();
+      }
+    },
+    [scheduleAutomationTick],
+  );
 
   const resetAutoRestartState = useCallback(
     (serverId: string) => {
@@ -282,16 +288,26 @@ export function useServerAutomation({
         }
 
         setServers((prev) =>
-          prev.map((server) => (server.id === serverId ? { ...server, status: 'starting' } : server)),
+          prev.map((server) =>
+            server.id === serverId ? { ...server, status: 'starting' } : server,
+          ),
         );
 
         const javaPath = latestServer.javaPath || 'java';
         const jarFile = latestServer.software === 'Forge' ? 'forge-server.jar' : 'server.jar';
-        await startServerApi(latestServer.id, javaPath, latestServer.path, latestServer.memory, jarFile);
+        await startServerApi(
+          latestServer.id,
+          javaPath,
+          latestServer.path,
+          latestServer.memory,
+          jarFile,
+        );
       } catch (error) {
         console.error('Auto restart failed:', error);
         setServers((prev) =>
-          prev.map((server) => (server.id === serverId ? { ...server, status: 'offline' } : server)),
+          prev.map((server) =>
+            server.id === serverId ? { ...server, status: 'offline' } : server,
+          ),
         );
         showToast(
           t('server.toast.autoRestartTriggered', {
