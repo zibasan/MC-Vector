@@ -200,9 +200,8 @@ fn build_audit_entry(user: &str, action: &str) -> Result<Value, String> {
     }))
 }
 
-#[tauri::command]
-pub async fn security_gateway(action: String, payload: Value) -> Result<Value, String> {
-    match action.trim() {
+fn execute_security_action(action: &str, payload: &Value) -> Result<Value, String> {
+    match action {
         "sanitize_log" => {
             let input = payload
                 .get("input")
@@ -296,13 +295,45 @@ pub async fn security_gateway(action: String, payload: Value) -> Result<Value, S
     }
 }
 
+fn handle_command_gateway(payload: &Value) -> Result<Value, String> {
+    let user_id = payload
+        .get("userId")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "security_gateway handle_command requires string payload.userId".to_string())?;
+    let role_raw = payload
+        .get("role")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "security_gateway handle_command requires string payload.role".to_string())?;
+    let action = payload
+        .get("commandAction")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "security_gateway handle_command requires string payload.commandAction".to_string())?;
+    let command_payload = payload
+        .get("commandPayload")
+        .cloned()
+        .unwrap_or_else(|| json!({}));
+
+    check_rate_limit(user_id)?;
+    authorize(Role::parse(role_raw)?, action)?;
+    execute_security_action(action, &command_payload)
+}
+
+#[tauri::command]
+pub async fn security_gateway(action: String, payload: Value) -> Result<Value, String> {
+    let normalized_action = action.trim();
+    if normalized_action == "handle_command" {
+        return handle_command_gateway(&payload);
+    }
+    execute_security_action(normalized_action, &payload)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         authorize, build_audit_entry, check_rate_limit_with_state, resolve_safe_path, sanitize_log_input,
         validate_safe_command, Role, RATE_LIMIT_WINDOW,
     };
-    use serde_json::Value;
+    use serde_json::{json, Value};
     use std::collections::HashMap;
     use std::time::{Duration, Instant};
 
@@ -400,5 +431,28 @@ mod tests {
         assert_eq!(entry.get("user").and_then(Value::as_str), Some("user-1"));
         assert_eq!(entry.get("action").and_then(Value::as_str), Some("start_server"));
         assert!(entry.get("timestamp").and_then(Value::as_u64).is_some());
+    }
+
+    #[test]
+    fn handle_command_allows_admin_dispatch() {
+        let payload = json!({
+            "userId": "admin-1",
+            "role": "admin",
+            "commandAction": "sanitize_log",
+            "commandPayload": { "input": "<b>ok</b>" }
+        });
+        let result = super::handle_command_gateway(&payload).expect("should pass");
+        assert_eq!(result.get("sanitized").and_then(Value::as_str), Some("&lt;b&gt;ok&lt;/b&gt;"));
+    }
+
+    #[test]
+    fn handle_command_blocks_forbidden_action() {
+        let payload = json!({
+            "userId": "viewer-1",
+            "role": "viewer",
+            "commandAction": "validate_safe_command",
+            "commandPayload": { "program": "java", "args": [] }
+        });
+        assert!(super::handle_command_gateway(&payload).is_err());
     }
 }

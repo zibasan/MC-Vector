@@ -107,3 +107,20 @@ export async function logAuditAction(user: string, action: string): Promise<Audi
     timestamp: entry.timestamp,
   };
 }
+
+export interface SecurityCommandRequest {
+  userId: string;
+  role: UserRole;
+  commandAction: string;
+  commandPayload?: Record<string, unknown>;
+}
+
+export async function handleSecurityCommand(request: SecurityCommandRequest): Promise<unknown> {
+  const payload = {
+    userId: request.userId,
+    role: request.role,
+    commandAction: request.commandAction,
+    commandPayload: request.commandPayload ?? {},
+  };
+  return securityGateway<unknown>('handle_command', payload);
+}
