@@ -8,15 +8,7 @@
 
 MC-Vector is a powerful cross-platform desktop application for managing Minecraft servers with ease. Built with Tauri and React, it provides a modern, fast, and intuitive interface for server administration.
 
-**Current stable version:** `2.0.51`
-
-### What's New in 2.0.51
-
-- ✅ File saving flow reliability improvements in the Files view
-- ☕ Java runtime management improvements (download/select/delete flow)
-- 🔌 Plugin browser UI consistency updates and transition polish
-- 🎨 Better icon visibility and light/dark theme readability
-
+**Current stable version:** `2.0.52`
 ---
 
 ## Features
