@@ -9,43 +9,51 @@
 
   .plugin-browser__section-switch {
     @apply inline-flex items-center gap-1 rounded-xl border border-zinc-700/80 p-1;
+
     width: fit-content;
     background: rgba(15, 23, 42, 0.72);
   }
 
   .plugin-browser__section-tab {
     @apply rounded-lg px-3 py-1.5 text-xs font-semibold text-zinc-300 transition-colors;
+
     background: transparent;
   }
 
   .plugin-browser__section-tab:hover {
     @apply text-zinc-100;
+
     background: rgba(39, 39, 42, 0.72);
   }
 
   .plugin-browser__section-tab.is-active {
     @apply text-white;
+
     background: linear-gradient(120deg, var(--mv-accent-start), var(--mv-accent-end));
     box-shadow: 0 8px 20px rgba(14, 165, 233, 0.2);
   }
 
   .plugin-browser__platform-grid {
     @apply grid gap-2;
+
     grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
   }
 
   .plugin-browser__platform-chip {
     @apply flex items-center gap-2 rounded-xl px-2.5 py-2 border border-zinc-700 text-zinc-300 transition-all;
+
     background: rgba(24, 24, 27, 0.62);
   }
 
   .plugin-browser__platform-chip:hover {
     @apply text-zinc-100 border-zinc-500;
+
     background: rgba(39, 39, 42, 0.86);
   }
 
   .plugin-browser__platform-chip.is-active {
     @apply text-white border-cyan-300/70;
+
     background: linear-gradient(120deg, var(--mv-accent-start), var(--mv-accent-end));
     box-shadow: 0 8px 24px rgba(34, 211, 238, 0.24);
   }
@@ -56,6 +64,7 @@
 
   .plugin-browser__platform-logo-wrap {
     @apply h-7 w-7 rounded-md border border-zinc-600/80 flex items-center justify-center overflow-hidden shrink-0;
+
     background: rgba(15, 23, 42, 0.82);
   }
 
@@ -81,6 +90,7 @@
 
   .plugin-browser__search-input-wrap {
     @apply flex-1 flex items-center gap-2 rounded-xl border border-zinc-700 px-3 text-zinc-400;
+
     background: rgba(17, 24, 39, 0.76);
   }
 
@@ -94,6 +104,7 @@
 
   .plugin-browser__search-btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-white transition-all disabled:opacity-60;
+
     background: linear-gradient(120deg, var(--mv-accent-start), var(--mv-accent-end));
     box-shadow: 0 8px 20px rgba(14, 165, 233, 0.28);
   }
@@ -113,17 +124,20 @@
 
   .plugin-browser__sort-select {
     @apply min-w-[180px] py-2 text-xs;
+
     border-color: rgba(63, 63, 70, 0.82);
     background-color: rgba(15, 23, 42, 0.8);
   }
 
   .plugin-browser__unsupported-panel {
     @apply p-8 text-center rounded-xl border border-zinc-700;
+
     background: rgba(24, 24, 27, 0.75);
   }
 
   .plugin-browser__unsupported-btn {
     @apply inline-flex items-center gap-2 mt-3 rounded-lg px-4 py-2.5 text-sm font-semibold text-white;
+
     background: linear-gradient(125deg, var(--mv-accent-start), var(--mv-accent-end));
   }
 
@@ -133,16 +147,19 @@
 
   .plugin-browser__platform-note {
     @apply rounded-lg border border-cyan-400/20 px-3 py-2 text-xs text-cyan-200;
+
     background: rgba(8, 47, 73, 0.32);
   }
 
   .plugin-browser__results-grid {
     @apply flex-1 overflow-y-auto grid gap-4 pr-1;
+
     grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
   }
 
   .plugin-browser__result-card {
     @apply p-4 flex gap-4 border rounded-xl;
+
     border-color: rgba(63, 63, 70, 0.82);
     background: linear-gradient(140deg, rgba(24, 24, 27, 0.95), rgba(31, 41, 55, 0.84));
     box-shadow: 0 10px 34px rgba(2, 6, 23, 0.24);
@@ -219,6 +236,7 @@
 
   .plugin-browser__update-summary {
     @apply rounded-lg border border-amber-400/30 px-3 py-2 text-xs text-amber-100 flex flex-wrap items-center gap-x-2 gap-y-1;
+
     background: rgba(120, 53, 15, 0.3);
   }
 
@@ -228,17 +246,20 @@
 
   .plugin-browser__result-actions {
     @apply flex flex-wrap items-center justify-end gap-2 shrink-0;
+
     max-width: min(100%, 24rem);
   }
 
   .plugin-browser__result-actions.is-update-available {
     @apply w-full justify-start;
+
     max-width: 100%;
   }
 
   .plugin-browser__result-actions.is-update-available > .plugin-browser__install-btn,
   .plugin-browser__result-actions.is-update-available > .plugin-browser__details-btn {
     @apply flex-1 justify-center;
+
     min-width: 0;
   }
 
@@ -256,6 +277,7 @@
 
   .plugin-browser__toggle-btn {
     @apply px-3 py-1.5 text-xs rounded-full border font-semibold whitespace-nowrap transition-all;
+
     min-height: 2rem;
   }
 
@@ -269,11 +291,13 @@
 
   .plugin-browser__result-icon {
     @apply w-[72px] h-[72px] rounded-xl shrink-0 bg-zinc-800 border border-zinc-700/70;
+
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
   }
 
   .plugin-browser__install-btn {
     @apply inline-flex items-center gap-1.5 py-2 px-3 text-xs rounded-lg text-white font-semibold whitespace-nowrap transition-all;
+
     min-height: 2rem;
     background: linear-gradient(125deg, var(--mv-accent-start), var(--mv-accent-end));
     box-shadow: 0 8px 20px rgba(14, 165, 233, 0.2);
@@ -291,12 +315,14 @@
 
   .plugin-browser__details-btn {
     @apply inline-flex items-center rounded-md border border-zinc-600/85 px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap text-zinc-200;
+
     min-height: 2rem;
     background: rgba(51, 65, 85, 0.72);
   }
 
   .plugin-browser__details-btn:hover {
     @apply border-zinc-400 text-zinc-100;
+
     background: rgba(71, 85, 105, 0.8);
   }
 
@@ -306,11 +332,13 @@
 
   .plugin-browser__detail-modal-overlay {
     @apply fixed inset-0 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4;
+
     z-index: 1250;
   }
 
   .plugin-browser__detail-modal {
     @apply w-full max-w-3xl rounded-2xl border border-zinc-700/75 text-zinc-100 p-4 md:p-5;
+
     max-height: min(86vh, 840px);
     background:
       linear-gradient(150deg, rgba(17, 24, 39, 0.96), rgba(24, 24, 27, 0.97)),
@@ -337,11 +365,13 @@
 
   .plugin-browser__detail-close {
     @apply h-8 w-8 rounded-full border border-zinc-600/75 flex items-center justify-center text-zinc-200;
+
     background: rgba(39, 39, 42, 0.75);
   }
 
   .plugin-browser__detail-close:hover {
     @apply text-white border-zinc-400;
+
     background: rgba(63, 63, 70, 0.82);
   }
 
@@ -351,6 +381,7 @@
 
   .plugin-browser__detail-tab {
     @apply rounded-md border border-zinc-700/75 px-3 py-1.5 text-xs font-semibold text-zinc-300;
+
     background: rgba(39, 39, 42, 0.72);
   }
 
@@ -360,11 +391,13 @@
 
   .plugin-browser__detail-tab.is-active {
     @apply border-cyan-300/70 text-white;
+
     background: linear-gradient(120deg, rgba(14, 165, 233, 0.85), rgba(6, 182, 212, 0.8));
   }
 
   .plugin-browser__detail-info-panel {
     @apply mt-4 rounded-lg border border-zinc-700/70 px-3 py-3 flex flex-col gap-2;
+
     background: rgba(15, 23, 42, 0.66);
     max-height: min(60vh, 600px);
     overflow-y: auto;
@@ -388,16 +421,19 @@
 
   .plugin-browser__detail-link-btn {
     @apply inline-flex items-center gap-1.5 rounded-md border border-zinc-600/80 px-3 py-1.5 text-xs font-semibold text-zinc-100;
+
     background: rgba(51, 65, 85, 0.72);
   }
 
   .plugin-browser__detail-link-btn:hover {
     @apply border-cyan-300/70;
+
     background: rgba(8, 47, 73, 0.7);
   }
 
   .plugin-browser__detail-readme-panel {
     @apply mt-4 rounded-lg border border-zinc-700/70;
+
     background: rgba(15, 23, 42, 0.66);
     max-height: min(60vh, 600px);
     overflow-y: auto;
@@ -439,12 +475,14 @@
 
   .plugin-browser__detail-readme-markdown code {
     @apply px-1 py-0.5 rounded text-cyan-200;
+
     background: rgba(8, 47, 73, 0.65);
     font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', ui-monospace, monospace;
   }
 
   .plugin-browser__detail-readme-markdown pre {
     @apply p-3 rounded-lg overflow-x-auto border border-zinc-700/70;
+
     background: rgba(15, 23, 42, 0.92);
   }
 
@@ -487,6 +525,7 @@
 
   .plugin-browser__installed-header {
     @apply flex items-center justify-between gap-3 rounded-xl border border-zinc-700/80 px-3 py-2;
+
     background: rgba(17, 24, 39, 0.72);
   }
 
@@ -500,6 +539,7 @@
 
   .plugin-browser__installed-grid {
     @apply flex-1 overflow-y-auto grid gap-4 pr-1;
+
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
     grid-auto-rows: max-content;
     align-content: start;
@@ -507,6 +547,7 @@
 
   .plugin-browser__installed-card {
     @apply p-3.5 flex flex-col gap-2 border rounded-xl;
+
     border-color: rgba(63, 63, 70, 0.82);
     background: linear-gradient(145deg, rgba(24, 24, 27, 0.96), rgba(15, 23, 42, 0.88));
     box-shadow: 0 10px 34px rgba(2, 6, 23, 0.24);
@@ -534,6 +575,7 @@
 
   .plugin-browser__installed-meta {
     @apply mt-1 flex flex-col gap-1 rounded-lg border border-zinc-700/65 p-2;
+
     background: rgba(15, 23, 42, 0.62);
   }
 
@@ -547,22 +589,26 @@
 
   .plugin-browser__installed-meta-value {
     @apply min-w-0 break-words text-zinc-200 font-mono text-[11px] leading-4;
+
     overflow-wrap: anywhere;
   }
 
   .plugin-browser__installed-actions {
     @apply mt-1 grid gap-1.5;
+
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .plugin-browser__installed-action {
     @apply inline-flex items-center justify-center rounded-lg border border-zinc-600/80 px-2.5 py-2 text-[11px] font-semibold whitespace-nowrap text-zinc-100 transition-colors disabled:opacity-60 w-full;
+
     min-height: 2rem;
     background: rgba(39, 39, 42, 0.82);
   }
 
   .plugin-browser__installed-action:hover {
     @apply border-zinc-400 text-zinc-50;
+
     background: rgba(63, 63, 70, 0.86);
   }
 
@@ -584,6 +630,7 @@
 
   .plugin-browser__result-empty {
     @apply col-span-full text-center text-zinc-500 p-7 rounded-xl border border-dashed border-zinc-700;
+
     background: rgba(17, 24, 39, 0.45);
   }
 
@@ -593,11 +640,13 @@
 
   .plugin-browser__pager-btn {
     @apply inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-300 transition-all disabled:opacity-40;
+
     background: rgba(24, 24, 27, 0.75);
   }
 
   .plugin-browser__pager-btn:hover {
     @apply text-zinc-100 border-zinc-500;
+
     background: rgba(39, 39, 42, 0.88);
   }
 
@@ -607,31 +656,37 @@
 
   .plugin-browser__pager-jump {
     @apply inline-flex items-center gap-1.5 rounded-lg border border-zinc-700/85 px-1.5 py-1;
+
     background: rgba(24, 24, 27, 0.78);
   }
 
   .plugin-browser__pager-input {
     @apply w-14 rounded-md border border-zinc-700/80 px-2 py-1 text-xs text-zinc-100 outline-none;
+
     background: rgba(15, 23, 42, 0.8);
   }
 
   .plugin-browser__pager-go {
     @apply rounded-md px-2.5 py-1 text-xs font-semibold text-zinc-100 border border-zinc-600/85;
+
     background: rgba(51, 65, 85, 0.72);
   }
 
   .plugin-browser__pager-go:hover {
     @apply border-zinc-400;
+
     background: rgba(71, 85, 105, 0.8);
   }
 
   .plugin-browser__dup-overlay {
     @apply fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4;
+
     z-index: 1200;
   }
 
   .plugin-browser__dup-panel {
     @apply text-white w-full max-w-md rounded-xl border border-zinc-700 shadow-2xl p-6;
+
     background-color: #1f1f22;
   }
 
@@ -645,6 +700,7 @@
 
   .plugin-browser__dup-file {
     @apply border border-zinc-700 rounded-lg p-3 mb-4 text-xs text-zinc-400 font-mono break-all;
+
     background-color: #26262a;
   }
 
@@ -677,6 +733,7 @@
 
 @media (max-width: 920px) {
   .plugin-browser__section-switch {
+
     width: 100%;
   }
 

@@ -9,8 +9,6 @@
     "core:webview:allow-set-webview-focus",
     "dialog:default",
     "fs:default",
-    "fs:allow-remove",
-    "fs:allow-rename",
     "process:default",
     "store:default",
     "updater:default",
@@ -37,6 +35,18 @@
     {
       "identifier": "fs:scope",
       "allow": [{ "path": "$APPDATA/**" }, { "path": "$APPLOCALDATA/**" }, { "path": "$HOME/**" }]
-    }
+    },
+    {
+      "identifier": "fs:scope-app-specific",
+      "allow": [
+        { "path": "$APPDATA/mc-vector/**" },
+        { "path": "$APPLOCALDATA/mc-vector/**" },
+        { "path": "$HOME/.mc-vector/**" },
+        { "path": "$HOME/mc-vector/**" }
+      ],
+      "deny": []
+    },
+    "fs:allow-remove",
+    "fs:allow-rename"
   ]
 }

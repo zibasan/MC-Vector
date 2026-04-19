@@ -243,7 +243,13 @@ function toListedPluginFileName(value: string): string {
 
 function collectPluginFileNames(entries: Array<{ name: string; isDirectory: boolean }>): string[] {
   return entries
-    .filter((entry) => !entry.isDirectory)
+    .filter((entry) => {
+      if (entry.isDirectory) {
+        return false;
+      }
+      const lower = entry.name.toLowerCase();
+      return lower.endsWith('.jar') || lower.endsWith('.jar.disabled');
+    })
     .map((entry) => toListedPluginFileName(entry.name))
     .filter((name): name is string => Boolean(name))
     .sort((left, right) => left.localeCompare(right));
@@ -1058,7 +1064,9 @@ export default function PluginBrowser({ server }: Props) {
     let installedArtifactName: string | null = null;
     let existingDeleted = false;
 
-    const deleteExistingFileIfNeeded = async (): Promise<boolean> => {
+    const replaceExistingFileIfNeeded = async (
+      downloadedTempFile: string,
+    ): Promise<boolean> => {
       if (!installedFile || existingDeleted) {
         return true;
       }
@@ -1098,7 +1106,7 @@ export default function PluginBrowser({ server }: Props) {
         existingDeleted = true;
         return true;
       } catch (error) {
-        console.error('Failed to delete existing installed file before install', {
+        console.error('Failed to delete existing installed file after install', {
           requestedInstalledFile: installedFile,
           pluginDir,
           error: toErrorMessage(error),
@@ -1214,12 +1222,16 @@ export default function PluginBrowser({ server }: Props) {
           }
         }
 
-        if (!(await deleteExistingFileIfNeeded())) {
+        const tempFileName = `${resolvedVersion.fileName}.tmp-${Date.now()}`;
+        installedArtifactName = resolvedVersion.fileName;
+        await installModrinthProject(resolvedVersion.id, tempFileName, pluginDir);
+
+        if (!(await replaceExistingFileIfNeeded(tempFileName))) {
+          await deleteItem(`${pluginDir}/${tempFileName}`).catch(() => {});
           return;
         }
 
-        installedArtifactName = resolvedVersion.fileName;
-        await installModrinthProject(resolvedVersion.id, resolvedVersion.fileName, pluginDir);
+        await moveItem(`${pluginDir}/${tempFileName}`, `${pluginDir}/${installedArtifactName}`);
       } else if (item.platform === 'Hangar') {
         const owner = item.author;
         const slug = item.slug || item.title;
@@ -1256,12 +1268,16 @@ export default function PluginBrowser({ server }: Props) {
           return;
         }
 
-        if (!(await deleteExistingFileIfNeeded())) {
+        const tempFileNameHangar = `${resolved.fileName}.tmp-${Date.now()}`;
+        installedArtifactName = resolved.fileName;
+        await installHangarProject(resolved.downloadUrl, tempFileNameHangar, pluginDir);
+
+        if (!(await replaceExistingFileIfNeeded(tempFileNameHangar))) {
+          await deleteItem(`${pluginDir}/${tempFileNameHangar}`).catch(() => {});
           return;
         }
 
-        installedArtifactName = resolved.fileName;
-        await installHangarProject(resolved.downloadUrl, resolved.fileName, pluginDir);
+        await moveItem(`${pluginDir}/${tempFileNameHangar}`, `${pluginDir}/${installedArtifactName}`);
       } else if (item.platform === 'Spigot') {
         const resourceId = Number(item.id);
         if (!Number.isFinite(resourceId)) {
@@ -1286,12 +1302,16 @@ export default function PluginBrowser({ server }: Props) {
             : undefined;
         const fileName = `${toSlug(item.title)}-${resourceId}${extension}`;
 
-        if (!(await deleteExistingFileIfNeeded())) {
+        const tempFileNameSpigot = `${fileName}.tmp-${Date.now()}`;
+        installedArtifactName = fileName;
+        await installSpigotProject(resourceId, tempFileNameSpigot, pluginDir, versionId);
+
+        if (!(await replaceExistingFileIfNeeded(tempFileNameSpigot))) {
+          await deleteItem(`${pluginDir}/${tempFileNameSpigot}`).catch(() => {});
           return;
         }
 
-        installedArtifactName = fileName;
-        await installSpigotProject(resourceId, fileName, pluginDir, versionId);
+        await moveItem(`${pluginDir}/${tempFileNameSpigot}`, `${pluginDir}/${installedArtifactName}`);
       }
 
       if (preserveDisabledState && installedArtifactName) {
@@ -1396,20 +1416,10 @@ export default function PluginBrowser({ server }: Props) {
         return;
       } catch (directError) {
         if (isAlreadyExistsError(directError)) {
-          stage = 'direct-overwrite-target';
-          try {
-            await deleteItem(directTargetPath);
-            overwrittenTargetFile = nextFile;
-          } catch (deleteError) {
-            if (!isPathMissingError(deleteError)) {
-              throw deleteError;
-            }
-          }
-
-          stage = 'direct-retry-rename';
-          await moveItem(directSourcePath, directTargetPath);
-          notifyToggleSuccess(requestedInstalledFile);
-          return;
+          stage = 'direct-conflict';
+          throw new Error(
+            `Cannot toggle plugin: target file already exists: ${nextFile}. Please manually resolve the conflict.`,
+          );
         }
 
         if (!isPathMissingError(directError)) {
@@ -1500,6 +1510,21 @@ export default function PluginBrowser({ server }: Props) {
     const pluginDir = `${server.path}/${folderName}`;
     setBusyInstalledFile(entry.normalizedFileName);
     try {
+      const confirmed = await ask(
+        t('plugins.browser.confirmUninstall', {
+          name: entry.displayName || entry.fileName,
+        }),
+        {
+          title: t('plugins.browser.uninstallTitle'),
+          kind: 'warning',
+        },
+      );
+
+      if (!confirmed) {
+        setBusyInstalledFile(null);
+        return;
+      }
+
       const requestedInstalledFile = toListedPluginFileName(entry.fileName);
       if (!requestedInstalledFile) {
         throw new Error(`Installed file is empty for uninstall: ${entry.fileName}`);
@@ -1794,7 +1819,8 @@ export default function PluginBrowser({ server }: Props) {
           type="button"
           className={`plugin-browser__section-tab ${activeSection === 'browse' ? 'is-active' : ''}`}
           onClick={() => setActiveSection('browse')}
-          aria-pressed={activeSection === 'browse'}
+          role="tab"
+          aria-selected={activeSection === 'browse'}
         >
           {t('plugins.browser.tabBrowse')}
         </button>
@@ -1802,7 +1828,8 @@ export default function PluginBrowser({ server }: Props) {
           type="button"
           className={`plugin-browser__section-tab ${activeSection === 'installed' ? 'is-active' : ''}`}
           onClick={() => setActiveSection('installed')}
-          aria-pressed={activeSection === 'installed'}
+          role="tab"
+          aria-selected={activeSection === 'installed'}
         >
           {t('plugins.browser.tabInstalled', { count: installedFiles.length })}
         </button>

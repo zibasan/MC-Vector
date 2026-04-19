@@ -198,11 +198,14 @@ export default function BackupsView({ server }: Props) {
     let unlisten: (() => void) | undefined;
 
     void tauriListen<{ serverPath: string }>('backup-selector:close-request', async (payload) => {
-      if (payload.serverPath !== server.path) {
+      if (cancelled || payload.serverPath !== server.path) {
         return;
       }
       try {
         const selectorWindow = await WebviewWindow.getByLabel('backup-selector');
+        if (cancelled || payload.serverPath !== server.path) {
+          return;
+        }
         if (!selectorWindow) {
           return;
         }
