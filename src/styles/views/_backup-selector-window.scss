@@ -50,86 +50,11 @@
     margin-left: auto;
   }
 
-  .backup-selector-window__view-toggle {
-    @apply inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 flex-wrap;
-    flex: 1 1 20rem;
-    min-width: 15rem;
-    justify-content: flex-end;
-    border-color: rgba(63, 63, 70, 0.78);
-    background: rgba(15, 23, 42, 0.65);
-  }
-
-  .backup-selector-window__view-toggle-label {
-    @apply text-[0.68rem] uppercase tracking-[0.08em] text-zinc-400 shrink-0;
-  }
-
-  .backup-selector-window__view-btn {
-    @apply rounded-md border px-2 py-1 text-xs text-zinc-300 transition-colors;
-    border-color: rgba(63, 63, 70, 0.78);
-    background: rgba(39, 39, 42, 0.56);
-  }
-
-  .backup-selector-window__view-btn.is-active {
-    @apply text-cyan-100;
-    border-color: rgba(34, 211, 238, 0.45);
-    background: rgba(8, 47, 73, 0.65);
-  }
-
   .backup-selector-window__tree-panel {
     @apply flex-1 rounded-xl border p-2 overflow-y-auto;
     min-height: 0;
     border-color: var(--mv-border-soft);
     background: linear-gradient(145deg, rgba(17, 24, 39, 0.94), rgba(24, 24, 27, 0.9));
-  }
-
-  .backup-selector-window__graph-panel {
-    @apply flex-1 rounded-xl border p-3 overflow-auto;
-    min-height: 0;
-    border-color: var(--mv-border-soft);
-    background: linear-gradient(145deg, rgba(17, 24, 39, 0.94), rgba(24, 24, 27, 0.9));
-    position: relative;
-    cursor: grab;
-    overscroll-behavior: contain;
-  }
-
-  .backup-selector-window__graph-panel.is-panning {
-    cursor: grabbing;
-  }
-
-  .backup-selector-window__graph-controls {
-    @apply sticky top-0 z-[2] ml-auto mb-2 w-fit rounded-lg border px-2 py-1 flex items-center gap-1;
-    border-color: rgba(63, 63, 70, 0.8);
-    background: rgba(9, 16, 29, 0.86);
-    backdrop-filter: blur(8px);
-  }
-
-  .backup-selector-window__graph-control-btn {
-    @apply h-7 w-7 inline-flex items-center justify-center rounded-md border text-zinc-200 transition-colors;
-    border-color: rgba(82, 82, 91, 0.78);
-    background: rgba(15, 23, 42, 0.72);
-  }
-
-  .backup-selector-window__graph-control-btn:disabled {
-    @apply cursor-not-allowed text-zinc-500;
-  }
-
-  .backup-selector-window__graph-control-btn:not(:disabled):hover {
-    border-color: rgba(34, 211, 238, 0.48);
-    background: rgba(8, 47, 73, 0.62);
-  }
-
-  .backup-selector-window__graph-zoom-value {
-    @apply min-w-[3.4rem] text-center text-[0.7rem] font-semibold text-cyan-100;
-  }
-
-  .backup-selector-window__graph-canvas {
-    @apply grid gap-3;
-    transform-origin: left top;
-    will-change: transform;
-    min-width: 100%;
-    width: max-content;
-    align-content: start;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   }
 
   .backup-selector-window__empty {
@@ -216,141 +141,6 @@
     @apply flex flex-col gap-0.5;
   }
 
-  .backup-selector-window__graph-root {
-    @apply rounded-lg border p-2.5;
-    border-color: rgba(63, 63, 70, 0.78);
-    background: linear-gradient(155deg, rgba(8, 15, 31, 0.92), rgba(17, 24, 39, 0.86));
-    box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.06);
-  }
-
-  .backup-selector-window__graph-root-header {
-    @apply mb-2 px-1 flex items-center gap-2;
-  }
-
-  .backup-selector-window__graph-root-label {
-    @apply min-w-0 flex-1 truncate text-[0.68rem] uppercase tracking-[0.08em] text-zinc-400;
-  }
-
-  .backup-selector-window__graph-tree,
-  .backup-selector-window__graph-children {
-    @apply list-none m-0 p-0;
-  }
-
-  .backup-selector-window__graph-tree {
-    @apply flex flex-col gap-2;
-  }
-
-  .backup-selector-window__graph-item {
-    @apply relative;
-    min-width: 0;
-  }
-
-  .backup-selector-window__graph-item.is-rearranging,
-  .backup-selector-window__graph-root.is-rearranging {
-    z-index: 4;
-  }
-
-  .backup-selector-window__graph-card {
-    @apply min-h-9 rounded-lg border px-2 py-1.5 flex items-center gap-2;
-    border-color: rgba(63, 63, 70, 0.82);
-    background: rgba(15, 23, 42, 0.78);
-  }
-
-  .backup-selector-window__graph-card.is-selected {
-    border-color: rgba(34, 211, 238, 0.45);
-    background: linear-gradient(145deg, rgba(14, 116, 144, 0.34), rgba(8, 47, 73, 0.62));
-    box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.18);
-  }
-
-  .backup-selector-window__graph-expander {
-    @apply h-5 w-5 inline-flex items-center justify-center rounded border text-zinc-300;
-    border-color: rgba(82, 82, 91, 0.78);
-    background: rgba(9, 16, 29, 0.86);
-  }
-
-  .backup-selector-window__graph-expander svg {
-    transition: transform 0.16s ease;
-  }
-
-  .backup-selector-window__graph-expander svg.is-open {
-    transform: rotate(90deg);
-  }
-
-  .backup-selector-window__graph-expander-spacer {
-    @apply inline-block;
-    width: 1.25rem;
-  }
-
-  .backup-selector-window__graph-node-toggle {
-    @apply flex-1 min-w-0 text-left bg-transparent border-none p-0;
-    @apply flex flex-col;
-    row-gap: 1px;
-    color: inherit;
-  }
-
-  .backup-selector-window__graph-node-name {
-    @apply truncate;
-    color: #f3f4f6;
-    font-size: 0.84rem;
-    line-height: 1.2;
-  }
-
-  .backup-selector-window__graph-node-path {
-    @apply truncate text-[0.67rem] text-zinc-400;
-  }
-
-  .backup-selector-window__graph-node-count {
-    @apply inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[0.62rem] font-semibold text-cyan-200;
-    background: rgba(34, 211, 238, 0.12);
-  }
-
-  .backup-selector-window__graph-drag-handle {
-    @apply h-6 w-6 inline-flex items-center justify-center rounded-md border text-zinc-400 transition-colors;
-    border-color: rgba(82, 82, 91, 0.78);
-    background: rgba(9, 16, 29, 0.86);
-    cursor: grab;
-    touch-action: none;
-  }
-
-  .backup-selector-window__graph-drag-handle:hover {
-    border-color: rgba(34, 211, 238, 0.5);
-    color: rgb(165, 243, 252);
-    background: rgba(8, 47, 73, 0.62);
-  }
-
-  .backup-selector-window__graph-drag-handle:active {
-    cursor: grabbing;
-  }
-
-  .backup-selector-window__graph-children {
-    @apply mt-2 pl-5 flex flex-col gap-2;
-    position: relative;
-  }
-
-  .backup-selector-window__graph-children::before {
-    content: '';
-    position: absolute;
-    left: 0.6rem;
-    top: 0.15rem;
-    bottom: 0.9rem;
-    width: 1px;
-    background: linear-gradient(180deg, rgba(34, 211, 238, 0.34) 0%, rgba(71, 85, 105, 0.42) 100%);
-  }
-
-  .backup-selector-window__graph-children > .backup-selector-window__graph-item {
-    padding-left: 0.75rem;
-  }
-
-  .backup-selector-window__graph-children > .backup-selector-window__graph-item::before {
-    content: '';
-    position: absolute;
-    left: -0.05rem;
-    top: 1.05rem;
-    width: 0.85rem;
-    height: 1px;
-    background: rgba(56, 189, 248, 0.4);
-  }
-
   .backup-selector-window__footer {
     @apply rounded-xl border p-3 flex items-center justify-end gap-2;
     border-color: var(--mv-border-soft);
@@ -365,19 +155,9 @@
     margin-left: 0;
   }
 
-  .backup-selector-window__view-toggle {
-    flex-basis: 100%;
-    justify-content: flex-start;
-    min-width: 0;
-  }
-
   .backup-selector-window__toolbar-actions {
     @apply w-full justify-end;
     margin-left: 0;
-  }
-
-  .backup-selector-window__graph-canvas {
-    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -393,11 +173,6 @@
 
   .backup-selector-window__toolbar {
     @apply flex-col items-stretch gap-2;
-  }
-
-  .backup-selector-window__view-toggle {
-    @apply w-full;
-    justify-content: flex-start;
   }
 
   .backup-selector-window__toolbar-actions {

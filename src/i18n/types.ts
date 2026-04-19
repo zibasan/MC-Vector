@@ -442,6 +442,9 @@ export interface TranslationDictionary {
       spigot: string;
     };
     browser: {
+      viewSwitch: string;
+      tabBrowse: string;
+      tabInstalled: string;
       searchOn: string;
       searching: string;
       sortLabel: string;
@@ -533,6 +536,15 @@ export interface TranslationDictionary {
       detailProjectPage: string;
       detailInfo: string;
       detailReadme: string;
+      localSource: string;
+      installedFile: string;
+      installedVersion: string;
+      installedGameVersions: string;
+      uninstall: string;
+      reinstall: string;
+      uninstallSuccess: string;
+      uninstallError: string;
+      reinstallUnavailable: string;
       noDescription: string;
       na: string;
     };

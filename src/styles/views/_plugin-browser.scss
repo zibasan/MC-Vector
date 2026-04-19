@@ -7,6 +7,28 @@
       radial-gradient(circle at 95% 100%, rgba(56, 189, 248, 0.15), transparent 50%);
   }
 
+  .plugin-browser__section-switch {
+    @apply inline-flex items-center gap-1 rounded-xl border border-zinc-700/80 p-1;
+    width: fit-content;
+    background: rgba(15, 23, 42, 0.72);
+  }
+
+  .plugin-browser__section-tab {
+    @apply rounded-lg px-3 py-1.5 text-xs font-semibold text-zinc-300 transition-colors;
+    background: transparent;
+  }
+
+  .plugin-browser__section-tab:hover {
+    @apply text-zinc-100;
+    background: rgba(39, 39, 42, 0.72);
+  }
+
+  .plugin-browser__section-tab.is-active {
+    @apply text-white;
+    background: linear-gradient(120deg, var(--mv-accent-start), var(--mv-accent-end));
+    box-shadow: 0 8px 20px rgba(14, 165, 233, 0.2);
+  }
+
   .plugin-browser__platform-grid {
     @apply grid gap-2;
     grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
@@ -134,6 +156,10 @@
     @apply flex justify-between items-start gap-3;
   }
 
+  .plugin-browser__result-top.is-update-available {
+    @apply flex-wrap gap-y-2;
+  }
+
   .plugin-browser__result-title-wrap {
     @apply min-w-0 flex-1;
   }
@@ -201,11 +227,27 @@
   }
 
   .plugin-browser__result-actions {
-    @apply flex items-center gap-2 shrink-0;
+    @apply flex flex-wrap items-center justify-end gap-2 shrink-0;
+    max-width: min(100%, 24rem);
+  }
+
+  .plugin-browser__result-actions.is-update-available {
+    @apply w-full justify-start;
+    max-width: 100%;
+  }
+
+  .plugin-browser__result-actions.is-update-available > .plugin-browser__install-btn,
+  .plugin-browser__result-actions.is-update-available > .plugin-browser__details-btn {
+    @apply flex-1 justify-center;
+    min-width: 0;
+  }
+
+  .plugin-browser__result-actions > * {
+    @apply shrink-0;
   }
 
   .plugin-browser__installed-badge {
-    @apply text-[0.68rem] font-semibold rounded-full px-2 py-1 bg-emerald-400/15 text-emerald-300 border border-emerald-400/30;
+    @apply text-[0.68rem] font-semibold rounded-full px-2 py-1 whitespace-nowrap bg-emerald-400/15 text-emerald-300 border border-emerald-400/30;
   }
 
   .plugin-browser__installed-badge.is-disabled {
@@ -213,7 +255,8 @@
   }
 
   .plugin-browser__toggle-btn {
-    @apply px-2.5 py-1 text-[0.68rem] rounded-full border font-semibold transition-all;
+    @apply px-3 py-1.5 text-xs rounded-full border font-semibold whitespace-nowrap transition-all;
+    min-height: 2rem;
   }
 
   .plugin-browser__toggle-btn.is-disable {
@@ -230,7 +273,8 @@
   }
 
   .plugin-browser__install-btn {
-    @apply inline-flex items-center gap-1.5 py-2 px-3 text-xs rounded-lg text-white font-semibold transition-all;
+    @apply inline-flex items-center gap-1.5 py-2 px-3 text-xs rounded-lg text-white font-semibold whitespace-nowrap transition-all;
+    min-height: 2rem;
     background: linear-gradient(125deg, var(--mv-accent-start), var(--mv-accent-end));
     box-shadow: 0 8px 20px rgba(14, 165, 233, 0.2);
   }
@@ -246,7 +290,8 @@
   }
 
   .plugin-browser__details-btn {
-    @apply inline-flex items-center rounded-md border border-zinc-600/85 px-2.5 py-1.5 text-xs font-semibold text-zinc-200;
+    @apply inline-flex items-center rounded-md border border-zinc-600/85 px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap text-zinc-200;
+    min-height: 2rem;
     background: rgba(51, 65, 85, 0.72);
   }
 
@@ -436,6 +481,107 @@
     @apply text-[0.68rem] font-semibold text-amber-300 bg-amber-400/10 border border-amber-400/30 rounded-full px-2.5 py-1 self-start;
   }
 
+  .plugin-browser__installed-panel {
+    @apply flex-1 min-h-0 flex flex-col gap-3;
+  }
+
+  .plugin-browser__installed-header {
+    @apply flex items-center justify-between gap-3 rounded-xl border border-zinc-700/80 px-3 py-2;
+    background: rgba(17, 24, 39, 0.72);
+  }
+
+  .plugin-browser__installed-title {
+    @apply text-base font-semibold text-zinc-100 m-0;
+  }
+
+  .plugin-browser__installed-count {
+    @apply text-xs text-zinc-400;
+  }
+
+  .plugin-browser__installed-grid {
+    @apply flex-1 overflow-y-auto grid gap-4 pr-1;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    grid-auto-rows: max-content;
+    align-content: start;
+  }
+
+  .plugin-browser__installed-card {
+    @apply p-3.5 flex flex-col gap-2 border rounded-xl;
+    border-color: rgba(63, 63, 70, 0.82);
+    background: linear-gradient(145deg, rgba(24, 24, 27, 0.96), rgba(15, 23, 42, 0.88));
+    box-shadow: 0 10px 34px rgba(2, 6, 23, 0.24);
+  }
+
+  .plugin-browser__installed-body {
+    @apply gap-1.5;
+  }
+
+  .plugin-browser__installed-head {
+    @apply flex items-start gap-3 min-w-0;
+  }
+
+  .plugin-browser__installed-flags {
+    @apply mt-1;
+  }
+
+  .plugin-browser__installed-icon {
+    @apply flex items-center justify-center;
+  }
+
+  .plugin-browser__installed-fallback-icon {
+    @apply text-zinc-300;
+  }
+
+  .plugin-browser__installed-meta {
+    @apply mt-1 flex flex-col gap-1 rounded-lg border border-zinc-700/65 p-2;
+    background: rgba(15, 23, 42, 0.62);
+  }
+
+  .plugin-browser__installed-meta-row {
+    @apply flex items-start gap-2 text-xs;
+  }
+
+  .plugin-browser__installed-meta-key {
+    @apply w-28 shrink-0 uppercase tracking-[0.05em] text-zinc-500;
+  }
+
+  .plugin-browser__installed-meta-value {
+    @apply min-w-0 break-words text-zinc-200 font-mono text-[11px] leading-4;
+    overflow-wrap: anywhere;
+  }
+
+  .plugin-browser__installed-actions {
+    @apply mt-1 grid gap-1.5;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .plugin-browser__installed-action {
+    @apply inline-flex items-center justify-center rounded-lg border border-zinc-600/80 px-2.5 py-2 text-[11px] font-semibold whitespace-nowrap text-zinc-100 transition-colors disabled:opacity-60 w-full;
+    min-height: 2rem;
+    background: rgba(39, 39, 42, 0.82);
+  }
+
+  .plugin-browser__installed-action:hover {
+    @apply border-zinc-400 text-zinc-50;
+    background: rgba(63, 63, 70, 0.86);
+  }
+
+  .plugin-browser__installed-action--danger {
+    @apply text-rose-200 border-rose-400/35;
+  }
+
+  .plugin-browser__installed-action--primary {
+    @apply text-cyan-200 border-cyan-400/35;
+  }
+
+  .plugin-browser__installed-action--toggle.is-disable {
+    @apply text-amber-200 border-amber-400/35;
+  }
+
+  .plugin-browser__installed-action--toggle.is-enable {
+    @apply text-emerald-200 border-emerald-400/35;
+  }
+
   .plugin-browser__result-empty {
     @apply col-span-full text-center text-zinc-500 p-7 rounded-xl border border-dashed border-zinc-700;
     background: rgba(17, 24, 39, 0.45);
@@ -530,6 +676,14 @@
 }
 
 @media (max-width: 920px) {
+  .plugin-browser__section-switch {
+    width: 100%;
+  }
+
+  .plugin-browser__section-tab {
+    @apply flex-1 text-center;
+  }
+
   .plugin-browser__search-row {
     @apply flex-col;
   }
@@ -544,6 +698,18 @@
 
   .plugin-browser__sort-select {
     @apply w-full;
+  }
+
+  .plugin-browser__installed-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .plugin-browser__installed-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .plugin-browser__installed-meta-key {
+    @apply w-24;
   }
 
   .plugin-browser__detail-modal {

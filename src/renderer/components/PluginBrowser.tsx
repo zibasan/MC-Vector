@@ -77,6 +77,7 @@ const ASYNC_CHECK_CONCURRENCY = 4;
 type CompatibilityStatus = 'checking' | 'compatible' | 'incompatible' | 'unknown';
 type UpdateStatus = 'checking' | 'update-available' | 'up-to-date' | 'unknown';
 type SortMode = 'relevance' | 'downloads' | 'name' | 'compatibility';
+type BrowserSection = 'browse' | 'installed';
 
 type CompatibilityDetail = {
   supportedVersions: string[];
@@ -89,6 +90,31 @@ interface DependencyIdentity {
 }
 
 type DetailTab = 'info' | 'readme';
+
+interface InstalledPluginEntry {
+  fileName: string;
+  normalizedFileName: string;
+  displayName: string;
+  description: string;
+  iconUrl?: string;
+  state: 'enabled' | 'disabled';
+  fileVersion: string;
+  minecraftVersions: string[];
+  sourceItem: ProjectItem | null;
+  actionItem: ProjectItem;
+}
+
+type InstalledFileResolution =
+  | 'exact'
+  | 'case-insensitive'
+  | 'counterpart-exact'
+  | 'counterpart-case-insensitive'
+  | 'normalized-unique';
+
+interface InstalledFileMatch {
+  fileName: string;
+  resolution: InstalledFileResolution;
+}
 
 const MINECRAFT_VERSION_REGEX = /\b1\.\d+(?:\.\d+)?\b/g;
 const LOADER_KEYWORDS = [
@@ -123,6 +149,25 @@ function toErrorMessage(error: unknown): string {
     return error.message;
   }
   return String(error);
+}
+
+function isPathMissingError(error: unknown): boolean {
+  const message = toErrorMessage(error).toLowerCase();
+  return (
+    message.includes('not found') ||
+    message.includes('no such file') ||
+    message.includes('does not exist')
+  );
+}
+
+function isAlreadyExistsError(error: unknown): boolean {
+  const message = toErrorMessage(error).toLowerCase();
+  return (
+    message.includes('already exists') ||
+    message.includes('file exists') ||
+    message.includes('os error 17') ||
+    message.includes('cannot create a file when that file already exists')
+  );
 }
 
 function normalizeServerVersion(version: string): string {
@@ -179,6 +224,110 @@ function isDisabledPluginFile(fileName: string): boolean {
 
 function normalizeInstalledPluginFileName(fileName: string): string {
   return fileName.toLowerCase().replace(/\.disabled$/i, '');
+}
+
+function togglePluginFileName(fileName: string): string {
+  return isDisabledPluginFile(fileName)
+    ? fileName.replace(/\.disabled$/i, '')
+    : `${fileName}.disabled`;
+}
+
+function toListedPluginFileName(value: string): string {
+  const normalized = value.replace(/\\/g, '/').trim();
+  if (!normalized) {
+    return '';
+  }
+  const segments = normalized.split('/').filter(Boolean);
+  return segments.length > 0 ? segments[segments.length - 1] : normalized;
+}
+
+function collectPluginFileNames(entries: Array<{ name: string; isDirectory: boolean }>): string[] {
+  return entries
+    .filter((entry) => !entry.isDirectory)
+    .map((entry) => toListedPluginFileName(entry.name))
+    .filter((name): name is string => Boolean(name))
+    .sort((left, right) => left.localeCompare(right));
+}
+
+function resolveInstalledFileMatch(
+  files: string[],
+  requestedFile: string,
+  options?: { allowCounterpart?: boolean },
+): InstalledFileMatch | null {
+  const requested = toListedPluginFileName(requestedFile);
+  if (!requested) {
+    return null;
+  }
+
+  const findCaseInsensitiveMatches = (targetName: string): string[] => {
+    const normalizedTarget = targetName.toLowerCase();
+    return files.filter((candidate) => candidate.toLowerCase() === normalizedTarget);
+  };
+
+  if (files.includes(requested)) {
+    return { fileName: requested, resolution: 'exact' };
+  }
+
+  const caseInsensitiveMatches = findCaseInsensitiveMatches(requested);
+  if (caseInsensitiveMatches.length === 1) {
+    return { fileName: caseInsensitiveMatches[0], resolution: 'case-insensitive' };
+  }
+  if (caseInsensitiveMatches.length > 1) {
+    throw new Error(
+      `Ambiguous case-insensitive installed file matches: ${caseInsensitiveMatches.join(', ')}`,
+    );
+  }
+
+  const allowCounterpart = options?.allowCounterpart ?? true;
+  if (allowCounterpart) {
+    const counterpartFile = togglePluginFileName(requested);
+    if (files.includes(counterpartFile)) {
+      return { fileName: counterpartFile, resolution: 'counterpart-exact' };
+    }
+
+    const caseInsensitiveCounterpartMatches = findCaseInsensitiveMatches(counterpartFile);
+    if (caseInsensitiveCounterpartMatches.length === 1) {
+      return {
+        fileName: caseInsensitiveCounterpartMatches[0],
+        resolution: 'counterpart-case-insensitive',
+      };
+    }
+    if (caseInsensitiveCounterpartMatches.length > 1) {
+      throw new Error(
+        `Ambiguous case-insensitive counterpart matches: ${caseInsensitiveCounterpartMatches.join(', ')}`,
+      );
+    }
+  }
+
+  const normalizedMatches = files.filter(
+    (candidate) =>
+      normalizeInstalledPluginFileName(candidate) === normalizeInstalledPluginFileName(requested),
+  );
+  if (normalizedMatches.length === 1) {
+    return { fileName: normalizedMatches[0], resolution: 'normalized-unique' };
+  }
+  if (normalizedMatches.length > 1) {
+    throw new Error(`Ambiguous normalized installed file matches: ${normalizedMatches.join(', ')}`);
+  }
+
+  return null;
+}
+
+function stripInstalledPluginFile(fileName: string): string {
+  return fileName.replace(/\.disabled$/i, '').replace(/\.[^.]+$/, '');
+}
+
+function inferInstalledFileVersion(fileName: string): string {
+  const baseName = stripInstalledPluginFile(fileName);
+  const versionMatch = baseName.match(
+    /(?:^|[-_ ])v?(\d+(?:\.\d+){0,4}(?:[-+._]?(?:alpha|beta|rc|snapshot|pre)?\d*)?)/i,
+  );
+  return versionMatch?.[1] ?? '';
+}
+
+function formatInstalledTitle(fileName: string): string {
+  const baseName = stripInstalledPluginFile(fileName);
+  return baseName.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 function mapSpigotResource(resource: SpigetResource): ProjectItem {
@@ -257,6 +406,7 @@ async function mapWithConcurrency<T, R>(
 export default function PluginBrowser({ server }: Props) {
   const { t } = useTranslation();
   const prefersReducedMotion = useReducedMotion();
+  const [activeSection, setActiveSection] = useState<BrowserSection>('browse');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ProjectItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -272,6 +422,10 @@ export default function PluginBrowser({ server }: Props) {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [installedFiles, setInstalledFiles] = useState<string[]>([]);
+  const [knownItemsByInstalledFile, setKnownItemsByInstalledFile] = useState<
+    Record<string, ProjectItem>
+  >({});
+  const [busyInstalledFile, setBusyInstalledFile] = useState<string | null>(null);
   const [dupDialog, setDupDialog] = useState<{ item: ProjectItem; installedFile: string } | null>(
     null,
   );
@@ -366,7 +520,8 @@ export default function PluginBrowser({ server }: Props) {
     try {
       const dirPath = `${server.path}/${folderName}`;
       const entries = await listFiles(dirPath);
-      setInstalledFiles(entries.filter((entry) => !entry.isDirectory).map((entry) => entry.name));
+      const nextInstalledFiles = collectPluginFileNames(entries);
+      setInstalledFiles(nextInstalledFiles);
     } catch (error) {
       console.error(error);
       setInstalledFiles([]);
@@ -374,6 +529,11 @@ export default function PluginBrowser({ server }: Props) {
   };
 
   useEffect(() => {
+    if (activeSection !== 'browse') {
+      setLoading(false);
+      return;
+    }
+
     if (isInAppSearch) {
       void search();
       return;
@@ -383,7 +543,7 @@ export default function PluginBrowser({ server }: Props) {
     setHasNextPage(false);
     setTotalPages(null);
     setResults([]);
-  }, [page, platform, isInAppSearch]);
+  }, [activeSection, page, platform, isInAppSearch]);
 
   useEffect(() => {
     setPageInput(String(page + 1));
@@ -391,6 +551,7 @@ export default function PluginBrowser({ server }: Props) {
 
   useEffect(() => {
     void refreshInstalled();
+    setKnownItemsByInstalledFile({});
   }, [server.id, server.path, isModServer]);
 
   useEffect(() => {
@@ -647,28 +808,132 @@ export default function PluginBrowser({ server }: Props) {
       .filter(Boolean)
       .map((value) => String(value).toLowerCase());
 
+    const exactNormalized = installedFiles.find((file) => {
+      const normalizedFile = normalize(file);
+      return candidates.some((candidate) => normalizedFile === candidate);
+    });
+    if (exactNormalized) {
+      return exactNormalized;
+    }
+
+    const exactPlain = installedFiles.find((file) => {
+      const fileLower = file.toLowerCase();
+      const fileBase = fileLower.replace(/\.disabled$/i, '').replace(/\.[^.]+$/, '');
+      return plainCandidates.some((candidate) => fileBase === candidate);
+    });
+    if (exactPlain) {
+      return exactPlain;
+    }
+
     return (
       installedFiles.find((file) => {
         const base = normalize(file);
+        if (!base) {
+          return false;
+        }
+
+        if (candidates.some((candidate) => candidate.length >= 4 && base.includes(candidate))) {
+          return true;
+        }
+
         const fileLower = file.toLowerCase();
-        const fileBase = fileLower.replace(/\.[^.]+$/, '').replace(/-[\d.]+$/, '');
-
-        if (candidates.some((candidate) => base.includes(candidate) || candidate.includes(base))) {
-          return true;
-        }
-
-        if (
-          plainCandidates.some(
-            (candidate) => fileLower.includes(candidate) || fileBase === candidate,
-          )
-        ) {
-          return true;
-        }
-
-        return false;
+        return plainCandidates.some(
+          (candidate) => candidate.length >= 4 && fileLower.includes(candidate),
+        );
       }) || null
     );
   };
+
+  const currentResultMatchesByInstalledFile = useMemo(() => {
+    const next: Record<string, ProjectItem> = {};
+    for (const item of results) {
+      const installedMatch = findInstalledMatch(item);
+      if (!installedMatch) {
+        continue;
+      }
+      next[normalizeInstalledPluginFileName(installedMatch)] = item;
+    }
+    return next;
+  }, [results, installedFiles]);
+
+  useEffect(() => {
+    const nextKeys = Object.keys(currentResultMatchesByInstalledFile);
+    if (nextKeys.length === 0) {
+      return;
+    }
+
+    setKnownItemsByInstalledFile((previous) => {
+      let changed = false;
+      const next = { ...previous };
+      for (const key of nextKeys) {
+        const item = currentResultMatchesByInstalledFile[key];
+        if (!item || next[key]?.id === item.id) {
+          continue;
+        }
+        next[key] = item;
+        changed = true;
+      }
+      return changed ? next : previous;
+    });
+  }, [currentResultMatchesByInstalledFile]);
+
+  const installedEntries = useMemo<InstalledPluginEntry[]>(() => {
+    return installedFiles.map((fileName) => {
+      const normalizedFileName = normalizeInstalledPluginFileName(fileName);
+      const sourceItem =
+        currentResultMatchesByInstalledFile[normalizedFileName] ??
+        knownItemsByInstalledFile[normalizedFileName] ??
+        null;
+      const displayName = sourceItem?.title || formatInstalledTitle(fileName) || fileName;
+      const description = sourceItem?.description?.trim() || t('plugins.browser.noDescription');
+
+      const extractedVersions = sourceItem
+        ? [
+            ...(compatibilityDetailByItemId[sourceItem.id]?.supportedVersions ?? []),
+            ...extractVersionHints(
+              `${sourceItem.description} ${typeof sourceItem.source_obj.tag === 'string' ? sourceItem.source_obj.tag : ''}`,
+            ),
+          ]
+        : [];
+      const minecraftVersions = Array.from(
+        new Set(extractedVersions.map((version) => version.trim()).filter(Boolean)),
+      );
+      if (minecraftVersions.length === 0 && server.version.trim()) {
+        minecraftVersions.push(server.version.trim());
+      }
+
+      const actionItem =
+        sourceItem ??
+        ({
+          id: `installed:${normalizedFileName}`,
+          title: displayName,
+          description,
+          author: 'Local',
+          platform: 'Modrinth',
+          source_obj: {},
+        } satisfies ProjectItem);
+
+      return {
+        fileName,
+        normalizedFileName,
+        displayName,
+        description,
+        iconUrl: sourceItem?.icon_url,
+        state: isDisabledPluginFile(fileName) ? 'disabled' : 'enabled',
+        fileVersion: inferInstalledFileVersion(fileName) || t('plugins.browser.na'),
+        minecraftVersions,
+        sourceItem,
+        actionItem,
+      };
+    });
+  }, [
+    compatibilityDetailByItemId,
+    currentResultMatchesByInstalledFile,
+    installedFiles,
+    knownItemsByInstalledFile,
+    server.version,
+    t,
+  ]);
 
   const resolveDependencyIdentity = async (projectId: string): Promise<DependencyIdentity> => {
     const cached = dependencyIdentityCacheRef.current[projectId];
@@ -788,16 +1053,60 @@ export default function PluginBrowser({ server }: Props) {
     mode: 'fresh' | 'overwrite' | 'update',
     installedFile?: string,
   ) => {
-    if (installedFile) {
-      const targetPath = `${server.path}/${folderName}/${installedFile}`;
-      try {
-        await deleteItem(targetPath);
-      } catch (error) {
-        console.error(error);
-        showToast(t('plugins.browser.deleteExistingError'), 'error');
-        return;
+    const pluginDir = `${server.path}/${folderName}`;
+    const preserveDisabledState = Boolean(installedFile && isDisabledPluginFile(installedFile));
+    let installedArtifactName: string | null = null;
+    let existingDeleted = false;
+
+    const deleteExistingFileIfNeeded = async (): Promise<boolean> => {
+      if (!installedFile || existingDeleted) {
+        return true;
       }
-    }
+
+      const requestedInstalledFile = toListedPluginFileName(installedFile);
+      if (!requestedInstalledFile) {
+        existingDeleted = true;
+        return true;
+      }
+
+      const directTargetPath = `${pluginDir}/${requestedInstalledFile}`;
+      try {
+        await deleteItem(directTargetPath);
+        existingDeleted = true;
+        return true;
+      } catch (error) {
+        if (!isPathMissingError(error)) {
+          console.error('Direct delete of installed file failed before fallback resolution', {
+            requestedInstalledFile,
+            pluginDir,
+            error: toErrorMessage(error),
+          });
+        }
+      }
+
+      try {
+        const entries = await listFiles(pluginDir);
+        const files = collectPluginFileNames(entries);
+        const resolvedInstalled = resolveInstalledFileMatch(files, installedFile);
+        if (!resolvedInstalled) {
+          existingDeleted = true;
+          return true;
+        }
+
+        const targetPath = `${pluginDir}/${resolvedInstalled.fileName}`;
+        await deleteItem(targetPath);
+        existingDeleted = true;
+        return true;
+      } catch (error) {
+        console.error('Failed to delete existing installed file before install', {
+          requestedInstalledFile: installedFile,
+          pluginDir,
+          error: toErrorMessage(error),
+        });
+        showToast(t('plugins.browser.deleteExistingError'), 'error');
+        return false;
+      }
+    };
 
     setInstallingId(item.id);
     try {
@@ -905,11 +1214,12 @@ export default function PluginBrowser({ server }: Props) {
           }
         }
 
-        await installModrinthProject(
-          resolvedVersion.id,
-          resolvedVersion.fileName,
-          `${server.path}/${folderName}`,
-        );
+        if (!(await deleteExistingFileIfNeeded())) {
+          return;
+        }
+
+        installedArtifactName = resolvedVersion.fileName;
+        await installModrinthProject(resolvedVersion.id, resolvedVersion.fileName, pluginDir);
       } else if (item.platform === 'Hangar') {
         const owner = item.author;
         const slug = item.slug || item.title;
@@ -946,11 +1256,12 @@ export default function PluginBrowser({ server }: Props) {
           return;
         }
 
-        await installHangarProject(
-          resolved.downloadUrl,
-          resolved.fileName,
-          `${server.path}/${folderName}`,
-        );
+        if (!(await deleteExistingFileIfNeeded())) {
+          return;
+        }
+
+        installedArtifactName = resolved.fileName;
+        await installHangarProject(resolved.downloadUrl, resolved.fileName, pluginDir);
       } else if (item.platform === 'Spigot') {
         const resourceId = Number(item.id);
         if (!Number.isFinite(resourceId)) {
@@ -975,7 +1286,17 @@ export default function PluginBrowser({ server }: Props) {
             : undefined;
         const fileName = `${toSlug(item.title)}-${resourceId}${extension}`;
 
-        await installSpigotProject(resourceId, fileName, `${server.path}/${folderName}`, versionId);
+        if (!(await deleteExistingFileIfNeeded())) {
+          return;
+        }
+
+        installedArtifactName = fileName;
+        await installSpigotProject(resourceId, fileName, pluginDir, versionId);
+      }
+
+      if (preserveDisabledState && installedArtifactName) {
+        const installedPath = `${pluginDir}/${installedArtifactName}`;
+        await moveItem(installedPath, `${installedPath}.disabled`);
       }
 
       const successLabel =
@@ -989,8 +1310,8 @@ export default function PluginBrowser({ server }: Props) {
       console.error(error);
       showToast(t('plugins.browser.installError'), 'error');
     } finally {
-      setInstallingId(null);
       await refreshInstalled();
+      setInstallingId(null);
     }
   };
 
@@ -1024,28 +1345,207 @@ export default function PluginBrowser({ server }: Props) {
   };
 
   const handleToggleInstalled = async (item: ProjectItem, installedFile: string) => {
-    const sourcePath = `${server.path}/${folderName}/${installedFile}`;
-    const nextFile = isDisabledPluginFile(installedFile)
-      ? installedFile.replace(/\.disabled$/i, '')
-      : `${installedFile}.disabled`;
-    const targetPath = `${server.path}/${folderName}/${nextFile}`;
-
-    setInstallingId(item.id);
-    try {
-      await moveItem(sourcePath, targetPath);
+    const pluginDir = `${server.path}/${folderName}`;
+    let stage:
+      | 'direct-rename'
+      | 'direct-overwrite-target'
+      | 'direct-retry-rename'
+      | 'list-files'
+      | 'resolve-source'
+      | 'resolve-target'
+      | 'overwrite-target'
+      | 'rename'
+      | 'retry-rename' = 'list-files';
+    let availableFiles: string[] = [];
+    let sourceResolution:
+      | 'exact'
+      | 'case-insensitive'
+      | 'counterpart-exact'
+      | 'counterpart-case-insensitive'
+      | 'normalized-unique'
+      | null = null;
+    let resolvedInstalledFile: string | null = null;
+    let nextFile: string | null = null;
+    let overwrittenTargetFile: string | null = null;
+    const notifyToggleSuccess = (sourceFileName: string) => {
       showToast(
-        isDisabledPluginFile(installedFile)
+        isDisabledPluginFile(sourceFileName)
           ? t('plugins.browser.pluginEnabled', { title: item.title })
           : t('plugins.browser.pluginDisabled', { title: item.title }),
         'success',
       );
+    };
+
+    setInstallingId(item.id);
+    try {
+      const requestedInstalledFile = toListedPluginFileName(installedFile);
+      if (!requestedInstalledFile) {
+        throw new Error(`Installed file is empty for toggle: ${installedFile}`);
+      }
+
+      resolvedInstalledFile = requestedInstalledFile;
+      sourceResolution = 'exact';
+      nextFile = togglePluginFileName(requestedInstalledFile);
+      const directSourcePath = `${pluginDir}/${requestedInstalledFile}`;
+      const directTargetPath = `${pluginDir}/${nextFile}`;
+
+      stage = 'direct-rename';
+      try {
+        await moveItem(directSourcePath, directTargetPath);
+        notifyToggleSuccess(requestedInstalledFile);
+        return;
+      } catch (directError) {
+        if (isAlreadyExistsError(directError)) {
+          stage = 'direct-overwrite-target';
+          try {
+            await deleteItem(directTargetPath);
+            overwrittenTargetFile = nextFile;
+          } catch (deleteError) {
+            if (!isPathMissingError(deleteError)) {
+              throw deleteError;
+            }
+          }
+
+          stage = 'direct-retry-rename';
+          await moveItem(directSourcePath, directTargetPath);
+          notifyToggleSuccess(requestedInstalledFile);
+          return;
+        }
+
+        if (!isPathMissingError(directError)) {
+          throw directError;
+        }
+      }
+
+      const entries = await listFiles(pluginDir);
+      const files = collectPluginFileNames(entries);
+      availableFiles = files;
+
+      stage = 'resolve-source';
+
+      const resolvedMatch = resolveInstalledFileMatch(files, installedFile);
+      if (!resolvedMatch) {
+        throw new Error(`Installed file not found for toggle: ${installedFile}`);
+      }
+      resolvedInstalledFile = resolvedMatch.fileName;
+      sourceResolution = resolvedMatch.resolution;
+
+      nextFile = togglePluginFileName(resolvedInstalledFile);
+      const sourcePath = `${pluginDir}/${resolvedInstalledFile}`;
+      const targetPath = `${pluginDir}/${nextFile}`;
+
+      stage = 'resolve-target';
+
+      const targetMatches = files.filter(
+        (candidate) =>
+          candidate !== resolvedInstalledFile && candidate.toLowerCase() === nextFile.toLowerCase(),
+      );
+      if (targetMatches.length > 1) {
+        throw new Error(
+          `Ambiguous target matches while preparing overwrite policy: ${targetMatches.join(', ')}`,
+        );
+      }
+
+      const existingTargetFile = targetMatches[0] ?? null;
+      if (existingTargetFile) {
+        stage = 'overwrite-target';
+        await deleteItem(`${pluginDir}/${existingTargetFile}`);
+        overwrittenTargetFile = existingTargetFile;
+      }
+
+      stage = 'rename';
+      try {
+        await moveItem(sourcePath, targetPath);
+      } catch (error) {
+        if (!isAlreadyExistsError(error)) {
+          throw error;
+        }
+
+        stage = 'retry-rename';
+        try {
+          await deleteItem(targetPath);
+          overwrittenTargetFile = overwrittenTargetFile ?? nextFile;
+        } catch (deleteError) {
+          if (!isPathMissingError(deleteError)) {
+            throw deleteError;
+          }
+        }
+        await moveItem(sourcePath, targetPath);
+      }
+
+      notifyToggleSuccess(resolvedInstalledFile);
     } catch (error) {
-      console.error(error);
+      console.error('Failed to toggle plugin state', {
+        stage,
+        itemId: item.id,
+        itemTitle: item.title,
+        requestedInstalledFile: installedFile,
+        resolvedInstalledFile,
+        sourceResolution,
+        nextFile,
+        overwrittenTargetFile,
+        folderName,
+        pluginDir,
+        availableFiles,
+        error: toErrorMessage(error),
+      });
       showToast(t('plugins.browser.toggleError'), 'error');
     } finally {
-      setInstallingId(null);
       await refreshInstalled();
+      setInstallingId(null);
     }
+  };
+
+  const handleUninstallInstalled = async (entry: InstalledPluginEntry) => {
+    const pluginDir = `${server.path}/${folderName}`;
+    setBusyInstalledFile(entry.normalizedFileName);
+    try {
+      const requestedInstalledFile = toListedPluginFileName(entry.fileName);
+      if (!requestedInstalledFile) {
+        throw new Error(`Installed file is empty for uninstall: ${entry.fileName}`);
+      }
+
+      const directTargetPath = `${pluginDir}/${requestedInstalledFile}`;
+      try {
+        await deleteItem(directTargetPath);
+        showToast(t('plugins.browser.uninstallSuccess', { title: entry.displayName }), 'success');
+        return;
+      } catch (error) {
+        if (!isPathMissingError(error)) {
+          throw error;
+        }
+      }
+
+      const entries = await listFiles(pluginDir);
+      const files = collectPluginFileNames(entries);
+      const resolved = resolveInstalledFileMatch(files, entry.fileName);
+      if (!resolved) {
+        throw new Error(`Installed file not found for uninstall: ${entry.fileName}`);
+      }
+
+      const targetPath = `${pluginDir}/${resolved.fileName}`;
+      await deleteItem(targetPath);
+      showToast(t('plugins.browser.uninstallSuccess', { title: entry.displayName }), 'success');
+    } catch (error) {
+      console.error('Failed to uninstall installed plugin', {
+        requestedInstalledFile: entry.fileName,
+        normalizedInstalledFile: entry.normalizedFileName,
+        pluginDir,
+        error: toErrorMessage(error),
+      });
+      showToast(t('plugins.browser.uninstallError'), 'error');
+    } finally {
+      await refreshInstalled();
+      setBusyInstalledFile(null);
+    }
+  };
+
+  const handleReinstallInstalled = (entry: InstalledPluginEntry) => {
+    if (!entry.sourceItem) {
+      showToast(t('plugins.browser.reinstallUnavailable'), 'info');
+      return;
+    }
+    void performInstall(entry.sourceItem, 'overwrite', entry.fileName);
   };
 
   const compatibilityLabel = (status: CompatibilityStatus): string => {
@@ -1285,350 +1785,524 @@ export default function PluginBrowser({ server }: Props) {
 
   return (
     <div className="plugin-browser">
-      <div className="plugin-browser__platform-grid">
-        {platformOptions.map((option) => {
-          const Icon = option.icon;
-          const active = option.key === platform;
-          const showLogo = option.logoUrl.length > 0 && !logoLoadFailed[option.key];
-
-          return (
-            <motion.button
-              key={option.key}
-              type="button"
-              whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
-              whileHover={prefersReducedMotion ? undefined : { y: -1 }}
-              className={`plugin-browser__platform-chip ${active ? 'is-active' : ''}`}
-              onClick={() => {
-                setPlatform(option.key);
-                setPage(0);
-              }}
-            >
-              <div className="plugin-browser__platform-logo-wrap">
-                {showLogo ? (
-                  <img
-                    src={option.logoUrl}
-                    alt={`${option.label} logo`}
-                    className="plugin-browser__platform-logo"
-                    loading="lazy"
-                    onError={() =>
-                      setLogoLoadFailed((prev) => ({
-                        ...prev,
-                        [option.key]: true,
-                      }))
-                    }
-                  />
-                ) : (
-                  <Icon size={14} className="plugin-browser__platform-fallback-icon" />
-                )}
-              </div>
-              <div className="plugin-browser__platform-copy">
-                <span className="plugin-browser__platform-label">{option.label}</span>
-                <span className="plugin-browser__platform-hint">{option.hint}</span>
-              </div>
-            </motion.button>
-          );
-        })}
+      <div
+        className="plugin-browser__section-switch"
+        role="tablist"
+        aria-label={t('plugins.browser.viewSwitch')}
+      >
+        <button
+          type="button"
+          className={`plugin-browser__section-tab ${activeSection === 'browse' ? 'is-active' : ''}`}
+          onClick={() => setActiveSection('browse')}
+          aria-pressed={activeSection === 'browse'}
+        >
+          {t('plugins.browser.tabBrowse')}
+        </button>
+        <button
+          type="button"
+          className={`plugin-browser__section-tab ${activeSection === 'installed' ? 'is-active' : ''}`}
+          onClick={() => setActiveSection('installed')}
+          aria-pressed={activeSection === 'installed'}
+        >
+          {t('plugins.browser.tabInstalled', { count: installedFiles.length })}
+        </button>
       </div>
 
-      {isInAppSearch ? (
+      {activeSection === 'browse' ? (
         <>
-          <div className="plugin-browser__search-row">
-            <div className="plugin-browser__search-input-wrap">
-              <Search size={16} />
-              <input
-                type="text"
-                className="plugin-browser__search-input"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={t('plugins.browser.searchOn', {
-                  platform: searchPlatformLabel,
-                })}
-                onKeyDown={(event) => event.key === 'Enter' && void search()}
-              />
+          <div className="plugin-browser__platform-grid">
+            {platformOptions.map((option) => {
+              const Icon = option.icon;
+              const active = option.key === platform;
+              const showLogo = option.logoUrl.length > 0 && !logoLoadFailed[option.key];
+
+              return (
+                <motion.button
+                  key={option.key}
+                  type="button"
+                  whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
+                  whileHover={prefersReducedMotion ? undefined : { y: -1 }}
+                  className={`plugin-browser__platform-chip ${active ? 'is-active' : ''}`}
+                  onClick={() => {
+                    setPlatform(option.key);
+                    setPage(0);
+                  }}
+                >
+                  <div className="plugin-browser__platform-logo-wrap">
+                    {showLogo ? (
+                      <img
+                        src={option.logoUrl}
+                        alt={`${option.label} logo`}
+                        className="plugin-browser__platform-logo"
+                        loading="lazy"
+                        onError={() =>
+                          setLogoLoadFailed((prev) => ({
+                            ...prev,
+                            [option.key]: true,
+                          }))
+                        }
+                      />
+                    ) : (
+                      <Icon size={14} className="plugin-browser__platform-fallback-icon" />
+                    )}
+                  </div>
+                  <div className="plugin-browser__platform-copy">
+                    <span className="plugin-browser__platform-label">{option.label}</span>
+                    <span className="plugin-browser__platform-hint">{option.hint}</span>
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
+
+          {isInAppSearch ? (
+            <>
+              <div className="plugin-browser__search-row">
+                <div className="plugin-browser__search-input-wrap">
+                  <Search size={16} />
+                  <input
+                    type="text"
+                    className="plugin-browser__search-input"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={t('plugins.browser.searchOn', {
+                      platform: searchPlatformLabel,
+                    })}
+                    onKeyDown={(event) => event.key === 'Enter' && void search()}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  className="plugin-browser__search-btn"
+                  onClick={() => void search()}
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                  <span>{loading ? t('plugins.browser.searching') : t('common.search')}</span>
+                </button>
+              </div>
+
+              <div className="plugin-browser__sort-row">
+                <span className="plugin-browser__sort-label">{t('plugins.browser.sortLabel')}</span>
+                <select
+                  className="input-field plugin-browser__sort-select"
+                  value={sortMode}
+                  onChange={(event) => setSortMode(event.target.value as SortMode)}
+                >
+                  <option value="relevance">{t('plugins.browser.sortRelevance')}</option>
+                  <option value="downloads">{t('plugins.browser.sortDownloads')}</option>
+                  <option value="name">{t('plugins.browser.sortName')}</option>
+                  <option value="compatibility">{t('plugins.browser.sortCompatibility')}</option>
+                </select>
+              </div>
+            </>
+          ) : (
+            <div className="plugin-browser__unsupported-panel">
+              <p>{t('plugins.browser.unsupportedPlatform')}</p>
+              <button
+                type="button"
+                className="plugin-browser__unsupported-btn"
+                onClick={() => openExternal('https://www.curseforge.com/minecraft/mc-mods')}
+              >
+                <ExternalLink size={16} />
+                <span>
+                  {t('plugins.browser.openInBrowser', {
+                    platform: selectedPlatform?.label || platform,
+                  })}
+                </span>
+              </button>
+              <p className="plugin-browser__unsupported-note">
+                {t('plugins.browser.downloadInstructions', { folder: folderName })}
+              </p>
             </div>
+          )}
 
-            <button
-              type="button"
-              className="plugin-browser__search-btn"
-              onClick={() => void search()}
-              disabled={loading}
-            >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-              <span>{loading ? t('plugins.browser.searching') : t('common.search')}</span>
-            </button>
-          </div>
+          {isInAppSearch && platform === 'Spigot' && (
+            <div className="plugin-browser__platform-note">{t('plugins.browser.spigotNote')}</div>
+          )}
 
-          <div className="plugin-browser__sort-row">
-            <span className="plugin-browser__sort-label">{t('plugins.browser.sortLabel')}</span>
-            <select
-              className="input-field plugin-browser__sort-select"
-              value={sortMode}
-              onChange={(event) => setSortMode(event.target.value as SortMode)}
-            >
-              <option value="relevance">{t('plugins.browser.sortRelevance')}</option>
-              <option value="downloads">{t('plugins.browser.sortDownloads')}</option>
-              <option value="name">{t('plugins.browser.sortName')}</option>
-              <option value="compatibility">{t('plugins.browser.sortCompatibility')}</option>
-            </select>
-          </div>
+          {isInAppSearch && platform === 'Hangar' && (
+            <div className="plugin-browser__platform-note">{t('plugins.browser.hangarNote')}</div>
+          )}
+
+          {isInAppSearch && updateAvailableCount > 0 && (
+            <div className="plugin-browser__update-summary">
+              <span>{t('plugins.browser.updateSummary', { count: updateAvailableCount })}</span>
+              <span className="plugin-browser__update-summary-note">
+                {t('plugins.browser.updateSummaryNote')}
+              </span>
+            </div>
+          )}
+
+          {isInAppSearch && (
+            <>
+              <div className="plugin-browser__results-grid">
+                <AnimatePresence initial={false} mode="wait">
+                  {sortedResults.map((item) => {
+                    const installedMatch = findInstalledMatch(item);
+                    const installedState = installedMatch
+                      ? isDisabledPluginFile(installedMatch)
+                        ? 'disabled'
+                        : 'enabled'
+                      : 'none';
+                    const compatibility = compatibilityByItemId[item.id] ?? 'unknown';
+                    const updateStatus = installedMatch
+                      ? (updateStatusByItemId[item.id] ?? 'unknown')
+                      : null;
+                    const hasUpdateAction =
+                      installedState !== 'none' && updateStatus === 'update-available';
+                    const showInstallAction = installedState === 'none' || hasUpdateAction;
+                    const requiresBrowser =
+                      item.platform === 'Spigot' &&
+                      (item.source_obj.external === true || item.source_obj.premium === true);
+                    const installActionButton = showInstallAction ? (
+                      <button
+                        type="button"
+                        onClick={() => void handleInstall(item)}
+                        disabled={installingId === item.id}
+                        className={`plugin-browser__install-btn ${
+                          requiresBrowser ? 'plugin-browser__install-btn--external' : ''
+                        }`}
+                      >
+                        {installingId === item.id ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : requiresBrowser ? (
+                          <ExternalLink size={14} />
+                        ) : (
+                          <Download size={14} />
+                        )}
+                        <span>{actionLabel(item, installedState, updateStatus)}</span>
+                      </button>
+                    ) : null;
+                    const detailsButton = (
+                      <button
+                        type="button"
+                        className="plugin-browser__details-btn"
+                        onClick={() => openDetailModal(item)}
+                      >
+                        {t('plugins.browser.details')}
+                      </button>
+                    );
+
+                    return (
+                      <motion.div
+                        key={`${item.platform}-${item.id}`}
+                        initial={platformSwitchInitial}
+                        animate={platformSwitchAnimate}
+                        exit={platformSwitchExit}
+                        transition={platformSwitchTransition}
+                        className={`plugin-browser__result-card ${
+                          hasUpdateAction ? 'is-update-available' : ''
+                        }`}
+                      >
+                        <div
+                          className="plugin-browser__result-icon"
+                          style={{
+                            backgroundImage: item.icon_url ? `url(${item.icon_url})` : 'none',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                          }}
+                        />
+
+                        <div className="plugin-browser__result-body">
+                          <div
+                            className={`plugin-browser__result-top ${
+                              hasUpdateAction ? 'is-update-available' : ''
+                            }`}
+                          >
+                            <div className="plugin-browser__result-title-wrap">
+                              <div className="plugin-browser__result-title">{item.title}</div>
+                              <div className="plugin-browser__result-source">{item.platform}</div>
+                              <div className="plugin-browser__result-flags">
+                                {installedMatch ? (
+                                  <span
+                                    className={`plugin-browser__installed-badge ${
+                                      installedState === 'disabled' ? 'is-disabled' : ''
+                                    }`}
+                                  >
+                                    {installedState === 'disabled'
+                                      ? t('plugins.browser.disabledBadge')
+                                      : t('plugins.browser.installedBadge')}
+                                  </span>
+                                ) : null}
+                                <span
+                                  className={`plugin-browser__compat-badge is-${compatibility}`}
+                                >
+                                  {compatibilityLabel(compatibility)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div
+                              className={`plugin-browser__result-actions ${
+                                hasUpdateAction ? 'is-update-available' : ''
+                              }`}
+                            >
+                              {installActionButton}
+                              {detailsButton}
+                            </div>
+                          </div>
+
+                          <div className="plugin-browser__result-description">
+                            {item.description || t('plugins.browser.noDescription')}
+                          </div>
+
+                          <div className="plugin-browser__result-meta">
+                            <span className="plugin-browser__meta-item">
+                              <Server size={13} />
+                              <span>{item.author}</span>
+                            </span>
+                            <span className="plugin-browser__meta-item">
+                              <Download size={13} />
+                              <span>{item.downloads ? item.downloads.toLocaleString() : '-'}</span>
+                            </span>
+                            {item.stars ? (
+                              <span className="plugin-browser__meta-item">
+                                <Star size={13} />
+                                <span>{item.stars}</span>
+                              </span>
+                            ) : null}
+                          </div>
+
+                          {requiresBrowser && (
+                            <div className="plugin-browser__result-tag">
+                              {t('plugins.browser.externalDownload')}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+
+                  {sortedResults.length === 0 && !loading && (
+                    <motion.div
+                      key="empty"
+                      initial={platformSwitchInitial}
+                      animate={platformSwitchAnimate}
+                      exit={platformSwitchExit}
+                      transition={platformSwitchTransition}
+                      className="plugin-browser__result-empty"
+                    >
+                      {t('plugins.browser.noResults')}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <div className="plugin-browser__pager">
+                <button
+                  type="button"
+                  className="plugin-browser__pager-btn"
+                  onClick={() => setPage((value) => Math.max(0, value - 1))}
+                  disabled={page === 0 || loading}
+                >
+                  <ArrowLeft size={14} />
+                  <span>{t('plugins.browser.prev')}</span>
+                </button>
+
+                <span className="plugin-browser__pager-label">
+                  {totalPages
+                    ? t('plugins.browser.pageLabelWithTotal', {
+                        current: page + 1,
+                        total: totalPages,
+                      })
+                    : t('plugins.browser.pageLabel', { current: page + 1 })}
+                </span>
+
+                <div className="plugin-browser__pager-jump">
+                  <input
+                    type="number"
+                    min={1}
+                    max={totalPages ?? undefined}
+                    value={pageInput}
+                    onChange={(event) => setPageInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        jumpToPage();
+                      }
+                    }}
+                    className="plugin-browser__pager-input"
+                    aria-label={t('plugins.browser.pageNumberAriaLabel')}
+                  />
+                  <button
+                    type="button"
+                    className="plugin-browser__pager-go"
+                    onClick={jumpToPage}
+                    disabled={loading}
+                  >
+                    {t('plugins.browser.go')}
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className="plugin-browser__pager-btn"
+                  onClick={() => setPage((value) => value + 1)}
+                  disabled={!hasNextPage || loading}
+                >
+                  <span>{t('plugins.browser.next')}</span>
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+            </>
+          )}
         </>
       ) : (
-        <div className="plugin-browser__unsupported-panel">
-          <p>{t('plugins.browser.unsupportedPlatform')}</p>
-          <button
-            type="button"
-            className="plugin-browser__unsupported-btn"
-            onClick={() => openExternal('https://www.curseforge.com/minecraft/mc-mods')}
-          >
-            <ExternalLink size={16} />
-            <span>
-              {t('plugins.browser.openInBrowser', {
-                platform: selectedPlatform?.label || platform,
-              })}
+        <div className="plugin-browser__installed-panel">
+          <div className="plugin-browser__installed-header">
+            <h2 className="plugin-browser__installed-title">{t('plugins.installed.title')}</h2>
+            <span className="plugin-browser__installed-count">
+              {t('plugins.browser.tabInstalled', { count: installedEntries.length })}
             </span>
-          </button>
-          <p className="plugin-browser__unsupported-note">
-            {t('plugins.browser.downloadInstructions', { folder: folderName })}
-          </p>
-        </div>
-      )}
+          </div>
 
-      {isInAppSearch && platform === 'Spigot' && (
-        <div className="plugin-browser__platform-note">{t('plugins.browser.spigotNote')}</div>
-      )}
-
-      {isInAppSearch && platform === 'Hangar' && (
-        <div className="plugin-browser__platform-note">{t('plugins.browser.hangarNote')}</div>
-      )}
-
-      {isInAppSearch && updateAvailableCount > 0 && (
-        <div className="plugin-browser__update-summary">
-          <span>{t('plugins.browser.updateSummary', { count: updateAvailableCount })}</span>
-          <span className="plugin-browser__update-summary-note">
-            {t('plugins.browser.updateSummaryNote')}
-          </span>
-        </div>
-      )}
-
-      {isInAppSearch && (
-        <>
-          <div className="plugin-browser__results-grid">
-            <AnimatePresence initial={false} mode="wait">
-              {sortedResults.map((item) => {
-                const installedMatch = findInstalledMatch(item);
-                const installedState = installedMatch
-                  ? isDisabledPluginFile(installedMatch)
-                    ? 'disabled'
-                    : 'enabled'
-                  : 'none';
-                const compatibility = compatibilityByItemId[item.id] ?? 'unknown';
-                const updateStatus = installedMatch
-                  ? (updateStatusByItemId[item.id] ?? 'unknown')
+          {installedEntries.length === 0 ? (
+            <div className="plugin-browser__result-empty">{t('plugins.installed.empty')}</div>
+          ) : (
+            <div className="plugin-browser__installed-grid">
+              {installedEntries.map((entry) => {
+                const isProcessing =
+                  busyInstalledFile === entry.normalizedFileName ||
+                  installingId === entry.actionItem.id;
+                const canReinstall = Boolean(entry.sourceItem);
+                const installedUpdateStatus = entry.sourceItem
+                  ? (updateStatusByItemId[entry.sourceItem.id] ?? null)
                   : null;
-                const latestFileName = latestFileByItemId[item.id];
-                const requiresBrowser =
-                  item.platform === 'Spigot' &&
-                  (item.source_obj.external === true || item.source_obj.premium === true);
+                const installedStatusBadge =
+                  installedUpdateStatus === 'update-available' ||
+                  installedUpdateStatus === 'up-to-date'
+                    ? installedUpdateStatus
+                    : null;
+                const installedLatestFileName = entry.sourceItem
+                  ? (latestFileByItemId[entry.sourceItem.id] ?? null)
+                  : null;
 
                 return (
-                  <motion.div
-                    key={`${item.platform}-${item.id}`}
-                    initial={platformSwitchInitial}
-                    animate={platformSwitchAnimate}
-                    exit={platformSwitchExit}
-                    transition={platformSwitchTransition}
-                    className="plugin-browser__result-card"
-                  >
-                    <div
-                      className="plugin-browser__result-icon"
-                      style={{
-                        backgroundImage: item.icon_url ? `url(${item.icon_url})` : 'none',
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                      }}
-                    />
-
-                    <div className="plugin-browser__result-body">
-                      <div className="plugin-browser__result-top">
+                  <div key={entry.fileName} className="plugin-browser__installed-card">
+                    <div className="plugin-browser__result-body plugin-browser__installed-body">
+                      <div className="plugin-browser__installed-head">
+                        <div
+                          className="plugin-browser__result-icon plugin-browser__installed-icon"
+                          style={{
+                            backgroundImage: entry.iconUrl ? `url(${entry.iconUrl})` : 'none',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                          }}
+                        >
+                          {!entry.iconUrl ? (
+                            <Package
+                              size={20}
+                              className="plugin-browser__installed-fallback-icon"
+                            />
+                          ) : null}
+                        </div>
                         <div className="plugin-browser__result-title-wrap">
-                          <div className="plugin-browser__result-title">{item.title}</div>
-                          <div className="plugin-browser__result-source">{item.platform}</div>
-                          <div className="plugin-browser__result-flags">
-                            <span className={`plugin-browser__compat-badge is-${compatibility}`}>
-                              {compatibilityLabel(compatibility)}
+                          <div className="plugin-browser__result-title">{entry.displayName}</div>
+                          <div className="plugin-browser__result-source">
+                            {entry.sourceItem?.platform ?? t('plugins.browser.localSource')}
+                          </div>
+                          <div className="plugin-browser__result-flags plugin-browser__installed-flags">
+                            <span
+                              className={`plugin-browser__installed-badge ${
+                                entry.state === 'disabled' ? 'is-disabled' : ''
+                              }`}
+                            >
+                              {entry.state === 'disabled'
+                                ? t('plugins.browser.disabledBadge')
+                                : t('plugins.browser.installedBadge')}
                             </span>
-                            {installedMatch && updateStatus && (
+                            {installedStatusBadge ? (
                               <span
-                                className={`plugin-browser__update-badge is-${updateStatus}`}
+                                className={`plugin-browser__update-badge is-${installedStatusBadge}`}
                                 title={
-                                  updateStatus === 'update-available' && latestFileName
+                                  installedStatusBadge === 'update-available' &&
+                                  installedLatestFileName
                                     ? t('plugins.browser.latestTooltip', {
-                                        fileName: latestFileName,
+                                        fileName: installedLatestFileName,
                                       })
                                     : undefined
                                 }
                               >
-                                {updateStatusLabel(updateStatus)}
+                                {updateStatusLabel(installedStatusBadge)}
                               </span>
-                            )}
+                            ) : null}
                           </div>
                         </div>
-
-                        <div className="plugin-browser__result-actions">
-                          {installedMatch && (
-                            <span
-                              className={`plugin-browser__installed-badge ${
-                                installedState === 'disabled' ? 'is-disabled' : ''
-                              }`}
-                            >
-                              {installedState === 'disabled'
-                                ? t('plugins.browser.disabledBadge')
-                                : t('plugins.browser.installedBadge')}
-                            </span>
-                          )}
-
-                          {installedMatch && (
-                            <button
-                              type="button"
-                              onClick={() => void handleToggleInstalled(item, installedMatch)}
-                              disabled={installingId === item.id}
-                              className={`plugin-browser__toggle-btn ${
-                                installedState === 'disabled' ? 'is-enable' : 'is-disable'
-                              }`}
-                            >
-                              {installedState === 'disabled'
-                                ? t('plugins.browser.enable')
-                                : t('plugins.browser.disable')}
-                            </button>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => handleInstall(item)}
-                            disabled={installingId === item.id}
-                            className={`plugin-browser__install-btn ${
-                              requiresBrowser ? 'plugin-browser__install-btn--external' : ''
-                            }`}
-                          >
-                            {installingId === item.id ? (
-                              <Loader2 size={14} className="animate-spin" />
-                            ) : requiresBrowser ? (
-                              <ExternalLink size={14} />
-                            ) : (
-                              <Download size={14} />
-                            )}
-                            <span>{actionLabel(item, installedState, updateStatus)}</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            className="plugin-browser__details-btn"
-                            onClick={() => openDetailModal(item)}
-                          >
-                            {t('plugins.browser.details')}
-                          </button>
-                        </div>
                       </div>
 
-                      <div className="plugin-browser__result-description">
-                        {item.description || t('plugins.browser.noDescription')}
-                      </div>
+                      <div className="plugin-browser__result-description">{entry.description}</div>
 
-                      <div className="plugin-browser__result-meta">
-                        <span className="plugin-browser__meta-item">
-                          <Server size={13} />
-                          <span>{item.author}</span>
-                        </span>
-                        <span className="plugin-browser__meta-item">
-                          <Download size={13} />
-                          <span>{item.downloads ? item.downloads.toLocaleString() : '-'}</span>
-                        </span>
-                        {item.stars ? (
-                          <span className="plugin-browser__meta-item">
-                            <Star size={13} />
-                            <span>{item.stars}</span>
+                      <div className="plugin-browser__installed-meta">
+                        <div className="plugin-browser__installed-meta-row">
+                          <span className="plugin-browser__installed-meta-key">
+                            {t('plugins.browser.installedFile')}
                           </span>
-                        ) : null}
+                          <span className="plugin-browser__installed-meta-value">
+                            {entry.fileName}
+                          </span>
+                        </div>
+                        <div className="plugin-browser__installed-meta-row">
+                          <span className="plugin-browser__installed-meta-key">
+                            {t('plugins.browser.installedVersion')}
+                          </span>
+                          <span className="plugin-browser__installed-meta-value">
+                            {entry.fileVersion || t('plugins.browser.na')}
+                          </span>
+                        </div>
+                        <div className="plugin-browser__installed-meta-row">
+                          <span className="plugin-browser__installed-meta-key">
+                            {t('plugins.browser.installedGameVersions')}
+                          </span>
+                          <span className="plugin-browser__installed-meta-value">
+                            {entry.minecraftVersions.length > 0
+                              ? entry.minecraftVersions.join(', ')
+                              : t('plugins.browser.na')}
+                          </span>
+                        </div>
                       </div>
 
-                      {requiresBrowser && (
-                        <div className="plugin-browser__result-tag">
-                          {t('plugins.browser.externalDownload')}
-                        </div>
-                      )}
+                      <div className="plugin-browser__installed-actions">
+                        <button
+                          type="button"
+                          className="plugin-browser__installed-action plugin-browser__installed-action--danger"
+                          onClick={() => void handleUninstallInstalled(entry)}
+                          disabled={isProcessing}
+                        >
+                          {t('plugins.browser.uninstall')}
+                        </button>
+                        <button
+                          type="button"
+                          className="plugin-browser__installed-action plugin-browser__installed-action--primary"
+                          onClick={() => handleReinstallInstalled(entry)}
+                          disabled={isProcessing || !canReinstall}
+                        >
+                          {installingId === entry.actionItem.id
+                            ? t('plugins.browser.installing')
+                            : t('plugins.browser.reinstall')}
+                        </button>
+                        <button
+                          type="button"
+                          className={`plugin-browser__installed-action plugin-browser__installed-action--toggle ${
+                            entry.state === 'disabled' ? 'is-enable' : 'is-disable'
+                          }`}
+                          onClick={() =>
+                            void handleToggleInstalled(entry.actionItem, entry.fileName)
+                          }
+                          disabled={isProcessing}
+                        >
+                          {entry.state === 'disabled'
+                            ? t('plugins.browser.enable')
+                            : t('plugins.browser.disable')}
+                        </button>
+                      </div>
                     </div>
-                  </motion.div>
+                  </div>
                 );
               })}
-
-              {sortedResults.length === 0 && !loading && (
-                <motion.div
-                  key="empty"
-                  initial={platformSwitchInitial}
-                  animate={platformSwitchAnimate}
-                  exit={platformSwitchExit}
-                  transition={platformSwitchTransition}
-                  className="plugin-browser__result-empty"
-                >
-                  {t('plugins.browser.noResults')}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <div className="plugin-browser__pager">
-            <button
-              type="button"
-              className="plugin-browser__pager-btn"
-              onClick={() => setPage((value) => Math.max(0, value - 1))}
-              disabled={page === 0 || loading}
-            >
-              <ArrowLeft size={14} />
-              <span>{t('plugins.browser.prev')}</span>
-            </button>
-
-            <span className="plugin-browser__pager-label">
-              {totalPages
-                ? t('plugins.browser.pageLabelWithTotal', { current: page + 1, total: totalPages })
-                : t('plugins.browser.pageLabel', { current: page + 1 })}
-            </span>
-
-            <div className="plugin-browser__pager-jump">
-              <input
-                type="number"
-                min={1}
-                max={totalPages ?? undefined}
-                value={pageInput}
-                onChange={(event) => setPageInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    jumpToPage();
-                  }
-                }}
-                className="plugin-browser__pager-input"
-                aria-label={t('plugins.browser.pageNumberAriaLabel')}
-              />
-              <button
-                type="button"
-                className="plugin-browser__pager-go"
-                onClick={jumpToPage}
-                disabled={loading}
-              >
-                {t('plugins.browser.go')}
-              </button>
             </div>
-
-            <button
-              type="button"
-              className="plugin-browser__pager-btn"
-              onClick={() => setPage((value) => value + 1)}
-              disabled={!hasNextPage || loading}
-            >
-              <span>{t('plugins.browser.next')}</span>
-              <ArrowRight size={14} />
-            </button>
-          </div>
-        </>
+          )}
+        </div>
       )}
 
       {detailItem && (

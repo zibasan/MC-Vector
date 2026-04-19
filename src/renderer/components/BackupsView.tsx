@@ -194,6 +194,37 @@ export default function BackupsView({ server }: Props) {
   }, [server.path, showToast, t]);
 
   useEffect(() => {
+    let cancelled = false;
+    let unlisten: (() => void) | undefined;
+
+    void tauriListen<{ serverPath: string }>('backup-selector:close-request', async (payload) => {
+      if (payload.serverPath !== server.path) {
+        return;
+      }
+      try {
+        const selectorWindow = await WebviewWindow.getByLabel('backup-selector');
+        if (!selectorWindow) {
+          return;
+        }
+        await selectorWindow.close();
+      } catch (error) {
+        console.error(error);
+      }
+    }).then((dispose) => {
+      if (cancelled) {
+        dispose();
+        return;
+      }
+      unlisten = dispose;
+    });
+
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [server.path]);
+
+  useEffect(() => {
     void (async () => {
       await loadBackups();
       await loadBackupCatalog();
