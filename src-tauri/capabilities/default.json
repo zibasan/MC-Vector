@@ -37,14 +37,13 @@
       "allow": [{ "path": "$APPDATA/**" }, { "path": "$APPLOCALDATA/**" }, { "path": "$HOME/**" }]
     },
     {
-      "identifier": "fs:scope-app-specific",
+      "identifier": "fs:scope",
       "allow": [
         { "path": "$APPDATA/mc-vector/**" },
         { "path": "$APPLOCALDATA/mc-vector/**" },
         { "path": "$HOME/.mc-vector/**" },
         { "path": "$HOME/mc-vector/**" }
-      ],
-      "deny": []
+      ]
     },
     "fs:allow-remove",
     "fs:allow-rename"
