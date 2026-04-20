@@ -420,6 +420,11 @@ export async function getCompatibleModrinthVersion(params: {
   return versions[0] ?? null;
 }
 
+export async function getModrinthVersionById(versionId: string): Promise<ModrinthVersion | null> {
+  const payload = await fetchJson<unknown>(`https://api.modrinth.com/v2/version/${versionId}`);
+  return parseModrinthVersion(payload);
+}
+
 export async function getModrinthProjectIdentity(
   projectId: string,
 ): Promise<ModrinthProjectIdentity | null> {
@@ -623,18 +628,35 @@ export async function installModrinthProject(
   fileName: string,
   destDir: string,
 ): Promise<void> {
-  // Modrinth version の詳細を取得してダウンロード URL を得る
-  const response = await fetch(`https://api.modrinth.com/v2/version/${versionId}`);
-  if (!response.ok) throw new Error('Failed to get Modrinth version');
-  const version = (await response.json()) as {
-    files: { url: string; filename: string }[];
-  };
-  const file = version.files[0];
-  if (!file) throw new Error('No files in version');
+  const payload = await fetchJson<unknown>(`https://api.modrinth.com/v2/version/${versionId}`);
+  if (!isRecord(payload) || !Array.isArray(payload.files)) {
+    throw new Error('Failed to parse Modrinth version payload');
+  }
 
-  const destPath = `${destDir}/${file.filename || fileName}`;
+  const firstFile = payload.files.find((entry) => {
+    if (!isRecord(entry)) {
+      return false;
+    }
+    return Boolean(asString(entry.url));
+  });
+  if (!firstFile || !isRecord(firstFile)) {
+    throw new Error('No downloadable files in Modrinth version');
+  }
+
+  const url = asString(firstFile.url);
+  if (!url) {
+    throw new Error('No download URL in Modrinth version file');
+  }
+
+  const fallbackFileName = asString(firstFile.filename);
+  const targetFileName = fileName.trim() || fallbackFileName;
+  if (!targetFileName) {
+    throw new Error('No filename available for Modrinth install');
+  }
+
+  const destPath = `${destDir}/${targetFileName}`;
   await tauriInvoke('download_file', {
-    url: file.url,
+    url,
     dest: destPath,
     eventId: `plugin-${versionId}`,
   });

@@ -34,6 +34,8 @@ import {
   installHangarProject,
   installModrinthProject,
   installSpigotProject,
+  type HangarProject,
+  type ModrinthProject,
   type ModrinthProjectIdentity,
   resolveHangarDownload,
   type SpigetResource,
@@ -352,6 +354,62 @@ function isLikelyVersionSuffix(value: string): boolean {
   return /^v?\d/.test(normalized);
 }
 
+function buildInstalledMetadataLookupCandidates(fileName: string): string[] {
+  const baseName = stripInstalledPluginFile(fileName).trim();
+  if (!baseName) {
+    return [];
+  }
+
+  const versionStrippedBase = baseName.replace(/(?:[-_.\s]+v?\d[\w.+-]*)$/i, '').trim();
+  const candidates = [baseName];
+
+  if (versionStrippedBase && versionStrippedBase.toLowerCase() !== baseName.toLowerCase()) {
+    candidates.push(versionStrippedBase);
+  }
+
+  return Array.from(
+    new Set(candidates.map((candidate) => candidate.replace(/\s+/g, ' ').trim()).filter(Boolean)),
+  );
+}
+
+function mapModrinthProject(hit: ModrinthProject): ProjectItem | null {
+  const id = hit.project_id || hit.slug;
+  if (!id) {
+    return null;
+  }
+
+  return {
+    id,
+    title: hit.title,
+    description: hit.description,
+    author: hit.author || 'Unknown',
+    icon_url: hit.icon_url || undefined,
+    downloads: hit.downloads || undefined,
+    slug: hit.slug || hit.project_id || '',
+    platform: 'Modrinth',
+    source_obj: {
+      ...hit,
+    },
+  };
+}
+
+function mapHangarProject(project: HangarProject): ProjectItem {
+  return {
+    id: `${project.namespace.owner}/${project.namespace.slug}`,
+    title: project.name,
+    description: project.description,
+    author: project.namespace.owner,
+    icon_url: project.avatarUrl || undefined,
+    stars: project.stats.stars || undefined,
+    downloads: project.stats.downloads || undefined,
+    slug: project.namespace.slug,
+    platform: 'Hangar',
+    source_obj: {
+      ...project,
+    },
+  };
+}
+
 function mapSpigotResource(resource: SpigetResource): ProjectItem {
   return {
     id: String(resource.id),
@@ -467,6 +525,7 @@ export default function PluginBrowser({ server }: Props) {
   const updateStatusCacheRef = useRef<
     Record<string, { status: UpdateStatus; latestFileName: string | null }>
   >({});
+  const installedMetadataLookupStateRef = useRef<Record<string, 'resolved' | 'miss'>>({});
   const detailRequestIdRef = useRef(0);
   const compatibilityRequestIdRef = useRef(0);
   const updateStatusRequestIdRef = useRef(0);
@@ -582,6 +641,7 @@ export default function PluginBrowser({ server }: Props) {
   useEffect(() => {
     void refreshInstalled();
     setKnownItemsByInstalledFile({});
+    installedMetadataLookupStateRef.current = {};
   }, [server.id, server.path, isModServer]);
 
   useEffect(() => {
@@ -865,47 +925,68 @@ export default function PluginBrowser({ server }: Props) {
     };
   };
 
-  const findInstalledMatchStrict = (item: ProjectItem) => {
+  const matchItemAgainstInstalledFile = (
+    item: ProjectItem,
+    installedFileName: string,
+  ): 'strict' | 'fallback' | null => {
     const { normalizedCandidates, plainCandidates } = getItemCandidates(item);
+    const normalizedInstalled = normalize(installedFileName);
 
-    const exactNormalized = installedFiles.find((file) => {
-      const normalizedFile = normalize(file);
-      return normalizedCandidates.some((candidate) => normalizedFile === candidate);
-    });
-    if (exactNormalized) {
-      return exactNormalized;
+    if (normalizedCandidates.some((candidate) => normalizedInstalled === candidate)) {
+      return 'strict';
     }
 
-    const exactPlain = installedFiles.find((file) => {
-      const fileLower = file.toLowerCase();
-      const fileBase = fileLower.replace(/\.disabled$/i, '').replace(/\.[^.]+$/, '');
-      return plainCandidates.some((candidate) => fileBase === candidate);
+    const fileBase = installedFileName
+      .toLowerCase()
+      .replace(/\.disabled$/i, '')
+      .replace(/\.[^.]+$/, '');
+
+    if (plainCandidates.some((candidate) => fileBase === candidate)) {
+      return 'strict';
+    }
+
+    const uniquePlainCandidates = Array.from(
+      new Set(plainCandidates.map((value) => value.trim()).filter(Boolean)),
+    );
+
+    const fallbackCandidateMatches = uniquePlainCandidates.filter((candidate) => {
+      if (!fileBase.startsWith(candidate)) {
+        return false;
+      }
+      const suffix = fileBase.slice(candidate.length);
+      return Boolean(suffix) && isLikelyVersionSuffix(suffix);
     });
-    return exactPlain || null;
+
+    return fallbackCandidateMatches.length === 1 ? 'fallback' : null;
   };
 
-  const findInstalledMatchFallback = (item: ProjectItem) => {
-    const { plainCandidates } = getItemCandidates(item);
-    const uniquePlainCandidates = Array.from(
-      new Set(plainCandidates.map((value) => value.trim()).filter((value) => Boolean(value))),
-    );
-    if (uniquePlainCandidates.length === 0) {
+  const pickUniqueMetadataCandidate = (
+    candidates: Array<{ item: ProjectItem; confidence: 'strict' | 'fallback' }>,
+  ): ProjectItem | null => {
+    const strictCandidates = candidates.filter((candidate) => candidate.confidence === 'strict');
+    if (strictCandidates.length === 1) {
+      return strictCandidates[0].item;
+    }
+
+    if (strictCandidates.length > 1) {
       return null;
     }
 
-    const fallbackMatches = installedFiles.filter((file) => {
-      const fileBase = file
-        .toLowerCase()
-        .replace(/\.disabled$/i, '')
-        .replace(/\.[^.]+$/, '');
-      return uniquePlainCandidates.some((candidate) => {
-        if (!fileBase.startsWith(candidate)) {
-          return false;
-        }
-        const suffix = fileBase.slice(candidate.length);
-        return Boolean(suffix) && isLikelyVersionSuffix(suffix);
-      });
-    });
+    return candidates.length === 1 ? candidates[0].item : null;
+  };
+
+  const findInstalledMatchStrict = (item: ProjectItem) => {
+    const strictMatches = installedFiles.filter(
+      (fileName) => matchItemAgainstInstalledFile(item, fileName) === 'strict',
+    );
+
+    return strictMatches[0] ?? null;
+  };
+
+  const findInstalledMatchFallback = (item: ProjectItem) => {
+    const fallbackMatches = installedFiles.filter(
+      (fileName) => matchItemAgainstInstalledFile(item, fileName) === 'fallback',
+    );
 
     return fallbackMatches.length === 1 ? fallbackMatches[0] : null;
   };
@@ -946,18 +1027,9 @@ export default function PluginBrowser({ server }: Props) {
 
     const next: Record<string, ProjectItem> = {};
     for (const [normalizedFileName, candidates] of Object.entries(candidatesByInstalledFile)) {
-      const strictCandidates = candidates.filter((candidate) => candidate.confidence === 'strict');
-      if (strictCandidates.length === 1) {
-        next[normalizedFileName] = strictCandidates[0].item;
-        continue;
-      }
-
-      if (strictCandidates.length > 1) {
-        continue;
-      }
-
-      if (candidates.length === 1) {
-        next[normalizedFileName] = candidates[0].item;
+      const resolved = pickUniqueMetadataCandidate(candidates);
+      if (resolved) {
+        next[normalizedFileName] = resolved;
       }
     }
 
@@ -984,6 +1056,168 @@ export default function PluginBrowser({ server }: Props) {
       return changed ? next : previous;
     });
   }, [currentResultMatchesByInstalledFile]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const activeInstalledKeys = new Set(
+      installedFiles.map((fileName) => normalizeInstalledPluginFileName(fileName)),
+    );
+
+    for (const key of Object.keys(installedMetadataLookupStateRef.current)) {
+      if (!activeInstalledKeys.has(key)) {
+        delete installedMetadataLookupStateRef.current[key];
+      }
+    }
+
+    const pendingFiles = installedFiles.filter((fileName) => {
+      const normalizedFileName = normalizeInstalledPluginFileName(fileName);
+      if (
+        currentResultMatchesByInstalledFile[normalizedFileName] ||
+        knownItemsByInstalledFile[normalizedFileName]
+      ) {
+        installedMetadataLookupStateRef.current[normalizedFileName] = 'resolved';
+        return false;
+      }
+
+      return !installedMetadataLookupStateRef.current[normalizedFileName];
+    });
+
+    if (pendingFiles.length === 0) {
+      return;
+    }
+
+    const run = async () => {
+      const resolvedEntries = await mapWithConcurrency(
+        pendingFiles,
+        ASYNC_CHECK_CONCURRENCY,
+        async (fileName): Promise<[string, ProjectItem | null]> => {
+          const normalizedFileName = normalizeInstalledPluginFileName(fileName);
+          const lookupCandidates = buildInstalledMetadataLookupCandidates(fileName);
+
+          if (lookupCandidates.length === 0) {
+            installedMetadataLookupStateRef.current[normalizedFileName] = 'miss';
+            return [normalizedFileName, null];
+          }
+
+          const candidates: Array<{ item: ProjectItem; confidence: 'strict' | 'fallback' }> = [];
+          const seenItems = new Set<string>();
+          let hadLookupFailure = false;
+
+          for (const lookupQuery of lookupCandidates) {
+            const lookups: Array<Promise<ProjectItem[]>> = [
+              searchModrinth(
+                lookupQuery,
+                `[["project_type:${isModServer ? 'mod' : 'plugin'}"]]`,
+                0,
+                8,
+              )
+                .then((result) =>
+                  result.hits
+                    .map(mapModrinthProject)
+                    .filter((item): item is ProjectItem => item !== null),
+                )
+                .catch(() => {
+                  hadLookupFailure = true;
+                  return [];
+                }),
+            ];
+
+            if (isPaper) {
+              lookups.push(
+                searchHangar(lookupQuery, 0)
+                  .then((result) => result.result.slice(0, 8).map(mapHangarProject))
+                  .catch(() => {
+                    hadLookupFailure = true;
+                    return [];
+                  }),
+              );
+            }
+
+            if (!isModServer) {
+              lookups.push(
+                searchSpigot(lookupQuery, 1, 8)
+                  .then((resources) => resources.map(mapSpigotResource))
+                  .catch(() => {
+                    hadLookupFailure = true;
+                    return [];
+                  }),
+              );
+            }
+
+            const lookupResults = await Promise.all(lookups);
+
+            for (const resultItems of lookupResults) {
+              for (const item of resultItems) {
+                const confidence = matchItemAgainstInstalledFile(item, fileName);
+                if (!confidence) {
+                  continue;
+                }
+
+                const key = `${item.platform}:${item.id}`;
+                if (seenItems.has(key)) {
+                  continue;
+                }
+
+                seenItems.add(key);
+                candidates.push({ item, confidence });
+              }
+            }
+
+            const matched = pickUniqueMetadataCandidate(candidates);
+            if (matched) {
+              installedMetadataLookupStateRef.current[normalizedFileName] = 'resolved';
+              return [normalizedFileName, matched];
+            }
+          }
+
+          const matched = pickUniqueMetadataCandidate(candidates);
+          if (matched) {
+            installedMetadataLookupStateRef.current[normalizedFileName] = 'resolved';
+            return [normalizedFileName, matched];
+          }
+
+          if (!hadLookupFailure) {
+            installedMetadataLookupStateRef.current[normalizedFileName] = 'miss';
+          }
+
+          return [normalizedFileName, null];
+        },
+      );
+
+      if (cancelled) {
+        return;
+      }
+
+      setKnownItemsByInstalledFile((previous) => {
+        let changed = false;
+        const next = { ...previous };
+
+        for (const [normalizedFileName, item] of resolvedEntries) {
+          if (!item || next[normalizedFileName]?.id === item.id) {
+            continue;
+          }
+
+          next[normalizedFileName] = item;
+          changed = true;
+        }
+
+        return changed ? next : previous;
+      });
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    currentResultMatchesByInstalledFile,
+    installedFiles,
+    isModServer,
+    isPaper,
+    knownItemsByInstalledFile,
+  ]);
 
   const installedEntries = useMemo<InstalledPluginEntry[]>(() => {
     return installedFiles.map((fileName) => {
@@ -1094,40 +1328,15 @@ export default function PluginBrowser({ server }: Props) {
         const result = await searchModrinth(query, facets, offset, LIMIT);
 
         items = result.hits
-          .map((hit) => ({
-            id: hit.project_id || hit.slug,
-            title: hit.title,
-            description: hit.description,
-            author: hit.author || 'Unknown',
-            icon_url: hit.icon_url || undefined,
-            downloads: hit.downloads || undefined,
-            slug: hit.slug || hit.project_id || '',
-            platform: 'Modrinth' as const,
-            source_obj: {
-              ...hit,
-            },
-          }))
-          .filter((item) => Boolean(item.id));
+          .map(mapModrinthProject)
+          .filter((item): item is ProjectItem => item !== null);
 
         setHasNextPage(result.total_hits > offset + items.length);
         setTotalPages(Math.max(1, Math.ceil(result.total_hits / LIMIT)));
       } else if (platform === 'Hangar') {
         const data = await searchHangar(query, offset);
 
-        items = data.result.map((project) => ({
-          id: `${project.namespace.owner}/${project.namespace.slug}`,
-          title: project.name,
-          description: project.description,
-          author: project.namespace.owner,
-          icon_url: project.avatarUrl || undefined,
-          stars: project.stats.stars || undefined,
-          downloads: project.stats.downloads || undefined,
-          slug: project.namespace.slug,
-          platform: 'Hangar' as const,
-          source_obj: {
-            ...project,
-          },
-        }));
+        items = data.result.map(mapHangarProject);
 
         setHasNextPage(items.length === LIMIT);
         setTotalPages(null);
