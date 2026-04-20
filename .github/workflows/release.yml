@@ -203,6 +203,34 @@ jobs:
           VERSION="${{ needs.check-version.outputs.version }}"
           mkdir -p release-assets gh-pages-deploy
 
+          pick_single_required() {
+            local search_dir="$1"
+            local pattern="$2"
+            local label="$3"
+            mapfile -t matches < <(find "$search_dir" -type f -name "$pattern" | sort)
+            if [ "${#matches[@]}" -ne 1 ]; then
+              echo "Expected exactly one match for ${label} (${pattern}) in ${search_dir}, got ${#matches[@]}" >&2
+              printf '%s\n' "${matches[@]}" >&2 || true
+              exit 1
+            fi
+            echo "${matches[0]}"
+          }
+
+          pick_single_optional() {
+            local search_dir="$1"
+            local pattern="$2"
+            local label="$3"
+            mapfile -t matches < <(find "$search_dir" -type f -name "$pattern" | sort)
+            if [ "${#matches[@]}" -gt 1 ]; then
+              echo "Expected at most one match for ${label} (${pattern}) in ${search_dir}, got ${#matches[@]}" >&2
+              printf '%s\n' "${matches[@]}" >&2 || true
+              exit 1
+            fi
+            if [ "${#matches[@]}" -eq 1 ]; then
+              echo "${matches[0]}"
+            fi
+          }
+
           require_file() {
             local file_path="$1"
             local label="$2"
@@ -212,17 +240,17 @@ jobs:
             fi
           }
 
-          MAC_ARM64_APP=$(find artifacts/mac-arm64 -type f -name '*.app.tar.gz' ! -name '*.sig' | head -1 || true)
-          MAC_ARM64_SIG=$(find artifacts/mac-arm64 -type f -name '*.app.tar.gz.sig' | head -1 || true)
-          MAC_X64_APP=$(find artifacts/mac-x64 -type f -name '*.app.tar.gz' ! -name '*.sig' | head -1 || true)
-          MAC_X64_SIG=$(find artifacts/mac-x64 -type f -name '*.app.tar.gz.sig' | head -1 || true)
-          WIN_X64_ZIP=$(find artifacts/win-x64 -type f -name '*.nsis.zip' ! -name '*.sig' | head -1 || true)
+          MAC_ARM64_APP=$(pick_single_required "artifacts/mac-arm64" '*.app.tar.gz' "macOS arm64 updater archive")
+          MAC_ARM64_SIG=$(pick_single_required "artifacts/mac-arm64" '*.app.tar.gz.sig' "macOS arm64 updater signature")
+          MAC_X64_APP=$(pick_single_required "artifacts/mac-x64" '*.app.tar.gz' "macOS x64 updater archive")
+          MAC_X64_SIG=$(pick_single_required "artifacts/mac-x64" '*.app.tar.gz.sig' "macOS x64 updater signature")
+          WIN_X64_ZIP=$(pick_single_optional "artifacts/win-x64" '*.nsis.zip' "windows updater archive")
           if [ -z "$WIN_X64_ZIP" ]; then
-            WIN_X64_ZIP=$(find artifacts/win-x64 -type f -name '*.zip' ! -name '*.sig' | head -1 || true)
+            WIN_X64_ZIP=$(pick_single_optional "artifacts/win-x64" '*.zip' "windows updater archive")
           fi
-          WIN_X64_SIG=$(find artifacts/win-x64 -type f -name '*.nsis.zip.sig' | head -1 || true)
+          WIN_X64_SIG=$(pick_single_optional "artifacts/win-x64" '*.nsis.zip.sig' "windows updater signature")
           if [ -z "$WIN_X64_SIG" ]; then
-            WIN_X64_SIG=$(find artifacts/win-x64 -type f -name '*.zip.sig' | head -1 || true)
+            WIN_X64_SIG=$(pick_single_optional "artifacts/win-x64" '*.zip.sig' "windows updater signature")
           fi
 
           require_file "$MAC_ARM64_APP" "macOS arm64 updater archive"
@@ -281,6 +309,8 @@ jobs:
 
           MAC_ARM64_SIG=$(tr -d '\r\n' < "release-assets/${MAC_ARM64_FILE}.sig")
           MAC_X64_SIG=$(tr -d '\r\n' < "release-assets/${MAC_X64_FILE}.sig")
+          printf '%s' "$MAC_ARM64_SIG" | base64 --decode >/dev/null
+          printf '%s' "$MAC_X64_SIG" | base64 --decode >/dev/null
 
           jq -n \
             --arg version "$VERSION" \
@@ -326,16 +356,17 @@ jobs:
             fi
           fi
 
+          jq -e '
+            (.version | type == "string") and
+            (.platforms | type == "object") and
+            (.platforms["darwin-aarch64"].url | type == "string") and
+            (.platforms["darwin-aarch64"].signature | type == "string") and
+            (.platforms["darwin-x86_64"].url | type == "string") and
+            (.platforms["darwin-x86_64"].signature | type == "string")
+          ' gh-pages-deploy/latest.json >/dev/null
+
           echo "Generated latest.json:"
           cat gh-pages-deploy/latest.json
-
-      - name: Deploy to gh-pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./gh-pages-deploy
-          publish_branch: gh-pages
-          keep_files: false
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
@@ -347,3 +378,37 @@ jobs:
           files: release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify release asset URLs in latest.json
+        run: |
+          set -euo pipefail
+          MANIFEST="gh-pages-deploy/latest.json"
+          URLS=$(jq -r '.platforms | to_entries[] | .value.url' "$MANIFEST")
+          if [ -z "$URLS" ]; then
+            echo "No updater URLs found in latest.json" >&2
+            exit 1
+          fi
+
+          while IFS= read -r url; do
+            [ -z "$url" ] && continue
+            echo "Checking updater asset URL: $url"
+            attempt=1
+            max_attempts=12
+            until curl -fsIL "$url" >/dev/null; do
+              if [ "$attempt" -ge "$max_attempts" ]; then
+                echo "Updater asset URL did not become available: $url" >&2
+                exit 1
+              fi
+              echo "Not reachable yet (attempt ${attempt}/${max_attempts}), retrying..."
+              sleep 5
+              attempt=$((attempt + 1))
+            done
+          done <<< "$URLS"
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./gh-pages-deploy
+          publish_branch: gh-pages
+          keep_files: false

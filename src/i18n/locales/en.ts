@@ -639,7 +639,8 @@ export const en: TranslationDictionary = {
     updateSignatureVerificationFailed: 'Update signature verification failed.',
     updateSignatureVerificationDetails:
       'The distributed latest.json / .sig / updater pubkey may not match.\n' +
-      'Please wait and retry, or check the delivery status of the latest release.\n\n' +
+      'Please verify the delivery status of the latest release.\n' +
+      'If this client was installed with a legacy signing key, manually reinstall the latest installer once.\n\n' +
       'Details: {error}',
     updateReadOnlyLocationTitle: 'The app is running from a read-only location.',
     updateReadOnlyLocationCurrent: 'Current location: {location}',

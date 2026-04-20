@@ -635,7 +635,8 @@ export const ja: TranslationDictionary = {
     updateSignatureVerificationFailed: 'アップデート署名の検証に失敗しました。',
     updateSignatureVerificationDetails:
       '配信中の latest.json / .sig / updater pubkey が一致していない可能性があります。\n' +
-      'しばらく待って再試行するか、最新リリースの配信状態を確認してください。\n\n' +
+      '最新リリースの配信状態を確認してください。\n' +
+      '旧署名鍵で配布されたバージョンから移行する場合は、最新インストーラーを手動で再インストールしてください。\n\n' +
       '詳細: {error}',
     updateReadOnlyLocationTitle: 'アプリは読み取り専用の場所から実行されています。',
     updateReadOnlyLocationCurrent: '現在の場所: {location}',
