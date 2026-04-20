@@ -1,9 +1,13 @@
+import { loader } from '@monaco-editor/react';
+import * as monaco from 'monaco-editor';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { useI18nStore } from './i18n';
 import { ToastProvider } from './renderer/components/ToastProvider';
 import './styles/index.scss';
+
+loader.config({ monaco });
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 

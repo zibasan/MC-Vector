@@ -34,7 +34,7 @@ setup: install check-all
 # ═══════════════════════════════════════════════════════════════
 
 # Start frontend development server via portless
-dev:
+dev-web:
     pnpm dev
 
 # Start development server (alias for dev)
@@ -43,7 +43,7 @@ watch:
     pnpm dev
 
 # Start Tauri application in dev mode
-tauri-dev:
+dev-app:
     pnpm tauri:dev
 
 # ═══════════════════════════════════════════════════════════════
