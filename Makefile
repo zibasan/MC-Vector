@@ -27,9 +27,9 @@ help:
 	@echo "  make setup                Full setup (install + check-all)"
 	@echo ""
 	@echo "Development:"
-	@echo "  make dev                  Start frontend development server via portless"
+	@echo "  make dev-web                Start frontend development server via portless"
 	@echo "  make watch                Start dev server (alias for dev)"
-	@echo "  make tauri-dev            Start Tauri application in dev mode"
+	@echo "  make dev-app          Start Tauri application in dev mode"
 	@echo ""
 	@echo "Build:"
 	@echo "  make build                Build frontend for production"
@@ -77,10 +77,10 @@ install:
 	pnpm install
 
 # Development
-dev:
+dev-web:
 	pnpm dev
 
-tauri-dev:
+dev-app:
 	pnpm tauri:dev
 
 # Build
