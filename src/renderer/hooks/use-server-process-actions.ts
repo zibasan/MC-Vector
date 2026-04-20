@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import type { Translate } from '../../i18n';
 import {
   isServerRunning,
   startServer as startServerApi,
@@ -6,8 +7,6 @@ import {
 } from '../../lib/server-commands';
 import type { ToastKind } from '../components/ToastProvider';
 import type { MinecraftServer } from '../shared/server declaration';
-
-type Translate = (key: string, values?: Record<string, unknown>) => string;
 type SetServers = (
   nextServers: MinecraftServer[] | ((prevServers: MinecraftServer[]) => MinecraftServer[]),
 ) => void;

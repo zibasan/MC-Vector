@@ -1,12 +1,11 @@
 import { ask } from '@tauri-apps/plugin-dialog';
 import { useCallback } from 'react';
+import type { Translate } from '../../i18n';
 import { readFileContent, saveFileContent } from '../../lib/file-commands';
 import { getServers, updateServer as updateServerApi } from '../../lib/server-commands';
 import type { ToastKind } from '../components/ToastProvider';
 import type { ProxyNetworkConfig } from '../components/ProxySetupView';
 import type { MinecraftServer } from '../shared/server declaration';
-
-type Translate = (key: string, values?: Record<string, unknown>) => string;
 type SetServers = (
   nextServers: MinecraftServer[] | ((prevServers: MinecraftServer[]) => MinecraftServer[]),
 ) => void;

@@ -8,7 +8,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { useTranslation } from '../../i18n';
+import { useTranslation, type Translate, type TranslationKey } from '../../i18n';
 import { sendCommand } from '../../lib/server-commands';
 import { tauriListen } from '../../lib/tauri-api';
 import {
@@ -32,8 +32,6 @@ type TpsPoint = {
   timeLabel: string;
   tps: number;
 };
-
-type Translate = (key: string, values?: Record<string, unknown>) => string;
 
 interface ResourceChartCardProps {
   title: string;
@@ -74,7 +72,7 @@ const STATUS_COLORS: Record<ServerStatus, string> = {
   crashed: '#f43f5e',
 };
 
-const STATUS_LABEL_KEYS: Record<ServerStatus, string> = {
+const STATUS_LABEL_KEYS: Record<ServerStatus, TranslationKey> = {
   online: 'dashboard.stats.statusValues.online',
   offline: 'dashboard.stats.statusValues.offline',
   starting: 'dashboard.stats.statusValues.starting',
@@ -138,7 +136,8 @@ const getStatusColor = (status: ServerStatus): string => {
 };
 
 const getStatusLabel = (status: ServerStatus, t: Translate): string => {
-  const translationKey = STATUS_LABEL_KEYS[status] ?? 'dashboard.stats.statusValues.unknown';
+  const translationKey: TranslationKey =
+    STATUS_LABEL_KEYS[status] ?? 'dashboard.stats.statusValues.unknown';
   return t(translationKey);
 };
 

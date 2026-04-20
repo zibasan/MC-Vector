@@ -1,4 +1,4 @@
-type Translate = (key: string, values?: Record<string, unknown>) => string;
+import type { Translate } from '../../i18n';
 
 interface UpdatePromptState {
   version?: string;

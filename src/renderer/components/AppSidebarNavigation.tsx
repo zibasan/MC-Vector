@@ -9,10 +9,9 @@ import {
   iconSettings,
   iconUsers,
 } from '../../assets/icons';
+import type { Translate, TranslationKey } from '../../i18n';
 import type { AppView } from '../shared/server declaration';
 import AppNavItem from './AppNavItem';
-
-type Translate = (key: string, values?: Record<string, unknown>) => string;
 
 interface AppSidebarNavigationProps {
   isSidebarOpen: boolean;
@@ -23,7 +22,7 @@ interface AppSidebarNavigationProps {
 
 interface NavItemConfig {
   view: AppView;
-  labelKey: string;
+  labelKey: TranslationKey;
   iconSrc: string;
   showDividerBefore?: boolean;
 }

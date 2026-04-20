@@ -1,7 +1,6 @@
 import type { AppView, MinecraftServer } from '../shared/server declaration';
 import { getViewLabel } from '../shared/view-labels';
-
-type Translate = (key: string, values?: Record<string, unknown>) => string;
+import type { Translate } from '../../i18n';
 
 interface AppMainHeaderProps {
   currentView: AppView;

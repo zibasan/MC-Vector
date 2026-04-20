@@ -121,6 +121,7 @@ export const ja: TranslationDictionary = {
       stopFailed: 'サーバーの停止に失敗しました',
       restartFailed: 'サーバーの再起動に失敗しました',
       settingsSaved: '設定を保存しました',
+      saveFailed: '設定の保存に失敗しました',
       pathEmpty: 'サーバーパスが空です',
       created: 'サーバーを作成しました',
       jarDownloadFailed: 'JARのダウンロードに失敗しました',

@@ -1,12 +1,11 @@
 import type { ServerTemplate } from '../../lib/server-commands';
 import type { ServerContextMenuState } from '../../store/uiStore';
+import type { Translate } from '../../i18n';
 import type { UpdatePromptState } from '../hooks/use-app-updater';
 import AddServerModal from './AddServerModal';
 import AppContextMenu from './AppContextMenu';
 import AppDownloadToast from './AppDownloadToast';
 import AppUpdateModal from './AppUpdateModal';
-
-type Translate = (key: string, values?: Record<string, unknown>) => string;
 
 interface DownloadStatus {
   id: string;

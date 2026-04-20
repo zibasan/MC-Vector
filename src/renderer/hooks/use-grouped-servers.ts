@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
+import type { Translate } from '../../i18n';
 import type { AppServerGroup } from '../components/AppServerSidebar';
 import type { MinecraftServer } from '../shared/server declaration';
-
-type Translate = (key: string, values?: Record<string, unknown>) => string;
 
 interface UseGroupedServersOptions {
   servers: MinecraftServer[];

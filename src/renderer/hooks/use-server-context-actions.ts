@@ -1,6 +1,7 @@
 import { ask } from '@tauri-apps/plugin-dialog';
 import { copyFile, mkdir, readDir } from '@tauri-apps/plugin-fs';
 import { type MouseEvent, useCallback } from 'react';
+import type { Translate } from '../../i18n';
 import {
   addServer as addServerApi,
   deleteServer as deleteServerApi,
@@ -10,8 +11,6 @@ import {
 import type { ServerContextMenuState } from '../../store/uiStore';
 import type { ToastKind } from '../components/ToastProvider';
 import type { MinecraftServer } from '../shared/server declaration';
-
-type Translate = (key: string, values?: Record<string, unknown>) => string;
 type SetServers = (
   nextServers: MinecraftServer[] | ((prevServers: MinecraftServer[]) => MinecraftServer[]),
 ) => void;

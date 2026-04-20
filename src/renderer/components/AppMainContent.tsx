@@ -1,11 +1,10 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Suspense } from 'react';
+import type { Translate } from '../../i18n';
 import type { AppView, MinecraftServer } from '../shared/server declaration';
 import type { ProxyNetworkConfig } from './ProxySetupView';
 import AppContentRouter from './AppContentRouter';
 import ViewErrorBoundary from './ViewErrorBoundary';
-
-type Translate = (key: string, values?: Record<string, unknown>) => string;
 
 interface AppMainContentProps {
   currentView: AppView;

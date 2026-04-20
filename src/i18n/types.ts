@@ -143,6 +143,7 @@ export interface TranslationDictionary {
       stopFailed: string;
       restartFailed: string;
       settingsSaved: string;
+      saveFailed: string;
       pathEmpty: string;
       created: string;
       jarDownloadFailed: string;

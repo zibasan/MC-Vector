@@ -8,6 +8,8 @@ import { en, ja } from './locales';
 import { useI18nStore } from './store';
 import type { LocaleCode, TranslationDictionary, TranslationKey, TranslationParams } from './types';
 
+export type Translate = (key: TranslationKey, params?: TranslationParams) => string;
+
 /**
  * Map of locale codes to their translation dictionaries.
  */
@@ -101,7 +103,7 @@ export interface UseTranslationReturn {
    * @param params - Optional interpolation parameters
    * @returns Translated string
    */
-  t: (key: TranslationKey, params?: TranslationParams) => string;
+  t: Translate;
   /** Current locale code */
   locale: LocaleCode;
   /** Set the current locale */

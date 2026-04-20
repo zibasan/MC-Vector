@@ -1,4 +1,5 @@
 import { type JSX, lazy } from 'react';
+import type { Translate } from '../../i18n';
 import type { AppView, MinecraftServer } from '../shared/server declaration';
 import BackupsView from './BackupsView';
 import ConsoleView from './ConsoleView';
@@ -14,7 +15,6 @@ const FilesView = lazy(() => import('./FilesView'));
 const PluginBrowser = lazy(() => import('./PluginBrowser'));
 const SettingsWindow = lazy(() => import('./SettingsWindow'));
 
-type Translate = (key: string, values?: Record<string, unknown>) => string;
 type SetCurrentView = (view: AppView) => void;
 
 interface AppContentRouterProps {

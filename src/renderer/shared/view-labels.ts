@@ -1,6 +1,5 @@
+import type { Translate } from '../../i18n';
 import type { AppView } from './server declaration';
-
-type Translate = (key: string, values?: Record<string, unknown>) => string;
 
 export function getViewLabel(view: AppView, t: Translate): string {
   switch (view) {

@@ -122,6 +122,7 @@ export const en: TranslationDictionary = {
       stopFailed: 'Failed to stop server',
       restartFailed: 'Failed to restart server',
       settingsSaved: 'Settings saved',
+      saveFailed: 'Failed to save settings',
       pathEmpty: 'Server path is empty',
       created: 'Server created',
       jarDownloadFailed: 'Failed to download JAR',
