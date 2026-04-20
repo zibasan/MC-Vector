@@ -250,19 +250,6 @@
     max-width: min(100%, 24rem);
   }
 
-  .plugin-browser__result-actions.is-update-available {
-    @apply w-full justify-start;
-
-    max-width: 100%;
-  }
-
-  .plugin-browser__result-actions.is-update-available > .plugin-browser__install-btn,
-  .plugin-browser__result-actions.is-update-available > .plugin-browser__details-btn {
-    @apply flex-1 justify-center;
-
-    min-width: 0;
-  }
-
   .plugin-browser__result-actions > * {
     @apply shrink-0;
   }
@@ -733,7 +720,6 @@
 
 @media (max-width: 920px) {
   .plugin-browser__section-switch {
-
     width: 100%;
   }
 
