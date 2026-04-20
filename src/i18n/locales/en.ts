@@ -520,6 +520,8 @@ export const en: TranslationDictionary = {
       installedVersion: 'File version',
       installedGameVersions: 'Minecraft versions',
       uninstall: 'Uninstall',
+      uninstallTitle: 'Confirm Uninstall',
+      confirmUninstall: 'Are you sure you want to uninstall {{name}}?',
       reinstall: 'Reinstall',
       uninstallSuccess: 'Uninstalled: {{title}}',
       uninstallError: 'Failed to uninstall plugin file',

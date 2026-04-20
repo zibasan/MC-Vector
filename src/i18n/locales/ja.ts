@@ -518,6 +518,8 @@ export const ja: TranslationDictionary = {
       installedVersion: 'ファイルバージョン',
       installedGameVersions: '対応Minecraftバージョン',
       uninstall: 'アンインストール',
+      uninstallTitle: 'アンインストールの確認',
+      confirmUninstall: '{{name}} をアンインストールしてもよろしいですか？',
       reinstall: '再インストール',
       uninstallSuccess: 'アンインストール完了: {{title}}',
       uninstallError: 'プラグインファイルのアンインストールに失敗しました',

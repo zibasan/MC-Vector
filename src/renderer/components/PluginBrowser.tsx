@@ -29,6 +29,7 @@ import {
   getHangarProjectBody,
   getModrinthProjectBody,
   getModrinthProjectIdentity,
+  getModrinthVersionById,
   getSpigotResourceBody,
   installHangarProject,
   installModrinthProject,
@@ -87,6 +88,13 @@ interface DependencyIdentity {
   projectId: string;
   slug: string;
   title: string;
+}
+
+interface RequiredDependencyPlan {
+  projectId: string;
+  versionId: string | null;
+  fileName: string | null;
+  identity: DependencyIdentity;
 }
 
 type DetailTab = 'info' | 'readme';
@@ -336,6 +344,14 @@ function formatInstalledTitle(fileName: string): string {
   return baseName.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+function isLikelyVersionSuffix(value: string): boolean {
+  const normalized = value.replace(/^[-_.\s]+/, '');
+  if (!normalized) {
+    return true;
+  }
+  return /^v?\d/.test(normalized);
+}
+
 function mapSpigotResource(resource: SpigetResource): ProjectItem {
   return {
     id: String(resource.id),
@@ -460,6 +476,14 @@ export default function PluginBrowser({ server }: Props) {
   const isPaper = ['Paper', 'LeafMC', 'Waterfall', 'Velocity'].includes(server.software || '');
   const { showToast } = useToast();
   const folderName = isModServer ? 'mods' : 'plugins';
+  const tSafe = (
+    key: Parameters<typeof t>[0],
+    fallback: string,
+    params?: Parameters<typeof t>[1],
+  ): string => {
+    const translated = t(key, params);
+    return translated === key ? fallback : translated;
+  };
 
   const platformOptions = useMemo<PlatformOption[]>(() => {
     const options: PlatformOption[] = [
@@ -668,7 +692,7 @@ export default function PluginBrowser({ server }: Props) {
 
     const installedTargets = results
       .map((item) => {
-        const installedMatch = findInstalledMatch(item);
+        const installedMatch = findInstalledMatchStrict(item);
         return installedMatch ? { item, installedMatch } : null;
       })
       .filter((entry): entry is { item: ProjectItem; installedMatch: string } => entry !== null);
@@ -785,20 +809,41 @@ export default function PluginBrowser({ server }: Props) {
 
   const isCandidateInstalled = (candidate: string): boolean => {
     const normalizedCandidate = normalize(candidate);
+    const plainCandidate = String(candidate ?? '')
+      .trim()
+      .toLowerCase();
     if (!normalizedCandidate) {
       return false;
     }
 
     return installedFiles.some((file) => {
       const normalizedFile = normalize(file);
-      return (
-        normalizedFile.includes(normalizedCandidate) || normalizedCandidate.includes(normalizedFile)
-      );
+      if (normalizedFile === normalizedCandidate) {
+        return true;
+      }
+
+      if (!plainCandidate) {
+        return false;
+      }
+
+      const fileBase = file
+        .toLowerCase()
+        .replace(/\.disabled$/i, '')
+        .replace(/\.[^.]+$/, '');
+      if (fileBase === plainCandidate) {
+        return true;
+      }
+
+      if (!fileBase.startsWith(plainCandidate)) {
+        return false;
+      }
+
+      return isLikelyVersionSuffix(fileBase.slice(plainCandidate.length));
     });
   };
 
-  const findInstalledMatch = (item: ProjectItem) => {
-    const candidates = [
+  const getItemCandidates = (item: ProjectItem) => {
+    const normalizedCandidates = [
       item.slug,
       item.title,
       item.id,
@@ -814,9 +859,18 @@ export default function PluginBrowser({ server }: Props) {
       .filter(Boolean)
       .map((value) => String(value).toLowerCase());
 
+    return {
+      normalizedCandidates,
+      plainCandidates,
+    };
+  };
+
+  const findInstalledMatchStrict = (item: ProjectItem) => {
+    const { normalizedCandidates, plainCandidates } = getItemCandidates(item);
+
     const exactNormalized = installedFiles.find((file) => {
       const normalizedFile = normalize(file);
-      return candidates.some((candidate) => normalizedFile === candidate);
+      return normalizedCandidates.some((candidate) => normalizedFile === candidate);
     });
     if (exactNormalized) {
       return exactNormalized;
@@ -827,38 +881,86 @@ export default function PluginBrowser({ server }: Props) {
       const fileBase = fileLower.replace(/\.disabled$/i, '').replace(/\.[^.]+$/, '');
       return plainCandidates.some((candidate) => fileBase === candidate);
     });
-    if (exactPlain) {
-      return exactPlain;
+    return exactPlain || null;
+  };
+
+  const findInstalledMatchFallback = (item: ProjectItem) => {
+    const { plainCandidates } = getItemCandidates(item);
+    const uniquePlainCandidates = Array.from(
+      new Set(plainCandidates.map((value) => value.trim()).filter((value) => Boolean(value))),
+    );
+    if (uniquePlainCandidates.length === 0) {
+      return null;
     }
 
-    return (
-      installedFiles.find((file) => {
-        const base = normalize(file);
-        if (!base) {
+    const fallbackMatches = installedFiles.filter((file) => {
+      const fileBase = file
+        .toLowerCase()
+        .replace(/\.disabled$/i, '')
+        .replace(/\.[^.]+$/, '');
+      return uniquePlainCandidates.some((candidate) => {
+        if (!fileBase.startsWith(candidate)) {
           return false;
         }
+        const suffix = fileBase.slice(candidate.length);
+        return Boolean(suffix) && isLikelyVersionSuffix(suffix);
+      });
+    });
 
-        if (candidates.some((candidate) => candidate.length >= 4 && base.includes(candidate))) {
-          return true;
-        }
+    return fallbackMatches.length === 1 ? fallbackMatches[0] : null;
+  };
 
-        const fileLower = file.toLowerCase();
-        return plainCandidates.some(
-          (candidate) => candidate.length >= 4 && fileLower.includes(candidate),
-        );
-      }) || null
-    );
+  const findInstalledMatchForMetadata = (
+    item: ProjectItem,
+  ): { fileName: string; confidence: 'strict' | 'fallback' } | null => {
+    const strictMatch = findInstalledMatchStrict(item);
+    if (strictMatch) {
+      return { fileName: strictMatch, confidence: 'strict' };
+    }
+
+    const fallbackMatch = findInstalledMatchFallback(item);
+    if (fallbackMatch) {
+      return { fileName: fallbackMatch, confidence: 'fallback' };
+    }
+
+    return null;
   };
 
   const currentResultMatchesByInstalledFile = useMemo(() => {
-    const next: Record<string, ProjectItem> = {};
+    const candidatesByInstalledFile: Record<
+      string,
+      Array<{ item: ProjectItem; confidence: 'strict' | 'fallback' }>
+    > = {};
+
     for (const item of results) {
-      const installedMatch = findInstalledMatch(item);
-      if (!installedMatch) {
+      const match = findInstalledMatchForMetadata(item);
+      if (!match) {
         continue;
       }
-      next[normalizeInstalledPluginFileName(installedMatch)] = item;
+      const key = normalizeInstalledPluginFileName(match.fileName);
+      if (!candidatesByInstalledFile[key]) {
+        candidatesByInstalledFile[key] = [];
+      }
+      candidatesByInstalledFile[key].push({ item, confidence: match.confidence });
     }
+
+    const next: Record<string, ProjectItem> = {};
+    for (const [normalizedFileName, candidates] of Object.entries(candidatesByInstalledFile)) {
+      const strictCandidates = candidates.filter((candidate) => candidate.confidence === 'strict');
+      if (strictCandidates.length === 1) {
+        next[normalizedFileName] = strictCandidates[0].item;
+        continue;
+      }
+
+      if (strictCandidates.length > 1) {
+        continue;
+      }
+
+      if (candidates.length === 1) {
+        next[normalizedFileName] = candidates[0].item;
+      }
+    }
+
     return next;
   }, [results, installedFiles]);
 
@@ -1064,9 +1166,7 @@ export default function PluginBrowser({ server }: Props) {
     let installedArtifactName: string | null = null;
     let existingDeleted = false;
 
-    const replaceExistingFileIfNeeded = async (
-      downloadedTempFile: string,
-    ): Promise<boolean> => {
+    const replaceExistingFileIfNeeded = async (_downloadedTempFile: string): Promise<boolean> => {
       if (!installedFile || existingDeleted) {
         return true;
       }
@@ -1131,77 +1231,129 @@ export default function PluginBrowser({ server }: Props) {
           return;
         }
 
-        const requiredProjectIds = Array.from(
-          new Set(
+        const requiredDependencies = Array.from(
+          new Map(
             resolvedVersion.dependencies
               .filter(
                 (dependency) =>
                   dependency.dependencyType.toLowerCase() === 'required' &&
                   typeof dependency.projectId === 'string',
               )
-              .map((dependency) => dependency.projectId as string),
-          ),
+              .map((dependency) => {
+                const dependencyProjectId = dependency.projectId as string;
+                return [
+                  `${dependencyProjectId}:${dependency.versionId ?? ''}`,
+                  dependency,
+                ] as const;
+              }),
+          ).values(),
         );
 
-        if (requiredProjectIds.length > 0) {
+        if (requiredDependencies.length > 0) {
           const requiredProjects = await Promise.all(
-            requiredProjectIds.map((projectId) => resolveDependencyIdentity(projectId)),
+            requiredDependencies.map((dependency) =>
+              resolveDependencyIdentity(dependency.projectId as string),
+            ),
+          );
+          const projectIdentityById = Object.fromEntries(
+            requiredProjects.map((dependency) => [dependency.projectId, dependency]),
           );
 
-          const missingDependencies = requiredProjects.filter(
-            (dependency) =>
-              !isCandidateInstalled(dependency.slug) &&
-              !isCandidateInstalled(dependency.title) &&
-              !isCandidateInstalled(dependency.projectId),
-          );
+          const missingDependencies: RequiredDependencyPlan[] = requiredDependencies
+            .map((dependency) => {
+              const dependencyProjectId = dependency.projectId as string;
+              const identity = projectIdentityById[dependencyProjectId] ?? {
+                projectId: dependencyProjectId,
+                slug: dependencyProjectId,
+                title: dependencyProjectId,
+              };
+              return {
+                projectId: dependencyProjectId,
+                versionId: dependency.versionId,
+                fileName: dependency.fileName,
+                identity,
+              };
+            })
+            .filter(
+              (dependency) =>
+                !isCandidateInstalled(dependency.identity.slug) &&
+                !isCandidateInstalled(dependency.identity.title) &&
+                !isCandidateInstalled(dependency.projectId),
+            );
 
           if (missingDependencies.length > 0) {
-            const preview = missingDependencies
+            const previewTitles = missingDependencies
               .slice(0, 3)
-              .map((dependency) => dependency.title)
-              .join(', ');
+              .map((dependency) => dependency.identity.title);
+            const preview = previewTitles.join(', ');
             const suffix = missingDependencies.length > 3 ? ', ...' : '';
-
-            const shouldInstallDependencies = await ask(
-              t('plugins.browser.dependencyMissing', {
+            const remainingCount = Math.max(missingDependencies.length - previewTitles.length, 0);
+            const previewList = previewTitles.map((title) => `- ${title}`).join('\n');
+            const remainingLine =
+              remainingCount > 0 ? `\n- ... ${remainingCount} more dependencies` : '';
+            const dependencyPrompt = tSafe(
+              'plugins.browser.dependencyMissing',
+              `${missingDependencies.length} missing dependencies found.\n\nDependencies:\n${previewList}${remainingLine}\n\nInstall them first?`,
+              {
                 count: missingDependencies.length,
                 preview,
                 suffix,
-              }),
-              {
-                title: t('plugins.browser.dependencyCheck'),
-                kind: 'warning',
+                previewList,
+                remainingCount,
+                remainingLine,
               },
             );
+
+            const shouldInstallDependencies = await ask(dependencyPrompt, {
+              title: tSafe('plugins.browser.dependencyCheck', 'Dependency Check'),
+              kind: 'warning',
+            });
 
             if (shouldInstallDependencies) {
               let installedDependencyCount = 0;
               for (const dependency of missingDependencies) {
                 try {
-                  const dependencyVersion = await getCompatibleModrinthVersion({
-                    projectId: dependency.projectId,
-                    loader,
-                    minecraftVersion: server.version,
-                  });
+                  let dependencyVersion = null;
+
+                  if (dependency.versionId) {
+                    dependencyVersion = await getModrinthVersionById(dependency.versionId);
+                  }
+
+                  if (!dependencyVersion) {
+                    dependencyVersion = await getCompatibleModrinthVersion({
+                      projectId: dependency.projectId,
+                      loader,
+                      minecraftVersion: server.version,
+                    });
+                  }
 
                   if (!dependencyVersion) {
                     showToast(
-                      t('plugins.browser.dependencyVersionNotFound', { title: dependency.title }),
+                      tSafe(
+                        'plugins.browser.dependencyVersionNotFound',
+                        `No compatible version found for dependency ${dependency.identity.title}`,
+                        { title: dependency.identity.title },
+                      ),
                       'info',
                     );
                     continue;
                   }
 
+                  const dependencyFileName = dependency.fileName || dependencyVersion.fileName;
                   await installModrinthProject(
                     dependencyVersion.id,
-                    dependencyVersion.fileName,
+                    dependencyFileName,
                     `${server.path}/${folderName}`,
                   );
                   installedDependencyCount += 1;
                 } catch (error) {
                   console.error(error);
                   showToast(
-                    t('plugins.browser.dependencyInstallFailed', { title: dependency.title }),
+                    tSafe(
+                      'plugins.browser.dependencyInstallFailed',
+                      `Failed to install dependency ${dependency.identity.title}`,
+                      { title: dependency.identity.title },
+                    ),
                     'error',
                   );
                 }
@@ -1209,15 +1361,25 @@ export default function PluginBrowser({ server }: Props) {
 
               if (installedDependencyCount > 0) {
                 showToast(
-                  t('plugins.browser.dependencyInstallSuccess', {
-                    count: installedDependencyCount,
-                  }),
+                  tSafe(
+                    'plugins.browser.dependencyInstallSuccess',
+                    `Installed ${installedDependencyCount} dependencies`,
+                    {
+                      count: installedDependencyCount,
+                    },
+                  ),
                   'success',
                 );
                 await refreshInstalled();
               }
             } else {
-              showToast(t('plugins.browser.dependencyCheckOnly'), 'info');
+              showToast(
+                tSafe(
+                  'plugins.browser.dependencyCheckOnly',
+                  'Only ran dependency check. Please install dependencies first if needed.',
+                ),
+                'info',
+              );
             }
           }
         }
@@ -1277,7 +1439,10 @@ export default function PluginBrowser({ server }: Props) {
           return;
         }
 
-        await moveItem(`${pluginDir}/${tempFileNameHangar}`, `${pluginDir}/${installedArtifactName}`);
+        await moveItem(
+          `${pluginDir}/${tempFileNameHangar}`,
+          `${pluginDir}/${installedArtifactName}`,
+        );
       } else if (item.platform === 'Spigot') {
         const resourceId = Number(item.id);
         if (!Number.isFinite(resourceId)) {
@@ -1311,7 +1476,10 @@ export default function PluginBrowser({ server }: Props) {
           return;
         }
 
-        await moveItem(`${pluginDir}/${tempFileNameSpigot}`, `${pluginDir}/${installedArtifactName}`);
+        await moveItem(
+          `${pluginDir}/${tempFileNameSpigot}`,
+          `${pluginDir}/${installedArtifactName}`,
+        );
       }
 
       if (preserveDisabledState && installedArtifactName) {
@@ -1341,7 +1509,7 @@ export default function PluginBrowser({ server }: Props) {
       showToast(t('plugins.browser.incompatibilityWarning'), 'info');
     }
 
-    const installedMatch = findInstalledMatch(item);
+    const installedMatch = findInstalledMatchStrict(item);
     if (installedMatch) {
       const updateStatus = updateStatusByItemId[item.id] ?? 'unknown';
       if (updateStatus === 'update-available') {
@@ -1967,7 +2135,7 @@ export default function PluginBrowser({ server }: Props) {
               <div className="plugin-browser__results-grid">
                 <AnimatePresence initial={false} mode="wait">
                   {sortedResults.map((item) => {
-                    const installedMatch = findInstalledMatch(item);
+                    const installedMatch = findInstalledMatchStrict(item);
                     const installedState = installedMatch
                       ? isDisabledPluginFile(installedMatch)
                         ? 'disabled'
