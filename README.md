@@ -121,7 +121,9 @@ Both `just setup` and `make setup` automate your development environment setup:
 1. 📦 Installs all project dependencies via `pnpm install`
 2. ✅ Runs all quality checks (lint, format, yamllint, rustfmt)
 3. 🔒 Configures portless CA certificate for HTTPS development (may require system password)
-4. 🌐 Adds `mc-vector.localhost` to `/etc/hosts` for local HTTPS access (**requires sudo password**)
+4. 🌐 Adds `mc-vector.localhost` to your hosts file for local HTTPS access
+   - Windows: `C:\Windows\System32\drivers\etc\hosts` (**requires Administrator**)
+   - macOS/Linux: `/etc/hosts` (**requires sudo password**)
 
 **Note:** Steps 3-4 are for portless HTTPS development and are optional. If you skip these steps, you can still develop using `pnpm tauri:dev` with standard `http://localhost:5173`.
 
@@ -182,6 +184,8 @@ mc-vector
 **Option 1: Using Nix (Recommended)**
 
 Nix provides a fully reproducible development environment:
+
+> **Windows note:** Nix-based development is supported on Windows via **WSL2 only**.
 
 ```bash
 # Install Nix (if not already installed)

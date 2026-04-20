@@ -47,6 +47,8 @@ Welcome to the MC-Vector development guide! This document will help you set up y
 
 Nix provides a completely reproducible development environment with all dependencies pre-configured.
 
+> **Windows note:** Nix-based development is supported on Windows via **WSL2 only**.
+
 #### 1. Install Nix
 
 **macOS/Linux:**
@@ -228,8 +230,9 @@ The `just setup` command will:
    - Runs `pnpm exec portless trust` to add the CA to your system trust store
    - You may be prompted for your password to trust the certificate
 4. Sync hosts entry for `mc-vector.localhost`
-   - Runs `pnpm exec portless hosts sync` to add the entry to `/etc/hosts`
-   - **Requires sudo password** for modifying `/etc/hosts`
+   - Runs `pnpm exec portless hosts sync` to add the entry to the OS hosts file
+   - Windows: `C:\Windows\System32\drivers\etc\hosts` (**requires Administrator**)
+   - macOS/Linux: `/etc/hosts` (**requires sudo password**)
    - If this fails, Chrome/Firefox will still work, but cmux browser requires this step
 
 **Without Nix:**

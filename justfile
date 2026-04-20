@@ -23,8 +23,13 @@ setup: install check-all
     @echo "Setting up portless CA certificate and hosts entry..."
     @echo "This will enable HTTPS development at https://mc-vector.localhost"
     @echo ""
+    @node -e "if (process.platform === 'win32') { console.log('⚠️  Windows: Make sure you are running this terminal as Administrator!'); console.log('   (Right-click terminal → Run as Administrator)'); console.log(''); }"
+    @echo "Running: portless trust (adding CA certificate to system trust store)..."
+    @node -e "console.log(process.platform === 'win32' ? '   Windows: Uses certutil to add CA to Windows certificate store' : (process.platform === 'darwin' ? '   macOS: Adds CA to Keychain (may require system password)' : '   Linux: Adds CA to system trust store'))"
     pnpm exec portless trust || echo "⚠️  portless trust failed. You may need to trust the CA manually."
     @echo ""
+    @echo "Running: portless hosts sync (adding mc-vector.localhost to hosts file)..."
+    @node -e "console.log(process.platform === 'win32' ? '   Windows: Modifies C:\\\\Windows\\\\System32\\\\drivers\\\\etc\\\\hosts (requires Administrator)' : '   Unix: Modifies /etc/hosts (requires sudo password)')"
     pnpm exec portless hosts sync || echo "⚠️  portless hosts sync failed. This is optional for Chrome/Firefox but required for Safari/cmux."
     @echo ""
     @echo "✅ Development environment ready!"
@@ -118,19 +123,11 @@ release-prepare:
 
 # Create git tag for release
 release-tag:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    version=$(node -p "require('./package.json').version")
-    git tag -a "v$version" -m "Release v$version"
-    echo "Tag v$version created. Push with: git push origin v$version"
+    node scripts/release-tag.mjs
 
 # Publish release (triggers GitHub workflow)
 release-publish:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    version=$(node -p "require('./package.json').version")
-    git push origin "v$version"
-    echo "Release workflow triggered for v$version"
+    node scripts/release-publish.mjs
 
 # ═══════════════════════════════════════════════════════════════
 # Dependency Management
@@ -150,7 +147,7 @@ deps-check:
     -pnpm outdated
     @echo ""
     @echo "Checking Rust dependencies..."
-    -cd src-tauri && cargo outdated 2>/dev/null || echo "Note: Install cargo-outdated with 'cargo install cargo-outdated'"
+    -node scripts/cargo-optional.mjs outdated
 
 # Security audit of dependencies
 deps-audit: security-audit
@@ -165,7 +162,7 @@ security-audit:
     -pnpm audit
     @echo ""
     @echo "Running Rust security audit..."
-    -cd src-tauri && cargo audit 2>/dev/null || echo "Note: Install cargo-audit with 'cargo install cargo-audit'"
+    -node scripts/cargo-optional.mjs audit
 
 # Auto-fix security issues
 security-fix:
@@ -197,7 +194,7 @@ docs-serve:
 
 # Install recommended VS Code extensions
 install-extensions:
-    ./scripts/install-extensions.sh
+    node scripts/install-extensions.mjs
 
 # Update version numbers across project
 update-versions:
@@ -205,4 +202,4 @@ update-versions:
 
 # Clean build artifacts
 clean:
-    rm -rf dist build src-tauri/target node_modules/.vite
+    pnpm exec rimraf dist build src-tauri/target node_modules/.vite

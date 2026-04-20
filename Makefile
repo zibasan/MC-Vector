@@ -108,13 +108,13 @@ rustfmt:
 
 # Utilities
 install-extensions:
-	./scripts/install-extensions.sh
+	node scripts/install-extensions.mjs
 
 update-versions:
 	node scripts/update-versions.js
 
 clean:
-	rm -rf dist build src-tauri/target node_modules/.vite
+	pnpm exec rimraf dist build src-tauri/target node_modules/.vite
 
 # ═══════════════════════════════════════════════════════════════
 # Additional tasks
@@ -183,16 +183,12 @@ release-prepare:
 # Release: Create git tag for release
 release-tag:
 	@echo "Creating release tag..."
-	@version=$$(node -p "require('./package.json').version"); \
-	git tag -a "v$$version" -m "Release v$$version"; \
-	echo "Tag v$$version created. Push with: git push origin v$$version"
+	node scripts/release-tag.mjs
 
 # Release: Publish release (triggers GitHub workflow)
 release-publish:
 	@echo "Publishing release..."
-	@version=$$(node -p "require('./package.json').version"); \
-	git push origin "v$$version"; \
-	echo "Release workflow triggered for v$$version"
+	node scripts/release-publish.mjs
 
 # Dependencies: Update dependencies interactively
 deps-update:
@@ -208,8 +204,7 @@ deps-check:
 	pnpm outdated
 	@echo ""
 	@echo "Checking Rust dependencies..."
-	cd src-tauri && cargo outdated 2>/dev/null || \
-		echo "Note: Install cargo-outdated with 'cargo install cargo-outdated'"
+	node scripts/cargo-optional.mjs outdated
 
 # Dependencies: Security audit
 deps-audit: security-audit
@@ -220,8 +215,7 @@ security-audit:
 	pnpm audit || true
 	@echo ""
 	@echo "Running Rust security audit..."
-	cd src-tauri && cargo audit 2>/dev/null || \
-		echo "Note: Install cargo-audit with 'cargo install cargo-audit'"
+	node scripts/cargo-optional.mjs audit
 
 # Security: Auto-fix security issues
 security-fix:
