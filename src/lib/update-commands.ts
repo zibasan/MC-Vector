@@ -173,16 +173,6 @@ export async function downloadAndInstallUpdate(
       throw new Error(createReadOnlyErrorMessage(location));
     }
 
-    if (errorMessage.toLowerCase().includes('signature verification failed')) {
-      const refreshed = await check();
-      if (refreshed) {
-        currentUpdate = refreshed;
-        await installWithProgress();
-        await relaunch();
-        return;
-      }
-    }
-
     throw new Error(normalizeUpdaterError(error));
   }
 }
