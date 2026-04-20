@@ -101,7 +101,7 @@ check:
 	pnpm check
 
 yamllint:
-	yamllint .
+	pnpm yamllint
 
 rustfmt:
 	pnpm rustfmt

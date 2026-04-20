@@ -85,7 +85,7 @@ check-all: check yamllint rustfmt
 
 # Lint YAML files
 yamllint:
-    yamllint .
+    pnpm yamllint
 
 # Format Rust code
 rustfmt:

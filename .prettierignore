@@ -1,0 +1,11 @@
+# Ignore artifacts:
+build
+dist
+coverage
+*-lock.*
+node_modules
+**/build
+**/dist
+.github/*
+pnpm-lock.yaml
+pnpm-workspace.yaml

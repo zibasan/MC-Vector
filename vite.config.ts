@@ -109,6 +109,6 @@ export default defineConfig({
   staged: {
     'src/**/*.{ts,tsx}': 'vp check --fix',
     'src-tauri/src/**/*.rs': 'cargo fmt --all --manifest-path src-tauri/Cargo.toml --',
-    '**/*.{yml,yaml}': 'yamllint',
+    '**/*.{yml,yaml}': 'pnpm exec prettier --write',
   },
 });
