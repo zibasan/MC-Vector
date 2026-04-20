@@ -1606,14 +1606,28 @@ export default function PluginBrowser({ server }: Props) {
                 );
                 await refreshInstalled();
               }
+
+              // Check if all required dependencies were installed
+              if (installedDependencyCount < missingDependencies.length) {
+                showToast(
+                  tSafe(
+                    'plugins.browser.dependencyInstallIncomplete',
+                    'Not all required dependencies were installed. Main plugin installation aborted.',
+                  ),
+                  'error',
+                );
+                return;
+              }
             } else {
+              // User declined to install dependencies
               showToast(
                 tSafe(
                   'plugins.browser.dependencyCheckOnly',
-                  'Only ran dependency check. Please install dependencies first if needed.',
+                  'Required dependencies not installed. Main plugin installation aborted.',
                 ),
-                'info',
+                'error',
               );
+              return;
             }
           }
         }
@@ -1770,6 +1784,7 @@ export default function PluginBrowser({ server }: Props) {
     const pluginDir = `${server.path}/${folderName}`;
     let stage:
       | 'direct-rename'
+      | 'direct-conflict'
       | 'direct-overwrite-target'
       | 'direct-retry-rename'
       | 'list-files'

@@ -633,22 +633,49 @@ export async function installModrinthProject(
     throw new Error('Failed to parse Modrinth version payload');
   }
 
-  const firstFile = payload.files.find((entry) => {
-    if (!isRecord(entry)) {
-      return false;
-    }
-    return Boolean(asString(entry.url));
-  });
-  if (!firstFile || !isRecord(firstFile)) {
+  // Select the appropriate file entry
+  let chosenEntry: unknown = null;
+  if (fileName && fileName.trim()) {
+    // If fileName is provided, find the matching file entry
+    const trimmedFileName = fileName.trim();
+    chosenEntry = payload.files.find((entry) => {
+      if (!isRecord(entry)) {
+        return false;
+      }
+      return asString(entry.filename) === trimmedFileName;
+    });
+  }
+
+  if (!chosenEntry) {
+    // Otherwise, prefer primary file or fall back to first downloadable file
+    chosenEntry = payload.files.find((entry) => {
+      if (!isRecord(entry)) {
+        return false;
+      }
+      return entry.primary && Boolean(asString(entry.url));
+    });
+  }
+
+  if (!chosenEntry) {
+    // Final fallback: first downloadable file
+    chosenEntry = payload.files.find((entry) => {
+      if (!isRecord(entry)) {
+        return false;
+      }
+      return Boolean(asString(entry.url));
+    });
+  }
+
+  if (!chosenEntry || !isRecord(chosenEntry)) {
     throw new Error('No downloadable files in Modrinth version');
   }
 
-  const url = asString(firstFile.url);
+  const url = asString(chosenEntry.url);
   if (!url) {
     throw new Error('No download URL in Modrinth version file');
   }
 
-  const fallbackFileName = asString(firstFile.filename);
+  const fallbackFileName = asString(chosenEntry.filename);
   const targetFileName = fileName.trim() || fallbackFileName;
   if (!targetFileName) {
     throw new Error('No filename available for Modrinth install');
