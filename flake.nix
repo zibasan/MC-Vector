@@ -36,9 +36,6 @@
           pkg-config
           openssl
 
-          # Linters and formatters
-          python311Packages.yamllint
-
           # Task runners
           gnumake
           just
@@ -94,7 +91,7 @@
             echo "Quick start:"
             echo "  make install     - Install dependencies"
             echo "  make setup       - Full setup with quality checks"
-            echo "  make tauri-dev   - Start development server"
+            echo "  make dev-app   - Start development server"
             echo ""
             echo "Testing:"
             echo "  make test        - Run Rust unit tests"
@@ -114,7 +111,7 @@
         packages = {
           default = pkgs.stdenv.mkDerivation {
             pname = "mc-vector";
-            version = "2.0.48";
+            version = "2.0.53";
 
             src = ./.;
 
@@ -177,7 +174,6 @@
             program = "${pkgs.writeShellScript "mc-vector-check" ''
               cd ${self}
               ${pkgs.nodePackages.pnpm}/bin/pnpm check
-              ${pkgs.python311Packages.yamllint}/bin/yamllint .
               ${rustToolchain}/bin/cargo fmt --check --all
             ''}";
           };

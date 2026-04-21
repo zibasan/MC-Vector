@@ -21,9 +21,6 @@ pkgs.mkShell {
     pkg-config
     openssl
 
-    # Linters and formatters
-    python3Packages.yamllint
-
     # Task runners
     gnumake
     just
@@ -64,13 +61,13 @@ pkgs.mkShell {
     echo ""
     echo "Quick start:"
     echo "  make install  - Install dependencies"
-    echo "  make tauri-dev - Start development server"
+    echo "  make dev-app - Start development server"
     echo ""
   '';
 
   # Environment variables
   RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}";
-  
+
   # Enable Rust backtrace in development
   RUST_BACKTRACE = "1";
 }

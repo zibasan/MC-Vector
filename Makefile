@@ -8,7 +8,7 @@ else
 	DETECTED_OS := $(shell uname -s)
 endif
 
-.PHONY: help install dev build lint format check clean tauri-dev tauri-build install-extensions update-versions yamllint rustfmt \
+.PHONY: help install dev build lint format check clean tauri-dev tauri-build install-extensions update-versions rustfmt \
 	test test-rust test-watch \
 	release-prepare release-tag release-publish \
 	deps-update deps-check deps-audit \
@@ -37,10 +37,9 @@ help:
 	@echo ""
 	@echo "Quality Assurance:"
 	@echo "  make lint                 Run linter (TypeScript, React)"
-	@echo "  make format               Format code (Biome, Prettier)"
+	@echo "  make format               Format code (oxfmt via vite+)"
 	@echo "  make check                Run lint and format checks"
-	@echo "  make check-all            Run all quality checks (check + yamllint + rustfmt)"
-	@echo "  make yamllint             Lint YAML files"
+	@echo "  make check-all            Run all quality checks (check + rustfmt)"
 	@echo "  make rustfmt              Format Rust code"
 	@echo ""
 	@echo "Testing:"
@@ -100,9 +99,6 @@ format:
 check:
 	pnpm check
 
-yamllint:
-	pnpm yamllint
-
 rustfmt:
 	pnpm rustfmt
 
@@ -155,7 +151,7 @@ endif
 watch: dev
 
 # Quality: Run all quality checks
-check-all: check yamllint rustfmt
+check-all: check rustfmt
 	@echo "✅ All quality checks passed!"
 
 # Testing: Run all tests (currently Rust unit tests)

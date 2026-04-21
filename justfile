@@ -71,7 +71,7 @@ tauri-build *ARGS='':
 lint:
     pnpm lint
 
-# Format code (Biome, Prettier)
+# Format code (oxfmt via vite+)
 format:
     pnpm format
 
@@ -79,13 +79,9 @@ format:
 check:
     pnpm check:fix
 
-# Run all quality checks (check + yamllint + rustfmt)
-check-all: check yamllint rustfmt
+# Run all quality checks (check + rustfmt)
+check-all: check rustfmt
     @echo "✅ All quality checks passed!"
-
-# Lint YAML files
-yamllint:
-    pnpm yamllint
 
 # Format Rust code
 rustfmt:

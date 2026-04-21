@@ -200,11 +200,18 @@ function isRecord(value: unknown): value is JsonRecord {
 }
 
 function parseProject(value: unknown): { id: string; title: string } | null {
-  if (!isRecord(value)) return null;
+  if (!isRecord(value)) {
+    return null;
+  }
   const id = typeof value.id === 'string' ? value.id : '';
   const title = typeof value.title === 'string' ? value.title : '';
-  if (!id || !title) return null;
-  return { id, title };
+  if (!id || !title) {
+    return null;
+  }
+  return {
+    id,
+    title,
+  };
 }
 ```
 
@@ -255,9 +262,6 @@ pnpm check
 
 # Format Rust
 just rustfmt
-
-# Check/format YAML (Prettier-based)
-just yamllint
 ```
 
 Or use the comprehensive check:

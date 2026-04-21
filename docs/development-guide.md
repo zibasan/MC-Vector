@@ -30,7 +30,6 @@ Welcome to the MC-Vector development guide! This document will help you set up y
 - **pnpm** v10.33.0 or later
 - **Rust** v1.77.2 or later
 - **Cargo** (included with Rust)
-- **Prettier** (YAML checks via project script, installed with `pnpm install`)
 
 ### Optional Tools
 
@@ -130,17 +129,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 rustup default 1.77.2
 ```
 
-#### 3. YAML check tool (Prettier)
-
-```bash
-# No separate install needed.
-# Prettier is installed automatically with project dependencies.
-pnpm install
-```
-
-#### 4. (Optional) Install just
-
-**macOS:**
+#### 3. Install just (Optional)
 
 ```bash
 brew install just
@@ -158,7 +147,7 @@ cargo install just
 choco install just
 ```
 
-#### 5. Install Project Dependencies
+#### 4. Install Project Dependencies
 
 ```bash
 pnpm install
@@ -281,7 +270,7 @@ Before committing, always run:
 ```bash
 just check-all
 # or
-make check && make yamllint && make rustfmt
+make check && make rustfmt
 ```
 
 ### 4. Build for Production
@@ -315,14 +304,13 @@ Built artifacts will be in `src-tauri/target/release/bundle/`.
 
 ### Quality
 
-| Command     | justfile         | Makefile        | Description                             |
-| ----------- | ---------------- | --------------- | --------------------------------------- |
-| Lint        | `just lint`      | `make lint`     | Run oxlint (via vite+)                  |
-| Format      | `just format`    | `make format`   | Format with oxfmt and biome (via vite+) |
-| Check       | `just check`     | `make check`    | Run lint & format checks                |
-| YAML lint   | `just yamllint`  | `make yamllint` | Check/format YAML files with Prettier   |
-| Rust format | `just rustfmt`   | `make rustfmt`  | Format Rust code                        |
-| All checks  | `just check-all` | N/A             | Run all quality checks                  |
+| Command     | justfile         | Makefile       | Description                             |
+| ----------- | ---------------- | -------------- | --------------------------------------- |
+| Lint        | `just lint`      | `make lint`    | Run oxlint (via vite+)                  |
+| Format      | `just format`    | `make format`  | Format with oxfmt and biome (via vite+) |
+| Check       | `just check`     | `make check`   | Run lint & format checks                |
+| Rust format | `just rustfmt`   | `make rustfmt` | Format Rust code                        |
+| All checks  | `just check-all` | N/A            | Run all quality checks                  |
 
 ### Utilities
 
@@ -412,10 +400,6 @@ Command-level Rust tests currently cover critical paths such as security gateway
 **Issue: Tauri build fails on macOS**
 
 - **Solution:** Ensure Xcode Command Line Tools are installed: `xcode-select --install`
-
-**Issue: `pnpm yamllint` fails**
-
-- **Solution:** Run `pnpm install` to install project dev dependencies (including Prettier).
 
 **Issue: Nix commands not found**
 
