@@ -1,5 +1,7 @@
 /node_modules
+docs/node_modules
 /dist
+docs/dist
 /release
 /dist-electron
 .worktrees/
@@ -12,6 +14,7 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 build/*
+.agents/**
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
@@ -148,10 +151,10 @@ vite.config.ts.timestamp-*
 # documents
 docs/development-environment-research.md
 docs/engineering-requirements.md
+docs/enhance-idea/**
 
 # update-version
 update-output.json
-skills-lock.json
 .tauri-updater-password
 
 # Nix
@@ -161,3 +164,10 @@ result
 result-*
 
 
+docs/.astro
+docs/.vercel
+
+# TypeDoc auto-generated output
+docs/src/content/docs/api/typescript/
+# Rustdoc auto-generated output
+docs/public/rustdoc/

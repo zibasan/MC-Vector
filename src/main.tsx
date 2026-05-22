@@ -1,24 +1,41 @@
 import { loader } from '@monaco-editor/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as monaco from 'monaco-editor';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { Toaster } from 'sonner';
+import { restoreStateCurrent } from '@tauri-apps/plugin-window-state';
 import App from './App';
 import { useI18nStore } from './i18n';
-import { ToastProvider } from './renderer/components/ToastProvider';
 import './styles/index.scss';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      retry: 1,
+    },
+  },
+});
 
 loader.config({ monaco });
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 
 async function bootstrap() {
+  try {
+    await restoreStateCurrent();
+  } catch {
+    // window-state の復元失敗はアプリ起動を妨げない
+  }
   await useI18nStore.getState().initLocale();
 
   root.render(
     <React.StrictMode>
-      <ToastProvider>
+      <QueryClientProvider client={queryClient}>
         <App />
-      </ToastProvider>
+        <Toaster position="bottom-right" richColors />
+      </QueryClientProvider>
     </React.StrictMode>,
   );
 }

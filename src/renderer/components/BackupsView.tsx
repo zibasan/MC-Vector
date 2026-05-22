@@ -1,6 +1,7 @@
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { ask } from '@tauri-apps/plugin-dialog';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '../../i18n';
 import {
   createBackup,
@@ -18,7 +19,7 @@ import {
 import { logError } from '../../lib/error-utils';
 import { tauriListen } from '../../lib/tauri-api';
 import { type MinecraftServer } from '../shared/server declaration';
-import { useToast } from './ToastProvider';
+import { toast } from 'sonner';
 
 interface Props {
   server: MinecraftServer;
@@ -151,8 +152,23 @@ export default function BackupsView({ server }: Props) {
   const [tagEditorTarget, setTagEditorTarget] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState('');
   const [noteInput, setNoteInput] = useState('');
-  const { showToast } = useToast();
+  const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'info') => {
+    if (type === 'success') {
+      toast.success(msg);
+    } else if (type === 'error') {
+      toast.error(msg);
+    } else {
+      toast(msg);
+    }
+  };
   const backupMetaPath = useMemo(() => `${server.path}/backups/${BACKUP_META_FILE}`, [server.path]);
+  const listParentRef = useRef<HTMLDivElement>(null);
+  const backupVirtualizer = useVirtualizer({
+    count: backups.length,
+    getScrollElement: () => listParentRef.current,
+    estimateSize: () => 120,
+    overscan: 5,
+  });
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -192,7 +208,7 @@ export default function BackupsView({ server }: Props) {
       cancelled = true;
       unlisten?.();
     };
-  }, [server.path, showToast, t]);
+  }, [server.path, t]);
 
   useEffect(() => {
     let cancelled = false;
@@ -479,6 +495,44 @@ export default function BackupsView({ server }: Props) {
     };
   };
 
+  const applyRetentionPolicy = async (serverPath: string, srv: MinecraftServer) => {
+    const retainCount = srv.autoBackupRetainCount ?? 0;
+    const retainDays = srv.autoBackupRetainDays ?? 0;
+    if (retainCount === 0 && retainDays === 0) {
+      return;
+    }
+
+    const all = await listBackupsWithMetadata(serverPath);
+    const sorted = [...all].sort(
+      (a, b) => b.date.getTime() - a.date.getTime() || a.name.localeCompare(b.name),
+    );
+    const now = Date.now();
+
+    const toDelete = sorted.filter((backup, idx) => {
+      if (retainCount > 0 && idx >= retainCount) {
+        return true;
+      }
+      if (retainDays > 0 && now - backup.date.getTime() > retainDays * 86_400_000) {
+        return true;
+      }
+      return false;
+    });
+    for (const backup of toDelete) {
+      // 直列実行（Promise.all は NG）
+      await deleteBackup(serverPath, backup.name);
+    }
+
+    if (toDelete.length > 0) {
+      const deletedNames = new Set(toDelete.map((b) => b.name));
+      const updatedEntries = Object.fromEntries(
+        Object.entries(backupCatalog.entries).filter(([name]) => !deletedNames.has(name)),
+      );
+      const updatedCatalog: BackupCatalog = { ...backupCatalog, entries: updatedEntries };
+      await persistBackupCatalog(updatedCatalog);
+      setBackupCatalog(updatedCatalog);
+    }
+  };
+
   const handleCreateBackup = async () => {
     if (processing) {
       return;
@@ -550,6 +604,12 @@ export default function BackupsView({ server }: Props) {
 
       setShowCreateModal(false);
       await loadBackups();
+      // separate try-catch so retention failures don't mask backup creation success
+      try {
+        await applyRetentionPolicy(server.path, server);
+      } catch (error) {
+        logError('Failed to apply backup retention policy', error, { serverPath: server.path });
+      }
     } catch (error) {
       logError('Failed to create backup', error, {
         serverPath: server.path,
@@ -703,81 +763,95 @@ export default function BackupsView({ server }: Props) {
         </button>
       </div>
 
-      <div className="backups-view__list-panel">
+      <div className="backups-view__list-panel" ref={listParentRef}>
         {loading && <div className="p-5 text-center">{t('common.loading')}</div>}
 
         {!loading && backups.length === 0 && (
           <div className="backups-view__empty">{t('backups.empty')}</div>
         )}
 
-        {!loading &&
-          backups.map((backup) => (
-            <div key={backup.name} className="backups-view__item-row">
-              <div className="text-2xl">📦</div>
+        {!loading && backups.length > 0 && (
+          <div style={{ height: `${backupVirtualizer.getTotalSize()}px`, position: 'relative' }}>
+            {backupVirtualizer.getVirtualItems().map((virtualRow) => {
+              const backup = backups[virtualRow.index];
+              return (
+                <div
+                  key={backup.name}
+                  ref={backupVirtualizer.measureElement}
+                  data-index={virtualRow.index}
+                  className="backups-view__item-row"
+                  style={{ position: 'absolute', top: virtualRow.start, left: 0, width: '100%' }}
+                >
+                  <div className="text-2xl">📦</div>
 
-              <div className="flex-1">
-                <div className="font-bold text-base text-text-primary">{backup.name}</div>
-                <div className="text-sm text-text-secondary mt-1">{formatDate(backup.date)}</div>
-                <div className="backups-view__item-meta mt-2">
-                  <span
-                    className={`backups-view__mode-badge ${
-                      getBackupMeta(backup.name).mode === 'differential' ? 'is-diff' : ''
-                    }`}
-                  >
-                    {getBackupMeta(backup.name).mode === 'differential'
-                      ? t('backups.mode.differential')
-                      : t('backups.mode.full')}
-                  </span>
+                  <div className="flex-1">
+                    <div className="font-bold text-base text-text-primary">{backup.name}</div>
+                    <div className="text-sm text-text-secondary mt-1">
+                      {formatDate(backup.date)}
+                    </div>
+                    <div className="backups-view__item-meta mt-2">
+                      <span
+                        className={`backups-view__mode-badge ${
+                          getBackupMeta(backup.name).mode === 'differential' ? 'is-diff' : ''
+                        }`}
+                      >
+                        {getBackupMeta(backup.name).mode === 'differential'
+                          ? t('backups.mode.differential')
+                          : t('backups.mode.full')}
+                      </span>
 
-                  {getBackupMeta(backup.name).parent && (
-                    <span className="backups-view__parent-label">
-                      {t('backups.parent')}: {getBackupMeta(backup.name).parent}
-                    </span>
-                  )}
+                      {getBackupMeta(backup.name).parent && (
+                        <span className="backups-view__parent-label">
+                          {t('backups.parent')}: {getBackupMeta(backup.name).parent}
+                        </span>
+                      )}
 
-                  {getBackupMeta(backup.name).tags.map((tag) => (
-                    <span key={`${backup.name}-${tag}`} className="backups-view__tag-chip">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+                      {getBackupMeta(backup.name).tags.map((tag) => (
+                        <span key={`${backup.name}-${tag}`} className="backups-view__tag-chip">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
 
-                {getBackupMeta(backup.name).note && (
-                  <div className="backups-view__item-note mt-1.5">
-                    {getBackupMeta(backup.name).note}
+                    {getBackupMeta(backup.name).note && (
+                      <div className="backups-view__item-note mt-1.5">
+                        {getBackupMeta(backup.name).note}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              <div className="text-text-secondary text-sm w-20 text-right">
-                {formatSize(backup.size)}
-              </div>
+                  <div className="text-text-secondary text-sm w-20 text-right">
+                    {formatSize(backup.size)}
+                  </div>
 
-              <div className="flex gap-2.5">
-                <button
-                  className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-70"
-                  onClick={() => handleRestore(backup.name)}
-                  disabled={processing}
-                >
-                  {t('backups.actions.restore')}
-                </button>
-                <button
-                  className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-70"
-                  onClick={() => openTagEditor(backup.name)}
-                  disabled={processing}
-                >
-                  {t('backups.actions.tag')}
-                </button>
-                <button
-                  className="btn-stop text-sm px-3 py-1.5 disabled:opacity-70"
-                  onClick={() => handleDelete(backup.name)}
-                  disabled={processing}
-                >
-                  {t('common.delete')}
-                </button>
-              </div>
-            </div>
-          ))}
+                  <div className="flex gap-2.5">
+                    <button
+                      className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-70"
+                      onClick={() => handleRestore(backup.name)}
+                      disabled={processing}
+                    >
+                      {t('backups.actions.restore')}
+                    </button>
+                    <button
+                      className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-70"
+                      onClick={() => openTagEditor(backup.name)}
+                      disabled={processing}
+                    >
+                      {t('backups.actions.tag')}
+                    </button>
+                    <button
+                      className="btn-stop text-sm px-3 py-1.5 disabled:opacity-70"
+                      onClick={() => handleDelete(backup.name)}
+                      disabled={processing}
+                    >
+                      {t('common.delete')}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="backups-view__world-panel">

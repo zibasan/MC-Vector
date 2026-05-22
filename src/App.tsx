@@ -1,20 +1,26 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@/i18n';
+import { createBackup } from '@/lib/backup-commands';
 import { logError } from '@/lib/error-utils';
-// Tauri API ラッパー
 import {
   getServerTemplates,
   type ServerTemplate,
+  startServer as startServerApi,
+  stopServer as stopServerApi,
   updateServer as updateServerApi,
 } from '@/lib/server-commands';
+import { buildAutoBackupName } from '@/renderer/shared/auto-backup';
 import AppMainContent from '@/renderer/components/AppMainContent';
 import AppMainHeader from '@/renderer/components/AppMainHeader';
 import AppOverlayLayer from '@/renderer/components/AppOverlayLayer';
 import AppSidebarHeader from '@/renderer/components/AppSidebarHeader';
 import AppSidebarNavigation from '@/renderer/components/AppSidebarNavigation';
+import AddServerChoiceModal from '@/renderer/components/AddServerChoiceModal';
 import AppServerSidebar from '@/renderer/components/AppServerSidebar';
 import BackupTargetSelectorWindow from '@/renderer/components/BackupTargetSelectorWindow';
-import { useToast } from '@/renderer/components/ToastProvider';
+import { CommandPalette } from '@/renderer/components/CommandPalette';
+import { registerGlobalShortcuts, unregisterGlobalShortcuts } from '@/lib/global-shortcut-commands';
+import { toast } from 'sonner';
 import { useAppUpdater } from '@/renderer/hooks/use-app-updater';
 import { useAppThemeSync } from '@/renderer/hooks/use-app-theme-sync';
 import { useGroupedServers } from '@/renderer/hooks/use-grouped-servers';
@@ -44,8 +50,8 @@ function App() {
   const setCurrentView = useUiStore((state) => state.setCurrentView);
   const showAddServerModal = useUiStore((state) => state.showAddServerModal);
   const setShowAddServerModal = useUiStore((state) => state.setShowAddServerModal);
-  const contextMenu = useUiStore((state) => state.contextMenu);
-  const setContextMenu = useUiStore((state) => state.setContextMenu);
+  const [showImportServerModal, setShowImportServerModal] = useState(false);
+  const [showAddServerChoiceModal, setShowAddServerChoiceModal] = useState(false);
 
   const [downloadStatus, setDownloadStatus] = useState<{
     id: string;
@@ -53,7 +59,15 @@ function App() {
     msg: string;
   } | null>(null);
   const [serverTemplates, setServerTemplates] = useState<ServerTemplate[]>([]);
-  const { showToast } = useToast();
+  const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'info') => {
+    if (type === 'success') {
+      toast.success(msg);
+    } else if (type === 'error') {
+      toast.error(msg);
+    } else {
+      toast(msg);
+    }
+  };
 
   const isSidebarOpen = useUiStore((state) => state.isSidebarOpen);
   const setIsSidebarOpen = useUiStore((state) => state.setIsSidebarOpen);
@@ -72,6 +86,48 @@ function App() {
   } = useAppUpdater();
 
   useViewCycleShortcut({ currentView, setCurrentView });
+
+  const serverActionsRef = useRef<{
+    handleStart: () => void;
+    handleStop: () => void;
+    handleRestart: () => void;
+    activeServer: MinecraftServer | undefined;
+  }>({
+    handleStart: () => {},
+    handleStop: () => {},
+    handleRestart: () => {},
+    activeServer: undefined,
+  });
+
+  useEffect(() => {
+    void registerGlobalShortcuts({
+      onStartStop: () => {
+        const {
+          activeServer: srv,
+          handleStart: start,
+          handleStop: stop,
+        } = serverActionsRef.current;
+        if (!srv) {
+          return;
+        }
+        if (srv.status === 'online') {
+          void stop();
+        } else if (srv.status === 'offline') {
+          void start();
+        }
+      },
+      onRestart: () => {
+        const { activeServer: srv, handleRestart: restart } = serverActionsRef.current;
+        if (srv?.status === 'online') {
+          void restart();
+        }
+      },
+    });
+
+    return () => {
+      void unregisterGlobalShortcuts();
+    };
+  }, []);
 
   useAppThemeSync({ setAppTheme });
 
@@ -101,24 +157,17 @@ function App() {
     }
   };
 
-  const {
-    handleContextMenu,
-    handleDeleteServer,
-    handleDuplicateServer,
-    handleSaveServerTemplate,
-    handleClickOutside,
-  } = useServerContextActions({
-    servers,
-    setServers,
-    selectedServerId,
-    setSelectedServerId,
-    contextMenu,
-    setContextMenu,
-    showToast,
-    t,
-    removeServerLogs,
-    loadTemplates,
-  });
+  const { handleDeleteServer, handleDuplicateServer, handleSaveServerTemplate } =
+    useServerContextActions({
+      servers,
+      setServers,
+      selectedServerId,
+      setSelectedServerId,
+      showToast,
+      t,
+      removeServerLogs,
+      loadTemplates,
+    });
 
   useServerRuntimeListeners({
     selectedServerId,
@@ -145,6 +194,49 @@ function App() {
     markExpectedOffline,
     clearAutoRestartTimer,
   });
+  serverActionsRef.current = { handleStart, handleStop, handleRestart, activeServer };
+
+  const handleBulkStart = async (servers: MinecraftServer[]) => {
+    for (const s of servers.filter((srv) => srv.status === 'offline')) {
+      try {
+        setServers((prev) =>
+          prev.map((srv) => (srv.id === s.id ? { ...srv, status: 'starting' } : srv)),
+        );
+        const jarFile = s.software === 'Forge' ? 'forge-server.jar' : 'server.jar';
+        await startServerApi(s.id, s.javaPath || 'java', s.path, s.memory, jarFile, s.jvmArgs);
+      } catch (error) {
+        logError('Bulk start failed', error, { serverId: s.id });
+        setServers((prev) =>
+          prev.map((srv) => (srv.id === s.id ? { ...srv, status: 'offline' } : srv)),
+        );
+        showToast(t('server.toast.startFailed'), 'error');
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  };
+
+  const handleBulkStop = async (serverIds: string[]) => {
+    await Promise.allSettled(
+      serverIds.map((id) =>
+        stopServerApi(id).catch((error) => {
+          logError('Bulk stop failed', error, { serverId: id });
+        }),
+      ),
+    );
+  };
+
+  const handleBulkBackup = async (servers: MinecraftServer[]) => {
+    for (const s of servers) {
+      try {
+        await createBackup(s.path, buildAutoBackupName(s, new Date()));
+        showToast(t('server.toast.bulkBackupCreated', { name: s.name }), 'success');
+      } catch (error) {
+        logError('Bulk backup failed', error, { serverId: s.id });
+        showToast(t('server.toast.bulkBackupFailed', { name: s.name }), 'error');
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  };
 
   const handleUpdateServer = async (updatedServer: MinecraftServer) => {
     try {
@@ -197,7 +289,6 @@ function App() {
     <div
       className={`app-shell theme-${resolvedTheme}`}
       data-theme={resolvedTheme}
-      onClick={handleClickOutside}
       style={appShellStyle}
     >
       <aside
@@ -222,10 +313,24 @@ function App() {
           groupedServers={groupedServers}
           selectedServerId={selectedServerId}
           onSelectServer={setSelectedServerId}
-          onServerContextMenu={handleContextMenu}
-          onAddServer={() => setShowAddServerModal(true)}
+          onAddServer={() => setShowAddServerChoiceModal(true)}
+          onDuplicateServer={handleDuplicateServer}
+          onSaveServerTemplate={handleSaveServerTemplate}
+          onDeleteServer={handleDeleteServer}
           serversLabel={t('nav.servers')}
           addServerLabel={t('nav.addServer')}
+          bulkSelectLabel={t('nav.bulkSelect')}
+          bulkStartLabel={t('nav.bulkStartSelected')}
+          bulkStopLabel={t('nav.bulkStopSelected')}
+          bulkBackupLabel={t('nav.bulkBackupSelected')}
+          bulkClearLabel={t('nav.bulkClearSelection')}
+          bulkSelectedCountLabel={(count) => t('nav.bulkSelectedCount', { count })}
+          duplicateLabel={t('server.actions.clone')}
+          saveTemplateLabel={t('server.actions.saveTemplate')}
+          deleteLabel={t('common.delete')}
+          onBulkStart={handleBulkStart}
+          onBulkStop={handleBulkStop}
+          onBulkBackup={handleBulkBackup}
         />
       </aside>
 
@@ -252,16 +357,29 @@ function App() {
         />
       </main>
 
+      <AddServerChoiceModal
+        open={showAddServerChoiceModal}
+        onClose={() => setShowAddServerChoiceModal(false)}
+        onNewServer={() => setShowAddServerModal(true)}
+        onImportServer={() => setShowImportServerModal(true)}
+      />
+
+      <CommandPalette
+        activeServer={activeServer}
+        setCurrentView={setCurrentView}
+        onStart={handleStart}
+        onStop={handleStop}
+        onRestart={handleRestart}
+      />
+
       <AppOverlayLayer
         downloadStatus={downloadStatus}
         showAddServerModal={showAddServerModal}
         onCloseAddServerModal={() => setShowAddServerModal(false)}
         onAddServer={handleAddServer}
         serverTemplates={serverTemplates}
-        contextMenu={contextMenu}
-        onDuplicateServer={handleDuplicateServer}
-        onSaveServerTemplate={handleSaveServerTemplate}
-        onDeleteServer={handleDeleteServer}
+        showImportServerModal={showImportServerModal}
+        onCloseImportServerModal={() => setShowImportServerModal(false)}
         updatePrompt={updatePrompt}
         updateProgress={updateProgress}
         updateError={updateError}

@@ -5,6 +5,9 @@
   "windows": ["main", "backup-selector"],
   "permissions": [
     "core:default",
+    "window-state:default",
+    "clipboard-manager:default",
+    "global-shortcut:default",
     "core:webview:allow-create-webview-window",
     "core:webview:allow-set-webview-focus",
     "dialog:default",
@@ -14,6 +17,7 @@
     "updater:default",
     "opener:default",
     "os:default",
+    "notification:default",
     {
       "identifier": "http:default",
       "allow": [

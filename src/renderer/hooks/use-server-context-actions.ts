@@ -1,6 +1,6 @@
 import { ask } from '@tauri-apps/plugin-dialog';
 import { copyFile, mkdir, readDir } from '@tauri-apps/plugin-fs';
-import { type MouseEvent, useCallback } from 'react';
+import { useCallback } from 'react';
 import type { Translate } from '../../i18n';
 import { logError } from '../../lib/error-utils';
 import {
@@ -9,7 +9,6 @@ import {
   saveServerTemplate,
   type ServerTemplate,
 } from '../../lib/server-commands';
-import type { ServerContextMenuState } from '../../store/uiStore';
 import type { ToastKind } from '../components/ToastProvider';
 import type { MinecraftServer } from '../shared/server declaration';
 type SetServers = (
@@ -21,8 +20,6 @@ interface UseServerContextActionsOptions {
   setServers: SetServers;
   selectedServerId: string;
   setSelectedServerId: (serverId: string) => void;
-  contextMenu: ServerContextMenuState | null;
-  setContextMenu: (menu: ServerContextMenuState | null) => void;
   showToast: (message: string, type?: ToastKind) => void;
   t: Translate;
   removeServerLogs: (serverId: string) => void;
@@ -76,165 +73,129 @@ export function useServerContextActions({
   setServers,
   selectedServerId,
   setSelectedServerId,
-  contextMenu,
-  setContextMenu,
   showToast,
   t,
   removeServerLogs,
   loadTemplates,
 }: UseServerContextActionsOptions) {
-  const handleContextMenu = useCallback(
-    (event: MouseEvent, serverId: string) => {
-      event.preventDefault();
-      setContextMenu({ x: event.pageX, y: event.pageY, serverId });
+  const handleDeleteServer = useCallback(
+    async (serverId: string) => {
+      const target = servers.find((server) => server.id === serverId);
+
+      const confirmed = await ask(t('server.confirm.delete', { name: target?.name ?? '' }), {
+        title: t('common.delete'),
+        kind: 'warning',
+      });
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        const success = await deleteServerApi(serverId);
+        if (success) {
+          const nextServers = servers.filter((server) => server.id !== serverId);
+          setServers(nextServers);
+          removeServerLogs(serverId);
+          if (selectedServerId === serverId) {
+            setSelectedServerId(nextServers.length > 0 ? nextServers[0].id : '');
+          }
+          showToast(t('server.toast.deleted'), 'success');
+        } else {
+          showToast(t('server.toast.deleteFailed'), 'error');
+        }
+      } catch (error) {
+        logError('Delete server failed', error, { serverId });
+        showToast(t('server.toast.deleteError'), 'error');
+      }
     },
-    [setContextMenu],
+    [removeServerLogs, selectedServerId, servers, setSelectedServerId, setServers, showToast, t],
   );
 
-  const handleDeleteServer = useCallback(async () => {
-    if (!contextMenu) {
-      return;
-    }
-    const { serverId } = contextMenu;
-    const target = servers.find((server) => server.id === serverId);
-    setContextMenu(null);
+  const handleDuplicateServer = useCallback(
+    async (serverId: string) => {
+      const target = servers.find((server) => server.id === serverId);
+      if (!target) {
+        return;
+      }
 
-    const confirmed = await ask(t('server.confirm.delete', { name: target?.name ?? '' }), {
-      title: t('common.delete'),
-      kind: 'warning',
-    });
-    if (!confirmed) {
-      return;
-    }
+      const confirmed = await ask(t('server.confirm.clone', { name: target.name }), {
+        title: t('common.confirm'),
+        kind: 'info',
+      });
+      if (!confirmed) {
+        return;
+      }
 
-    try {
-      const success = await deleteServerApi(serverId);
-      if (success) {
-        const nextServers = servers.filter((server) => server.id !== serverId);
-        setServers(nextServers);
-        removeServerLogs(serverId);
-        if (selectedServerId === serverId) {
-          setSelectedServerId(nextServers.length > 0 ? nextServers[0].id : '');
+      try {
+        const basePath = `${target.path}-clone`;
+        const existingPaths = new Set(servers.map((server) => server.path));
+        let candidatePath = basePath;
+        let suffix = 1;
+        while (existingPaths.has(candidatePath)) {
+          candidatePath = `${basePath}-${suffix}`;
+          suffix += 1;
         }
-        showToast(t('server.toast.deleted'), 'success');
-      } else {
-        showToast(t('server.toast.deleteFailed'), 'error');
+
+        await cloneServerDirectory(target.path, candidatePath);
+
+        const duplicatedServer: MinecraftServer = {
+          ...target,
+          id: crypto.randomUUID(),
+          name: t('server.create.cloneDefaultName', { name: target.name }),
+          path: candidatePath,
+          status: 'offline',
+          createdDate: new Date().toISOString(),
+        };
+
+        await addServerApi(duplicatedServer);
+        setServers((prev) => [...prev, duplicatedServer]);
+        setSelectedServerId(duplicatedServer.id);
+        showToast(t('server.toast.cloned'), 'success');
+      } catch (error) {
+        logError('Duplicate server failed', error, {
+          sourceServerId: target.id,
+          sourcePath: target.path,
+        });
+        showToast(t('server.toast.cloneFailed'), 'error');
       }
-    } catch (error) {
-      logError('Delete server failed', error, { serverId });
-      showToast(t('server.toast.deleteError'), 'error');
-    }
-  }, [
-    contextMenu,
-    removeServerLogs,
-    selectedServerId,
-    servers,
-    setContextMenu,
-    setSelectedServerId,
-    setServers,
-    showToast,
-    t,
-  ]);
+    },
+    [servers, setSelectedServerId, setServers, showToast, t],
+  );
 
-  const handleDuplicateServer = useCallback(async () => {
-    if (!contextMenu) {
-      return;
-    }
-
-    const { serverId } = contextMenu;
-    const target = servers.find((server) => server.id === serverId);
-    setContextMenu(null);
-    if (!target) {
-      return;
-    }
-
-    const confirmed = await ask(t('server.confirm.clone', { name: target.name }), {
-      title: t('common.confirm'),
-      kind: 'info',
-    });
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      const basePath = `${target.path}-clone`;
-      const existingPaths = new Set(servers.map((server) => server.path));
-      let candidatePath = basePath;
-      let suffix = 1;
-      while (existingPaths.has(candidatePath)) {
-        candidatePath = `${basePath}-${suffix}`;
-        suffix += 1;
+  const handleSaveServerTemplate = useCallback(
+    async (serverId: string) => {
+      const target = servers.find((server) => server.id === serverId);
+      if (!target) {
+        return;
       }
 
-      await cloneServerDirectory(target.path, candidatePath);
+      const templateName = window.prompt(
+        t('server.create.templateNamePrompt'),
+        t('server.create.templateDefaultName', { name: target.name }),
+      );
+      if (!templateName || !templateName.trim()) {
+        return;
+      }
 
-      const duplicatedServer: MinecraftServer = {
-        ...target,
-        id: crypto.randomUUID(),
-        name: t('server.create.cloneDefaultName', { name: target.name }),
-        path: candidatePath,
-        status: 'offline',
-        createdDate: new Date().toISOString(),
-      };
-
-      await addServerApi(duplicatedServer);
-      setServers((prev) => [...prev, duplicatedServer]);
-      setSelectedServerId(duplicatedServer.id);
-      showToast(t('server.toast.cloned'), 'success');
-    } catch (error) {
-      logError('Duplicate server failed', error, {
-        sourceServerId: target.id,
-        sourcePath: target.path,
-      });
-      showToast(t('server.toast.cloneFailed'), 'error');
-    }
-  }, [contextMenu, servers, setContextMenu, setSelectedServerId, setServers, showToast, t]);
-
-  const handleSaveServerTemplate = useCallback(async () => {
-    if (!contextMenu) {
-      return;
-    }
-
-    const { serverId } = contextMenu;
-    const target = servers.find((server) => server.id === serverId);
-    setContextMenu(null);
-    if (!target) {
-      return;
-    }
-
-    const templateName = window.prompt(
-      t('server.create.templateNamePrompt'),
-      t('server.create.templateDefaultName', { name: target.name }),
-    );
-    if (!templateName || !templateName.trim()) {
-      return;
-    }
-
-    try {
-      const template = buildTemplateFromServer(target, templateName.trim());
-      await saveServerTemplate(template);
-      await loadTemplates();
-      showToast(t('server.toast.templateSaved'), 'success');
-    } catch (error) {
-      logError('Save server template failed', error, {
-        serverId: target.id,
-        templateName: templateName.trim(),
-      });
-      showToast(t('server.toast.templateSaveFailed'), 'error');
-    }
-  }, [contextMenu, loadTemplates, servers, setContextMenu, showToast, t]);
-
-  const handleClickOutside = useCallback(() => {
-    if (contextMenu) {
-      setContextMenu(null);
-    }
-  }, [contextMenu, setContextMenu]);
+      try {
+        const template = buildTemplateFromServer(target, templateName.trim());
+        await saveServerTemplate(template);
+        await loadTemplates();
+        showToast(t('server.toast.templateSaved'), 'success');
+      } catch (error) {
+        logError('Save server template failed', error, {
+          serverId: target.id,
+          templateName: templateName.trim(),
+        });
+        showToast(t('server.toast.templateSaveFailed'), 'error');
+      }
+    },
+    [loadTemplates, servers, showToast, t],
+  );
 
   return {
-    handleContextMenu,
     handleDeleteServer,
     handleDuplicateServer,
     handleSaveServerTemplate,
-    handleClickOutside,
   };
 }

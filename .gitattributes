@@ -1,19 +1,6 @@
 # GitHub Linguist Configuration
 # Make build/dev environment files visible in language statistics
 
-# Nix configuration files
-*.nix linguist-language=Nix linguist-detectable=true
-flake.lock linguist-detectable=true
-
-# Build automation files
-Makefile linguist-language=Makefile linguist-detectable=true
-
-# Shell script files
-*.sh linguist-language=Shell linguist-detectable=true
-
-# js files
-*.js linguist-language=JavaScript linguist-detectable=true
-
 # Exclude documentation from language statistics
 docs/** linguist-documentation=true
 
@@ -27,3 +14,9 @@ skills-lock.json linguist-generated=true
 # Exclude build artifacts (Tauri/Rust)
 src-tauri/target/** linguist-vendored=true
 src-tauri/Cargo.lock linguist-generated=true
+
+Makefile linguist-detectable=false
+scripts/**/*.js linguist-detectable=false
+
+docs/**/*.astro linguist-detectable=true linguist-language=Astro
+docs/**/*.mdx linguist-detectable=true linguist-language=MDX

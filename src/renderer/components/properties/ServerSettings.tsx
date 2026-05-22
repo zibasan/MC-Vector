@@ -1,5 +1,6 @@
 import { appDataDir } from '@tauri-apps/api/path';
 import React, { useEffect, useRef, useState } from 'react';
+import { copyToClipboard } from '../../../lib/clipboard-commands';
 import { useTranslation } from '../../../i18n';
 import { getJavaVersions, type JavaVersion } from '../../../lib/java-commands';
 import {
@@ -13,8 +14,11 @@ import {
 } from '../../../lib/ngrok-commands';
 import { type MinecraftServer } from '../../components/../shared/server declaration';
 import { VERSION_OPTIONS } from '../../constants/versionOptions';
+import { JVM_PRESETS } from '../../shared/jvm-presets';
 import JavaManagerModal from '../JavaManagerModal';
-import { useToast } from '../ToastProvider';
+import VersionUpgradeWizard from '../VersionUpgradeWizard';
+import { toast } from 'sonner';
+import { Select } from '../ui/Select';
 
 interface ServerSettingsProps {
   server: MinecraftServer;
@@ -43,7 +47,7 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave, onOpenN
   const [memory, setMemory] = useState(server.memory);
   const [port, setPort] = useState(server.port);
   const [path, setPath] = useState(server.path);
-  const [javaPath, setJavaPath] = useState(server.javaPath || '');
+  const [javaPath, setJavaPath] = useState(server.javaPath || '__system_default__');
   const [autoRestartOnCrash, setAutoRestartOnCrash] = useState(Boolean(server.autoRestartOnCrash));
   const [maxAutoRestarts, setMaxAutoRestarts] = useState(server.maxAutoRestarts ?? 3);
   const [autoRestartDelaySec, setAutoRestartDelaySec] = useState(server.autoRestartDelaySec ?? 5);
@@ -56,9 +60,23 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave, onOpenN
   >(server.autoBackupScheduleType ?? 'interval');
   const [autoBackupTime, setAutoBackupTime] = useState(server.autoBackupTime ?? '03:00');
   const [autoBackupWeekday, setAutoBackupWeekday] = useState(server.autoBackupWeekday ?? 0);
+  const [autoBackupRetainCount, setAutoBackupRetainCount] = useState(
+    server.autoBackupRetainCount ?? 0,
+  );
+  const [autoBackupRetainDays, setAutoBackupRetainDays] = useState(
+    server.autoBackupRetainDays ?? 0,
+  );
+  const [jvmArgs, setJvmArgs] = useState(server.jvmArgs ?? '');
+  const [notifyOnCrash, setNotifyOnCrash] = useState(server.notifyOnCrash !== false);
+  const [notifyOnStart, setNotifyOnStart] = useState(Boolean(server.notifyOnStart));
+  const [notifyOnHighCpu, setNotifyOnHighCpu] = useState(Boolean(server.notifyOnHighCpu));
+  const [notifyHighCpuThreshold, setNotifyHighCpuThreshold] = useState(
+    server.notifyHighCpuThreshold ?? 90,
+  );
   const [isSaving, setIsSaving] = useState(false);
 
   const [showJavaManager, setShowJavaManager] = useState(false);
+  const [showVersionWizard, setShowVersionWizard] = useState(false);
   const [installedJava, setInstalledJava] = useState<JavaVersion[]>([]);
 
   const [isTunneling, setIsTunneling] = useState(false);
@@ -68,7 +86,11 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave, onOpenN
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [inputToken, setInputToken] = useState('');
 
-  const { showToast } = useToast();
+  const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'info') => {
+    if (type === 'success') toast.success(msg);
+    else if (type === 'error') toast.error(msg);
+    else toast(msg);
+  };
 
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -86,7 +108,7 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave, onOpenN
     if (server.javaPath) {
       setJavaPath(server.javaPath);
     } else {
-      setJavaPath('');
+      setJavaPath('__system_default__');
     }
     setAutoRestartOnCrash(Boolean(server.autoRestartOnCrash));
     setMaxAutoRestarts(server.maxAutoRestarts ?? 3);
@@ -96,6 +118,13 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave, onOpenN
     setAutoBackupScheduleType(server.autoBackupScheduleType ?? 'interval');
     setAutoBackupTime(server.autoBackupTime ?? '03:00');
     setAutoBackupWeekday(server.autoBackupWeekday ?? 0);
+    setAutoBackupRetainCount(server.autoBackupRetainCount ?? 0);
+    setAutoBackupRetainDays(server.autoBackupRetainDays ?? 0);
+    setJvmArgs(server.jvmArgs ?? '');
+    setNotifyOnCrash(server.notifyOnCrash !== false);
+    setNotifyOnStart(Boolean(server.notifyOnStart));
+    setNotifyOnHighCpu(Boolean(server.notifyOnHighCpu));
+    setNotifyHighCpuThreshold(server.notifyHighCpuThreshold ?? 90);
 
     loadJavaList();
 
@@ -177,7 +206,7 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave, onOpenN
         port,
         path,
         software,
-        javaPath: javaPath || undefined,
+        javaPath: javaPath === '__system_default__' ? undefined : javaPath,
         autoRestartOnCrash,
         maxAutoRestarts: normalizedRestartLimit,
         autoRestartDelaySec: normalizedRestartDelay,
@@ -186,6 +215,13 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave, onOpenN
         autoBackupScheduleType: normalizedScheduleType,
         autoBackupTime: normalizedBackupTime,
         autoBackupWeekday: normalizedBackupWeekday,
+        autoBackupRetainCount,
+        autoBackupRetainDays,
+        jvmArgs: jvmArgs.trim() || undefined,
+        notifyOnCrash,
+        notifyOnStart,
+        notifyOnHighCpu,
+        notifyHighCpuThreshold,
       });
     } finally {
       setIsSaving(false);
@@ -235,7 +271,7 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave, onOpenN
 
   const handleCopyUrl = () => {
     if (tunnelUrl) {
-      navigator.clipboard.writeText(tunnelUrl);
+      void copyToClipboard(tunnelUrl);
       showToast(t('serverSettings.ngrok.addressCopied'), 'success');
     }
   };
@@ -289,62 +325,74 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave, onOpenN
           <div className="server-settings__row">
             <div className="server-settings__col">
               <label className="server-settings__label">{t('serverSettings.serverSoftware')}</label>
-              <select
+              <Select
                 value={software}
-                onChange={(e) => setSoftware(e.target.value)}
-                className="input-field"
-              >
-                <optgroup label={t('serverSettings.softwareGroups.standard')}>
-                  <option value="Vanilla">{t('serverSettings.softwareOptions.vanilla')}</option>
-                  <option value="Paper">{t('serverSettings.softwareOptions.paper')}</option>
-                  <option value="LeafMC">{t('serverSettings.softwareOptions.leafmc')}</option>
-                  <option value="Spigot">{t('serverSettings.softwareOptions.spigot')}</option>
-                </optgroup>
-                <optgroup label={t('serverSettings.softwareGroups.modded')}>
-                  <option value="Fabric">{t('serverSettings.softwareOptions.fabric')}</option>
-                  <option value="Forge">{t('serverSettings.softwareOptions.forge')}</option>
-                </optgroup>
-                <optgroup label={t('serverSettings.softwareGroups.proxy')}>
-                  <option value="Velocity">{t('serverSettings.softwareOptions.velocity')}</option>
-                  <option value="Waterfall">{t('serverSettings.softwareOptions.waterfall')}</option>
-                  <option value="BungeeCord">
-                    {t('serverSettings.softwareOptions.bungeecord')}
-                  </option>
-                </optgroup>
-              </select>
+                onValueChange={setSoftware}
+                groups={[
+                  {
+                    label: t('serverSettings.softwareGroups.standard'),
+                    options: [
+                      { value: 'Vanilla', label: t('serverSettings.softwareOptions.vanilla') },
+                      { value: 'Paper', label: t('serverSettings.softwareOptions.paper') },
+                      { value: 'LeafMC', label: t('serverSettings.softwareOptions.leafmc') },
+                      { value: 'Spigot', label: t('serverSettings.softwareOptions.spigot') },
+                    ],
+                  },
+                  {
+                    label: t('serverSettings.softwareGroups.modded'),
+                    options: [
+                      { value: 'Fabric', label: t('serverSettings.softwareOptions.fabric') },
+                      { value: 'Forge', label: t('serverSettings.softwareOptions.forge') },
+                    ],
+                  },
+                  {
+                    label: t('serverSettings.softwareGroups.proxy'),
+                    options: [
+                      { value: 'Velocity', label: t('serverSettings.softwareOptions.velocity') },
+                      { value: 'Waterfall', label: t('serverSettings.softwareOptions.waterfall') },
+                      {
+                        value: 'BungeeCord',
+                        label: t('serverSettings.softwareOptions.bungeecord'),
+                      },
+                    ],
+                  },
+                ]}
+              />
             </div>
 
             <div className="server-settings__col">
               <label className="server-settings__label">{t('serverSettings.version')}</label>
-              <select
+              <Select
                 value={version}
-                onChange={(e) => setVersion(e.target.value)}
-                className="input-field"
+                onValueChange={setVersion}
+                options={VERSION_OPTIONS.map((v) => ({ value: v, label: v }))}
+              />
+            </div>
+
+            <div className="server-settings__col server-settings__col--auto">
+              <label className="server-settings__label">&nbsp;</label>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setShowVersionWizard(true)}
               >
-                {VERSION_OPTIONS.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
+                {t('serverSettings.versionUpgrade.buttonLabel')}
+              </button>
             </div>
           </div>
 
           <div className="server-settings__field-block">
             <label className="server-settings__label">{t('serverSettings.javaRuntime')}</label>
             <div className="server-settings__java-row server-settings__java-row--runtime">
-              <select
+              <Select
                 value={javaPath}
-                onChange={(e) => setJavaPath(e.target.value)}
-                className="input-field server-settings__java-runtime-select"
-              >
-                <option value="">{t('serverSettings.javaSystemDefault')}</option>
-                {installedJava.map((j) => (
-                  <option key={j.path} value={j.path}>
-                    {j.name} ({j.path})
-                  </option>
-                ))}
-              </select>
+                onValueChange={setJavaPath}
+                className="server-settings__java-runtime-select"
+                options={[
+                  { value: '__system_default__', label: t('serverSettings.javaSystemDefault') },
+                  ...installedJava.map((j) => ({ value: j.path, label: `${j.name} (${j.path})` })),
+                ]}
+              />
               <button
                 className="btn-secondary whitespace-nowrap server-settings__java-manage-btn"
                 onClick={() => {
@@ -376,6 +424,39 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave, onOpenN
                 className="input-field"
               />
             </div>
+          </div>
+
+          <div className="server-settings__field-block">
+            <label className="server-settings__label">{t('serverSettings.jvmArgs.label')}</label>
+            <div className="server-settings__jvm-presets">
+              {JVM_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className="control-chip server-settings__jvm-preset-btn"
+                  onClick={() => setJvmArgs(preset.args)}
+                >
+                  {t(preset.labelKey)}
+                </button>
+              ))}
+              {jvmArgs && (
+                <button
+                  type="button"
+                  className="control-chip server-settings__jvm-preset-btn"
+                  onClick={() => setJvmArgs('')}
+                >
+                  {t('serverSettings.jvmArgs.clear')}
+                </button>
+              )}
+            </div>
+            <textarea
+              className="input-field server-settings__jvm-textarea"
+              value={jvmArgs}
+              onChange={(e) => setJvmArgs(e.target.value)}
+              placeholder={t('serverSettings.jvmArgs.placeholder')}
+              rows={3}
+            />
+            <div className="server-settings__form-help">{t('serverSettings.jvmArgs.help')}</div>
           </div>
 
           <div className="server-settings__field-block">
@@ -450,23 +531,23 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave, onOpenN
                 <label className="server-settings__label">
                   {t('serverSettings.autoBackup.scheduleType')}
                 </label>
-                <select
+                <Select
                   value={autoBackupScheduleType}
-                  onChange={(event) =>
-                    setAutoBackupScheduleType(event.target.value as 'interval' | 'daily' | 'weekly')
+                  onValueChange={(v) =>
+                    setAutoBackupScheduleType(v as 'interval' | 'daily' | 'weekly')
                   }
-                  className="input-field"
-                >
-                  <option value="interval">
-                    {t('serverSettings.autoBackup.scheduleOptions.interval')}
-                  </option>
-                  <option value="daily">
-                    {t('serverSettings.autoBackup.scheduleOptions.daily')}
-                  </option>
-                  <option value="weekly">
-                    {t('serverSettings.autoBackup.scheduleOptions.weekly')}
-                  </option>
-                </select>
+                  options={[
+                    {
+                      value: 'interval',
+                      label: t('serverSettings.autoBackup.scheduleOptions.interval'),
+                    },
+                    { value: 'daily', label: t('serverSettings.autoBackup.scheduleOptions.daily') },
+                    {
+                      value: 'weekly',
+                      label: t('serverSettings.autoBackup.scheduleOptions.weekly'),
+                    },
+                  ]}
+                />
               </div>
 
               {autoBackupScheduleType === 'interval' ? (
@@ -502,20 +583,100 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave, onOpenN
                   <label className="server-settings__label">
                     {t('serverSettings.autoBackup.weekday')}
                   </label>
-                  <select
-                    value={autoBackupWeekday}
-                    onChange={(event) => setAutoBackupWeekday(Number(event.target.value))}
-                    className="input-field"
-                  >
-                    {WEEKDAY_OPTIONS.map((weekday) => (
-                      <option key={weekday.value} value={weekday.value}>
-                        {weekday.label}
-                      </option>
-                    ))}
-                  </select>
+                  <Select
+                    value={String(autoBackupWeekday)}
+                    onValueChange={(v) => setAutoBackupWeekday(Number(v))}
+                    options={WEEKDAY_OPTIONS.map((w) => ({
+                      value: String(w.value),
+                      label: w.label,
+                    }))}
+                  />
                 </div>
               )}
+
+              <div className="server-settings__row">
+                <div className="server-settings__col">
+                  <label className="server-settings__label">
+                    {t('serverSettings.autoBackup.retainCount')}
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={999}
+                    value={autoBackupRetainCount}
+                    onChange={(event) => setAutoBackupRetainCount(Number(event.target.value))}
+                    className="input-field"
+                  />
+                </div>
+                <div className="server-settings__col">
+                  <label className="server-settings__label">
+                    {t('serverSettings.autoBackup.retainDays')}
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={365}
+                    value={autoBackupRetainDays}
+                    onChange={(event) => setAutoBackupRetainDays(Number(event.target.value))}
+                    className="input-field"
+                  />
+                </div>
+              </div>
             </div>
+          </div>
+
+          <div className="server-settings__section">
+            <h3 className="server-settings__section-title">
+              {t('serverSettings.notifications.title')}
+            </h3>
+            <div className="server-settings__row">
+              <label className="server-settings__label">
+                <input
+                  type="checkbox"
+                  checked={notifyOnCrash}
+                  onChange={(e) => setNotifyOnCrash(e.target.checked)}
+                  className="mr-2"
+                />
+                {t('serverSettings.notifications.onCrash')}
+              </label>
+            </div>
+            <div className="server-settings__row">
+              <label className="server-settings__label">
+                <input
+                  type="checkbox"
+                  checked={notifyOnStart}
+                  onChange={(e) => setNotifyOnStart(e.target.checked)}
+                  className="mr-2"
+                />
+                {t('serverSettings.notifications.onStart')}
+              </label>
+            </div>
+            <div className="server-settings__row">
+              <label className="server-settings__label">
+                <input
+                  type="checkbox"
+                  checked={notifyOnHighCpu}
+                  onChange={(e) => setNotifyOnHighCpu(e.target.checked)}
+                  className="mr-2"
+                />
+                {t('serverSettings.notifications.onHighCpu')}
+              </label>
+            </div>
+            {notifyOnHighCpu && (
+              <div className="server-settings__row">
+                <label className="server-settings__label">
+                  {t('serverSettings.notifications.cpuThreshold')}
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={notifyHighCpuThreshold}
+                  onChange={(e) => setNotifyHighCpuThreshold(Number(e.target.value))}
+                  className="input-field"
+                />
+              </div>
+            )}
           </div>
 
           <div className="server-settings__actions">
@@ -619,14 +780,13 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave, onOpenN
         </div>
       </div>
 
-      {showJavaManager && (
-        <JavaManagerModal
-          onClose={() => {
-            setShowJavaManager(false);
-            loadJavaList();
-          }}
-        />
-      )}
+      <JavaManagerModal
+        open={showJavaManager}
+        onClose={() => {
+          setShowJavaManager(false);
+          loadJavaList();
+        }}
+      />
 
       {showTokenModal && (
         <div className="server-settings__token-overlay modal-backdrop">
@@ -661,6 +821,17 @@ const ServerSettings: React.FC<ServerSettingsProps> = ({ server, onSave, onOpenN
             </div>
           </div>
         </div>
+      )}
+
+      {showVersionWizard && (
+        <VersionUpgradeWizard
+          server={server}
+          onClose={() => setShowVersionWizard(false)}
+          onServerUpdate={async (updated) => {
+            await onSave(updated);
+            setShowVersionWizard(false);
+          }}
+        />
       )}
     </div>
   );

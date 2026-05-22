@@ -9,6 +9,7 @@ import {
   YAxis,
 } from 'recharts';
 import { useTranslation, type Translate, type TranslationKey } from '../../i18n';
+import { sendServerNotification } from '../../lib/notification-commands';
 import { sendCommand } from '../../lib/server-commands';
 import { tauriListen } from '../../lib/tauri-api';
 import {
@@ -226,15 +227,62 @@ const TpsChartCard = memo(function TpsChartCard({ title, data, emptyLabel }: Tps
   );
 });
 
+function formatUptime(startedAt: number): string {
+  const elapsed = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+  const h = Math.floor(elapsed / 3600);
+  const m = Math.floor((elapsed % 3600) / 60);
+  const s = elapsed % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
 export default function DashboardView({ server }: Props) {
   const { t } = useTranslation();
   const [resourceStats, setResourceStats] = useState<ResourcePoint[]>([]);
   const [tpsStats, setTpsStats] = useState<TpsPoint[]>([]);
+  const [startedAt, setStartedAt] = useState<number | null>(
+    server.status === 'online' ? Date.now() : null,
+  );
+  const [uptime, setUptime] = useState<string>('--:--:--');
 
   useEffect(() => {
     setResourceStats([]);
     setTpsStats([]);
   }, [server.id, server.software]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let unlisten: (() => void) | undefined;
+    void tauriListen<{ serverId: string; status: string }>('server-status-change', (data) => {
+      if (data.serverId !== server.id) {
+        return;
+      }
+      if (data.status === 'online') {
+        setStartedAt(Date.now());
+      } else {
+        setStartedAt(null);
+        setUptime('--:--:--');
+      }
+    }).then((u) => {
+      if (cancelled) {
+        u();
+        return;
+      }
+      unlisten = u;
+    });
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [server.id]);
+
+  useEffect(() => {
+    if (startedAt === null) {
+      return;
+    }
+    setUptime(formatUptime(startedAt));
+    const id = window.setInterval(() => setUptime(formatUptime(startedAt)), 1000);
+    return () => window.clearInterval(id);
+  }, [startedAt]);
 
   const supportsTpsPolling = useMemo(() => {
     return server.software === 'Paper' || server.software === 'LeafMC';
@@ -307,6 +355,18 @@ export default function DashboardView({ server }: Props) {
         ];
         return pruneMetricWindow(next, now);
       });
+
+      if (server.notifyOnHighCpu) {
+        const threshold = server.notifyHighCpuThreshold ?? 90;
+        if (cpuVal >= threshold) {
+          const cooldownKey = `cpu-notify-${server.id}`;
+          const lastNotified = Number(sessionStorage.getItem(cooldownKey) ?? '0');
+          if (now - lastNotified >= 5 * 60 * 1000) {
+            sessionStorage.setItem(cooldownKey, String(now));
+            void sendServerNotification(server.name, t('server.notification.highCpu'));
+          }
+        }
+      }
     }).then((u) => {
       if (cancelled) {
         u();
@@ -319,7 +379,7 @@ export default function DashboardView({ server }: Props) {
       cancelled = true;
       unlisten?.();
     };
-  }, [server.id]);
+  }, [server.id, server.notifyOnHighCpu, server.notifyHighCpuThreshold, server.name, t]);
 
   useEffect(() => {
     let cancelled = false;
@@ -438,6 +498,11 @@ export default function DashboardView({ server }: Props) {
           <div className="kpi-tile__label">{t('dashboard.stats.software')}</div>
           <div className="kpi-tile__value dashboard-view__software-value">{server.software}</div>
           <div className="kpi-tile__meta">{server.version}</div>
+        </article>
+
+        <article className="dashboard-view__kpi-card dashboard-view__kpi-card--uptime kpi-tile">
+          <div className="kpi-tile__label">{t('dashboard.stats.uptime')}</div>
+          <div className="kpi-tile__value dashboard-view__uptime-value">{uptime}</div>
         </article>
       </section>
 

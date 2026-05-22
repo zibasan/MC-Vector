@@ -1,11 +1,10 @@
 import type { ServerTemplate } from '../../lib/server-commands';
-import type { ServerContextMenuState } from '../../store/uiStore';
 import type { Translate } from '../../i18n';
 import type { UpdatePromptState } from '../hooks/use-app-updater';
 import AddServerModal from './AddServerModal';
-import AppContextMenu from './AppContextMenu';
 import AppDownloadToast from './AppDownloadToast';
 import AppUpdateModal from './AppUpdateModal';
+import ImportServerModal from './ImportServerModal';
 
 interface DownloadStatus {
   id: string;
@@ -19,10 +18,8 @@ interface AppOverlayLayerProps {
   onCloseAddServerModal: () => void;
   onAddServer: (serverData: unknown) => void;
   serverTemplates: ServerTemplate[];
-  contextMenu: ServerContextMenuState | null;
-  onDuplicateServer: () => Promise<void>;
-  onSaveServerTemplate: () => Promise<void>;
-  onDeleteServer: () => Promise<void>;
+  showImportServerModal: boolean;
+  onCloseImportServerModal: () => void;
   updatePrompt: UpdatePromptState | null;
   updateProgress: number | null;
   updateError: string | null;
@@ -39,10 +36,8 @@ export default function AppOverlayLayer({
   onCloseAddServerModal,
   onAddServer,
   serverTemplates,
-  contextMenu,
-  onDuplicateServer,
-  onSaveServerTemplate,
-  onDeleteServer,
+  showImportServerModal,
+  onCloseImportServerModal,
   updatePrompt,
   updateProgress,
   updateError,
@@ -61,23 +56,17 @@ export default function AppOverlayLayer({
           message={downloadStatus.msg}
         />
       )}
-      {showAddServerModal && (
-        <AddServerModal
-          onClose={onCloseAddServerModal}
-          onAdd={onAddServer}
-          templates={serverTemplates}
-        />
-      )}
-      <AppContextMenu
-        contextMenu={contextMenu}
-        onDuplicateServer={onDuplicateServer}
-        onSaveServerTemplate={onSaveServerTemplate}
-        onDeleteServer={onDeleteServer}
-        cloneLabel={t('server.actions.clone')}
-        saveTemplateLabel={t('server.actions.saveTemplate')}
-        deleteLabel={t('common.delete')}
+      <AddServerModal
+        open={showAddServerModal}
+        onClose={onCloseAddServerModal}
+        onAdd={onAddServer}
+        templates={serverTemplates}
       />
-
+      <ImportServerModal
+        open={showImportServerModal}
+        onClose={onCloseImportServerModal}
+        onAdd={onAddServer}
+      />
       <AppUpdateModal
         updatePrompt={updatePrompt}
         updateProgress={updateProgress}
